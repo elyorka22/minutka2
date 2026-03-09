@@ -9,12 +9,13 @@ if (!fs.existsSync(clientPath)) {
 }
 
 let code = fs.readFileSync(clientPath, 'utf8');
-const bad = "globalThis['__dirname'] = path.dirname((0, node_url_1.fileURLToPath)(import.meta.url));";
 const good = "globalThis['__dirname'] = __dirname;";
-if (!code.includes(bad)) {
-  console.warn('fix-prisma-client: expected line not found, skip');
-  process.exit(0);
+const alreadyPatched = code.includes(good);
+const importMetaRegex = /globalThis\s*\[\s*['"]__dirname['"]\s*\]\s*=\s*[^;]+import\.meta\.url[^;]*;/;
+if (importMetaRegex.test(code)) {
+  code = code.replace(importMetaRegex, good);
+  fs.writeFileSync(clientPath, code);
+  console.log('fix-prisma-client: patched import.meta.url -> __dirname in client.js');
+} else if (!alreadyPatched) {
+  console.warn('fix-prisma-client: no import.meta line to patch found');
 }
-code = code.replace(bad, good);
-fs.writeFileSync(clientPath, code);
-console.log('fix-prisma-client: patched import.meta.url -> __dirname in client.js');
