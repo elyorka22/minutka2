@@ -1,0 +1,67 @@
+"use client";
+
+import { FormEvent, useState } from "react";
+
+const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:4000";
+
+export default function LoginPage() {
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [error, setError] = useState<string | null>(null);
+  const [token, setToken] = useState<string | null>(
+    typeof window === "undefined" ? null : window.localStorage.getItem("token"),
+  );
+
+  async function handleSubmit(e: FormEvent) {
+    e.preventDefault();
+    setError(null);
+    try {
+      const res = await fetch(`${API_BASE}/auth/login`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, password }),
+      });
+      if (!res.ok) {
+        throw new Error("Неверные данные");
+      }
+      const data = (await res.json()) as { accessToken: string };
+      window.localStorage.setItem("token", data.accessToken);
+      setToken(data.accessToken);
+    } catch (err: any) {
+      setError(err.message ?? "Ошибка авторизации");
+    }
+  }
+
+  return (
+    <div className="fd-shell fd-section">
+      <h1 className="fd-section-title">Вход для админа</h1>
+      {token && (
+        <p className="fd-success">Токен сохранён в браузере. Можно открывать админ-панели.</p>
+      )}
+      <form onSubmit={handleSubmit} className="fd-form" style={{ maxWidth: 360 }}>
+        <label className="fd-field">
+          <span>Email</span>
+          <input
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            type="email"
+            required
+          />
+        </label>
+        <label className="fd-field">
+          <span>Пароль</span>
+          <input
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            type="password"
+            required
+          />
+        </label>
+        {error && <p style={{ color: "#ff6a00" }}>{error}</p>}
+        <button className="fd-btn fd-btn-primary" type="submit">
+          Войти
+        </button>
+      </form>
+    </div>
+  );
+}

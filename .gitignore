@@ -1,0 +1,23 @@
+# Node / JS
+node_modules
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Next.js
+.next
+out
+
+# NestJS
+backend/dist
+
+# Tests / Playwright
+test-results
+playwright-report
+
+# Env
+.env
+.env.*
+
+# Prisma
+backend/prisma/dev.db
