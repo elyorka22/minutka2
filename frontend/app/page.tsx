@@ -27,7 +27,7 @@ export default async function HomePage() {
       <section className="fd-hero">
         <div className="fd-hero-content">
           <h1>Доставка еды из лучших ресторанов</h1>
-          <p>Горячая еда за считанные минуты. Ярко, быстро, вкусно.</p>
+          <p>Закажи горячее за минуты — рестораны рядом, оплата картой или наличными.</p>
           <div className="fd-hero-actions">
             <Link href="/restaurants" className="fd-btn fd-btn-primary">
               Выбрать ресторан

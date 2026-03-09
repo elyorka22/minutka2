@@ -102,47 +102,29 @@ export default function CheckoutPage() {
 
               <div className="fd-field">
                 <span>Геолокация (широта и долгота)</span>
-                <div style={{ display: "flex", gap: 8 }}>
-                  <input
-                    style={{ flex: 1 }}
-                    placeholder="Широта"
-                    value={lat}
-                    onChange={(e) => setLat(e.target.value)}
-                  />
-                  <input
-                    style={{ flex: 1 }}
-                    placeholder="Долгота"
-                    value={lng}
-                    onChange={(e) => setLng(e.target.value)}
-                  />
+                <div className="fd-geo-inputs">
+                  <input placeholder="Широта" value={lat} onChange={(e) => setLat(e.target.value)} />
+                  <input placeholder="Долгота" value={lng} onChange={(e) => setLng(e.target.value)} />
                 </div>
-                <button
-                  type="button"
-                  className="fd-btn"
-                  style={{ marginTop: 8, alignSelf: "flex-start" }}
-                  onClick={handleGeoClick}
-                >
+                <button type="button" className="fd-btn fd-geo-btn" onClick={handleGeoClick}>
                   Использовать мою геопозицию
                 </button>
               </div>
 
               {hasCoords && (
-                <div style={{ borderRadius: 16, overflow: "hidden", border: "1px solid rgba(255,255,255,0.15)" }}>
+                <div className="fd-map-wrap">
                   <iframe
                     title="Карта доставки"
-                    width="100%"
-                    height="220"
-                    style={{ border: 0 }}
                     loading="lazy"
                     src={`https://www.openstreetmap.org/export/embed.html?bbox=${bbox}&layer=mapnik&marker=${latNum},${lngNum}`}
                   />
                 </div>
               )}
 
-              <fieldset className="fd-field" style={{ border: "none", padding: 0 }}>
+              <fieldset className="fd-field">
                 <span>Способ оплаты</span>
-                <div style={{ display: "flex", gap: 12 }}>
-                  <label style={{ display: "flex", alignItems: "center", gap: 4 }}>
+                <div className="fd-radio-group">
+                  <label>
                     <input
                       type="radio"
                       checked={paymentMethod === "CASH"}
@@ -150,7 +132,7 @@ export default function CheckoutPage() {
                     />
                     <span>Наличными курьеру</span>
                   </label>
-                  <label style={{ display: "flex", alignItems: "center", gap: 4 }}>
+                  <label>
                     <input
                       type="radio"
                       checked={paymentMethod === "CARD"}
