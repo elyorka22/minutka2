@@ -60,9 +60,14 @@ export default function ProfilePage() {
             Agar siz restoran yoki platforma administratori bo&apos;lsangiz, quyidagi tugma orqali
             tizimga kirib, admin panellariga o&apos;tishingiz mumkin.
           </p>
-          <Link href="/login" className="fd-btn fd-btn-primary" style={{ marginTop: 12 }}>
-            Kirish (adminlar uchun)
-          </Link>
+          <div style={{ marginTop: 12, display: "flex", gap: 8, flexWrap: "wrap" }}>
+            <Link href="/login" className="fd-btn fd-btn-primary">
+              Kirish (adminlar uchun)
+            </Link>
+            <Link href="/login" className="fd-btn">
+              Ro‘yxatdan o‘tish (adminlar uchun)
+            </Link>
+          </div>
         </div>
       )}
 
