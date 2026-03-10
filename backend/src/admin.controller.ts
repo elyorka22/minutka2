@@ -11,6 +11,7 @@ import {
 } from '@nestjs/common';
 import { JwtAuthGuard } from './auth/jwt-auth.guard';
 import { PrismaService } from './prisma.service';
+import { UserRole } from '../generated/prisma/enums';
 
 interface RequestWithUser {
   user?: { id: string; role: string };
@@ -56,14 +57,19 @@ export class AdminController {
   @Patch('users/:id/role')
   async updateUserRole(
     @Param('id') id: string,
-    @Body() body: { role?: string },
+    @Body() body: { role?: UserRole },
     @Req() req: RequestWithUser,
   ) {
     if (req.user?.role !== 'PLATFORM_ADMIN') {
       throw new ForbiddenException('Only platform admin allowed');
     }
 
-    const allowedRoles = ['CUSTOMER', 'RESTAURANT_ADMIN', 'PLATFORM_ADMIN', 'COURIER'];
+    const allowedRoles: UserRole[] = [
+      UserRole.CUSTOMER,
+      UserRole.RESTAURANT_ADMIN,
+      UserRole.PLATFORM_ADMIN,
+      UserRole.COURIER,
+    ];
     const role = body.role;
 
     if (!role || !allowedRoles.includes(role)) {
