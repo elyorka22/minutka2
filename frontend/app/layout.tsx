@@ -13,7 +13,7 @@ function Header() {
     <header className="fd-header">
       <div className="fd-header-left">
         <Link href="/" className="fd-logo">
-          BiteNow
+          минутку
         </Link>
         <nav className="fd-nav">
           <Link href="/" className="fd-nav-link">Главная</Link>
