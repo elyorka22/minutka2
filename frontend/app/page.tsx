@@ -25,13 +25,6 @@ export default async function HomePage() {
   return (
     <div className="fd-shell">
       <section className="fd-home-top">
-        <div className="fd-home-address">
-          <div className="fd-home-address-title">Yetkazib berish manzili</div>
-          <button type="button" className="fd-home-address-value">
-            Toshkent, markaziy tuman
-          </button>
-        </div>
-
         <div className="fd-home-search">
           <input
             className="fd-home-search-input"
