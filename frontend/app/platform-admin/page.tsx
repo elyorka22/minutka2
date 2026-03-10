@@ -1,12 +1,14 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import { adminApi } from "../../lib/adminApi";
 
 export default function PlatformAdminPage() {
   const [data, setData] = useState<any | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const router = useRouter();
 
   useEffect(() => {
     let active = true;
@@ -43,6 +45,15 @@ export default function PlatformAdminPage() {
               },
       },
     );
+
+    if (res.status === 401 || res.status === 403) {
+      if (typeof window !== "undefined") {
+        window.localStorage.removeItem("token");
+      }
+      router.push("/login?next=/platform-admin");
+      throw new Error("Unauthorized");
+    }
+
     if (!res.ok) throw new Error("Ошибка ответа сервера");
     return (await res.json()) as any;
   }

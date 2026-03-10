@@ -1,6 +1,7 @@
 "use client";
 
 import { FormEvent, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:4000";
 
@@ -11,6 +12,9 @@ export default function LoginPage() {
   const [token, setToken] = useState<string | null>(
     typeof window === "undefined" ? null : window.localStorage.getItem("token"),
   );
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const next = searchParams.get("next");
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
@@ -27,6 +31,12 @@ export default function LoginPage() {
       const data = (await res.json()) as { accessToken: string };
       window.localStorage.setItem("token", data.accessToken);
       setToken(data.accessToken);
+
+      if (next) {
+        router.push(next);
+      } else {
+        router.push("/profile");
+      }
     } catch (err: any) {
       setError(err.message ?? "Avtorizatsiya xatosi");
     }
