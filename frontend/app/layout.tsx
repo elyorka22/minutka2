@@ -22,11 +22,26 @@ function Header() {
   }, []);
 
   async function handleInstallClick() {
-    if (!installEvent) return;
-    installEvent.prompt?.();
-    await installEvent.userChoice?.();
-    setCanInstall(false);
-    setInstallEvent(null);
+    if (installEvent) {
+      installEvent.prompt?.();
+      await installEvent.userChoice?.();
+      setCanInstall(false);
+      setInstallEvent(null);
+      return;
+    }
+
+    if (typeof window !== "undefined") {
+      const ua = window.navigator.userAgent.toLowerCase();
+      if (/iphone|ipad|ipod/.test(ua)) {
+        alert(
+          "iOS qurilmasida ilovani o‘rnatish uchun brauzer menyusidan “Add to Home Screen” ni tanlang."
+        );
+      } else {
+        alert(
+          "Brauzer menyusidan saytni asosiy ekranga qo‘shish funksiyasi orqali ilovani o‘rnatishingiz mumkin."
+        );
+      }
+    }
   }
 
   return (
@@ -40,18 +55,16 @@ function Header() {
           <Link href="/restaurants" className="fd-nav-link">Restoranlar</Link>
         </nav>
       </div>
-      {canInstall && (
-        <button
-          type="button"
-          className="fd-install-btn"
-          onClick={handleInstallClick}
-        >
-          <span className="fd-install-icon material-symbols-rounded">
-            download
-          </span>
-          <span className="fd-install-label">Telefonimga o‘rnatish</span>
-        </button>
-      )}
+      <button
+        type="button"
+        className="fd-install-btn"
+        onClick={handleInstallClick}
+      >
+        <span className="fd-install-icon material-symbols-rounded">
+          download
+        </span>
+        <span className="fd-install-label">Telefonimga o‘rnatish</span>
+      </button>
     </header>
   );
 }
