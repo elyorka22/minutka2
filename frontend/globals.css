@@ -141,7 +141,7 @@ body {
 }
 
 .fd-main {
-  padding: 24px 20px 40px;
+  padding: 24px 20px 96px;
 }
 
 .fd-shell {
@@ -491,14 +491,17 @@ body {
 
 /* Bottom bar */
 .fd-bottom-bar {
-  position: sticky;
+  position: fixed;
+  left: 0;
+  right: 0;
   bottom: 0;
   z-index: 40;
   display: flex;
   justify-content: space-around;
   padding: 8px 16px calc(8px + env(safe-area-inset-bottom));
-  background: var(--color-surface);
+  background: rgba(255, 255, 255, 0.96);
   border-top: 1px solid var(--color-border);
+  backdrop-filter: blur(12px);
 }
 
 .fd-bottom-item {
@@ -506,13 +509,13 @@ body {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 2px;
-  font-size: 0.75rem;
+  gap: 3px;
+  font-size: 0.72rem;
   color: var(--color-text-secondary);
   text-decoration: none;
   background: transparent;
   border: none;
-  padding: 4px 0;
+  padding: 6px 0;
   cursor: pointer;
 }
 
@@ -521,11 +524,18 @@ body {
 }
 
 .fd-bottom-icon {
-  font-size: 1rem;
+  font-size: 1.2rem;
 }
 
 .fd-bottom-item--ghost {
   opacity: 0.8;
+}
+
+@media (min-width: 768px) {
+  .fd-bottom-bar {
+    max-width: 640px;
+    margin: 0 auto;
+  }
 }
 
 /* Checkout */
