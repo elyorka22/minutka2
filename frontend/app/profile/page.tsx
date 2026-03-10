@@ -1,8 +1,8 @@
-\"use client\";
+"use client";
 
-import Link from \"next/link\";
-import { useEffect, useState } from \"react\";
-import { useRouter } from \"next/navigation\";
+import Link from "next/link";
+import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 
 type JwtPayload = {
   sub?: string;
@@ -12,9 +12,9 @@ type JwtPayload = {
 
 function decodeToken(token: string): JwtPayload | null {
   try {
-    const [, payload] = token.split(\".\");
+    const [, payload] = token.split(".");
     if (!payload) return null;
-    const base64 = payload.replace(/-/g, \"+\").replace(/_/g, \"/\");
+    const base64 = payload.replace(/-/g, "+").replace(/_/g, "/");
     const json = atob(base64);
     return JSON.parse(json) as JwtPayload;
   } catch {
@@ -25,12 +25,12 @@ function decodeToken(token: string): JwtPayload | null {
 export default function ProfilePage() {
   const [payload, setPayload] = useState<JwtPayload | null>(null);
   const [hasToken, setHasToken] = useState(false);
-  const [restaurantId, setRestaurantId] = useState(\"\");
+  const [restaurantId, setRestaurantId] = useState("");
   const router = useRouter();
 
   useEffect(() => {
-    if (typeof window === \"undefined\") return;
-    const token = window.localStorage.getItem(\"token\");
+    if (typeof window === "undefined") return;
+    const token = window.localStorage.getItem("token");
     if (!token) return;
     setHasToken(true);
     setPayload(decodeToken(token));
@@ -43,60 +43,58 @@ export default function ProfilePage() {
     router.push(`/restaurant-admin/${restaurantId.trim()}`);
   }
 
-  const isPlatformAdmin = role === \"PLATFORM_ADMIN\";
-  const isRestaurantAdmin = role === \"RESTAURANT_ADMIN\";
+  const isPlatformAdmin = role === "PLATFORM_ADMIN";
+  const isRestaurantAdmin = role === "RESTAURANT_ADMIN";
 
   return (
-    <div className=\"fd-shell fd-section\">
-      <h1 className=\"fd-section-title\">Profil</h1>
+    <div className="fd-shell fd-section">
+      <h1 className="fd-section-title">Profil</h1>
 
       {!hasToken && (
-        <div className=\"fd-card\" style={{ padding: 16 }}>
-          <p className=\"fd-card-desc\">
+        <div className="fd-card" style={{ padding: 16 }}>
+          <p className="fd-card-desc">
             Oddiy foydalanuvchi sifatida buyurtma berishingiz mumkin. Alohida avtorizatsiya talab
             qilinmaydi.
           </p>
-          <p className=\"fd-card-desc\">
+          <p className="fd-card-desc">
             Agar siz restoran yoki platforma administratori bo&apos;lsangiz, tizimga kirish uchun
             tokenni qo&apos;l bilan olishingiz mumkin.
           </p>
-          <Link href=\"/checkout\" className=\"fd-btn fd-btn-primary\" style={{ marginTop: 12 }}>
+          <Link href="/checkout" className="fd-btn fd-btn-primary" style={{ marginTop: 12 }}>
             Buyurtma berish
           </Link>
         </div>
       )}
 
       {hasToken && (
-        <div className=\"fd-card\" style={{ padding: 16, marginTop: 8 }}>
-          <p className=\"fd-card-desc\">
-            Email: {payload?.email ?? \"nomalum\"}
-          </p>
-          <p className=\"fd-card-desc\">Rol: {role ?? \"CUSTOMER\"}</p>
+        <div className="fd-card" style={{ padding: 16, marginTop: 8 }}>
+          <p className="fd-card-desc">Email: {payload?.email ?? "nomalum"}</p>
+          <p className="fd-card-desc">Rol: {role ?? "CUSTOMER"}</p>
 
           {isPlatformAdmin && (
-            <div style={{ marginTop: 12, display: \"flex\", gap: 8, flexWrap: \"wrap\" }}>
-              <Link href=\"/platform-admin\" className=\"fd-btn fd-btn-primary\">
+            <div style={{ marginTop: 12, display: "flex", gap: 8, flexWrap: "wrap" }}>
+              <Link href="/platform-admin" className="fd-btn fd-btn-primary">
                 Platforma admin paneli
               </Link>
             </div>
           )}
 
           {isRestaurantAdmin && (
-            <div className=\"fd-form\" style={{ marginTop: 12 }}>
-              <p className=\"fd-card-desc\">
+            <div className="fd-form" style={{ marginTop: 12 }}>
+              <p className="fd-card-desc">
                 Restoran admin paneliga o&apos;tish uchun restoran ID ni kiriting.
               </p>
-              <label className=\"fd-field\">
+              <label className="fd-field">
                 <span>Restoran ID</span>
                 <input
                   value={restaurantId}
                   onChange={(e) => setRestaurantId(e.target.value)}
-                  placeholder=\"Masalan: abc123\"
+                  placeholder="Masalan: abc123"
                 />
               </label>
               <button
-                type=\"button\"
-                className=\"fd-btn fd-btn-primary\"
+                type="button"
+                className="fd-btn fd-btn-primary"
                 onClick={goToRestaurantAdmin}
                 disabled={!restaurantId.trim()}
               >
@@ -106,7 +104,7 @@ export default function ProfilePage() {
           )}
 
           {!isPlatformAdmin && !isRestaurantAdmin && (
-            <p className=\"fd-card-desc\" style={{ marginTop: 12 }}>
+            <p className="fd-card-desc" style={{ marginTop: 12 }}>
               Siz oddiy mijoz sifatida buyurtma berishingiz mumkin, admin paneli faqat maxsus
               rollar uchun ochiladi.
             </p>
