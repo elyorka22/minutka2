@@ -140,6 +140,30 @@ body {
   font-weight: 700;
 }
 
+.fd-install-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 14px;
+  border-radius: var(--radius-full);
+  border: 1px solid var(--color-border);
+  background: var(--color-surface);
+  color: var(--color-text);
+  font-size: 0.85rem;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.fd-install-icon {
+  font-size: 1.1rem;
+}
+
+@media (max-width: 768px) {
+  .fd-install-label {
+    display: none;
+  }
+}
+
 .fd-main {
   padding: 24px 20px 140px;
 }

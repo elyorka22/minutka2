@@ -3,11 +3,32 @@
 import "../globals.css";
 import type { ReactNode } from "react";
 import Link from "next/link";
-import { CartProvider, useCart } from "../components/CartContext";
+import { useEffect, useState } from "react";
+import { CartProvider } from "../components/CartContext";
 
 function Header() {
-  const { items, total } = useCart();
-  const count = items.reduce((sum, i) => sum + i.quantity, 0);
+  const [canInstall, setCanInstall] = useState(false);
+  const [installEvent, setInstallEvent] =
+    useState<BeforeInstallPromptEvent | null>(null);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const handler = (e: any) => {
+      e.preventDefault();
+      setInstallEvent(e);
+      setCanInstall(true);
+    };
+    window.addEventListener("beforeinstallprompt", handler);
+    return () => window.removeEventListener("beforeinstallprompt", handler);
+  }, []);
+
+  async function handleInstallClick() {
+    if (!installEvent) return;
+    installEvent.prompt();
+    await installEvent.userChoice;
+    setCanInstall(false);
+    setInstallEvent(null);
+  }
 
   return (
     <header className="fd-header">
@@ -20,11 +41,18 @@ function Header() {
           <Link href="/restaurants" className="fd-nav-link">Restoranlar</Link>
         </nav>
       </div>
-      <Link href="/checkout" className="fd-cart">
-        <span className="fd-cart-count">{count}</span>
-        <span className="fd-cart-label">Savat</span>
-        <span className="fd-cart-total">{total.toFixed(0)} so&apos;m</span>
-      </Link>
+      {canInstall && (
+        <button
+          type="button"
+          className="fd-install-btn"
+          onClick={handleInstallClick}
+        >
+          <span className="fd-install-icon material-symbols-rounded">
+            download
+          </span>
+          <span className="fd-install-label">Telefonimga o‘rnatish</span>
+        </button>
+      )}
     </header>
   );
 }
@@ -53,10 +81,20 @@ function BottomBar() {
 }
 
 export default function RootLayout({ children }: { children: ReactNode }) {
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    if ("serviceWorker" in navigator) {
+      navigator.serviceWorker
+        .register("/sw.js")
+        .catch(() => {});
+    }
+  }, []);
+
   return (
     <html lang="uz">
       <head>
         <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <meta name="theme-color" content="#ea580c" />
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
         <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet" />
@@ -64,6 +102,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
           rel="stylesheet"
           href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@24,400,0,0"
         />
+        <link rel="manifest" href="/manifest.webmanifest" />
       </head>
       <body className="fd-body">
         <CartProvider>

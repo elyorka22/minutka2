@@ -57,11 +57,11 @@ export default function ProfilePage() {
             qilinmaydi.
           </p>
           <p className="fd-card-desc">
-            Agar siz restoran yoki platforma administratori bo&apos;lsangiz, tizimga kirish uchun
-            tokenni qo&apos;l bilan olishingiz mumkin.
+            Agar siz restoran yoki platforma administratori bo&apos;lsangiz, quyidagi tugma orqali
+            tizimga kirib, admin panellariga o&apos;tishingiz mumkin.
           </p>
-          <Link href="/checkout" className="fd-btn fd-btn-primary" style={{ marginTop: 12 }}>
-            Buyurtma berish
+          <Link href="/login" className="fd-btn fd-btn-primary" style={{ marginTop: 12 }}>
+            Kirish (adminlar uchun)
           </Link>
         </div>
       )}

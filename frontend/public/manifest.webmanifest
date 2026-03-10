@@ -1,0 +1,11 @@
+{
+  "name": "Minutka — food & grocery delivery",
+  "short_name": "Minutka",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#fafafa",
+  "theme_color": "#ea580c",
+  "lang": "uz",
+  "scope": "/"
+}
+
