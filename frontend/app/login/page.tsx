@@ -1,7 +1,7 @@
 "use client";
 
-import { FormEvent, useState } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { FormEvent, useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:4000";
 
@@ -12,9 +12,15 @@ export default function LoginPage() {
   const [token, setToken] = useState<string | null>(
     typeof window === "undefined" ? null : window.localStorage.getItem("token"),
   );
+  const [next, setNext] = useState<string | null>(null);
   const router = useRouter();
-  const searchParams = useSearchParams();
-  const next = searchParams.get("next");
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const params = new URLSearchParams(window.location.search);
+    const value = params.get("next");
+    if (value) setNext(value);
+  }, []);
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
