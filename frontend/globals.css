@@ -141,7 +141,7 @@ body {
 }
 
 .fd-main {
-  padding: 24px 20px 96px;
+  padding: 24px 20px 140px;
 }
 
 .fd-shell {
@@ -561,6 +561,7 @@ body {
 /* Checkout */
 .fd-checkout {
   overflow-x: hidden;
+  padding-bottom: 24px;
 }
 
 .fd-checkout .fd-section-title {
