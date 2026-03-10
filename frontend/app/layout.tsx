@@ -44,10 +44,10 @@ function BottomBar() {
         <span className="fd-bottom-icon material-symbols-rounded">shopping_bag</span>
         <span className="fd-bottom-label">Savat</span>
       </Link>
-      <button type="button" className="fd-bottom-item fd-bottom-item--ghost">
+      <Link href="/profile" className="fd-bottom-item fd-bottom-item--ghost">
         <span className="fd-bottom-icon material-symbols-rounded">person</span>
         <span className="fd-bottom-label">Profil</span>
-      </button>
+      </Link>
     </nav>
   );
 }
