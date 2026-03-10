@@ -13,7 +13,7 @@ function Header() {
     <header className="fd-header">
       <div className="fd-header-left">
         <Link href="/" className="fd-logo">
-          минутку
+          Minutka
         </Link>
         <nav className="fd-nav">
           <Link href="/" className="fd-nav-link">Bosh sahifa</Link>
