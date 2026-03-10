@@ -584,4 +584,17 @@ body {
   .fd-price {
     font-size: 0.95rem;
   }
+
+  /* Long Uzbek labels / buttons inside checkout */
+  .fd-checkout .fd-btn {
+    width: 100%;
+    max-width: 100%;
+    white-space: normal;
+    text-align: center;
+    justify-content: center;
+  }
+
+  .fd-geo-btn {
+    align-self: stretch;
+  }
 }
