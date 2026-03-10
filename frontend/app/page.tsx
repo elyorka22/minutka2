@@ -24,20 +24,65 @@ export default async function HomePage() {
 
   return (
     <div className="fd-shell">
-      <section className="fd-hero">
-        <div className="fd-hero-content">
-          <h1>Eng yaxshi restoranlardan yetkazib berish</h1>
-          <p>Issiq ovqatni bir necha daqiqada buyurtma qiling — yoningizdagi restoranlar, karta yoki naqd to‘lov.</p>
-          <div className="fd-hero-actions">
-            <Link href="/restaurants" className="fd-btn fd-btn-primary">
-              Restoran tanlash
-            </Link>
-          </div>
+      <section className="fd-home-top">
+        <div className="fd-home-address">
+          <div className="fd-home-address-title">Yetkazib berish manzili</div>
+          <button type="button" className="fd-home-address-value">
+            Toshkent, markaziy tuman
+          </button>
+        </div>
+
+        <div className="fd-home-search">
+          <input
+            className="fd-home-search-input"
+            placeholder="Taom, restoran yoki mahsulot izlash"
+          />
+        </div>
+
+        <div className="fd-home-chips">
+          <button type="button" className="fd-chip fd-chip--active">
+            Restoranlar
+          </button>
+          <button type="button" className="fd-chip">
+            Mahsulotlar
+          </button>
+          <button type="button" className="fd-chip">
+            Kuryer
+          </button>
+        </div>
+      </section>
+
+      <section className="fd-home-banners">
+        <article className="fd-banner fd-banner--primary">
+          <div className="fd-banner-title">Chegirma 30%</div>
+          <p className="fd-banner-text">Sevimli restoranlardan issiq yetkazib berish.</p>
+          <button type="button" className="fd-btn fd-btn-primary fd-banner-btn">
+            Aksiyani ko‘rish
+          </button>
+        </article>
+        <article className="fd-banner fd-banner--secondary">
+          <div className="fd-banner-title">Tezkor kuryer</div>
+          <p className="fd-banner-text">Mahsulotlarni yaqin do‘konlardan tez yetkazib beramiz.</p>
+        </article>
+      </section>
+
+      <section className="fd-section">
+        <h2 className="fd-section-title">Do‘konlardan mahsulotlar</h2>
+        <div className="fd-home-store-row">
+          <button type="button" className="fd-home-store-pill fd-home-store-pill--green">
+            Supermarketlar
+          </button>
+          <button type="button" className="fd-home-store-pill fd-home-store-pill--orange">
+            Gazak va ichimliklar
+          </button>
+          <button type="button" className="fd-home-store-pill fd-home-store-pill--blue">
+            Maishiy tovarlar
+          </button>
         </div>
       </section>
 
       <section className="fd-section">
-        <h2 className="fd-section-title">Yaqin atrofdagi restoranlar</h2>
+        <h2 className="fd-section-title">Mashhur restoranlar</h2>
         <div className="fd-grid">
           {restaurants.map((r) => (
             <Link key={r.id} href={`/restaurants/${r.id}`} className="fd-card">
@@ -59,6 +104,13 @@ export default async function HomePage() {
             <p className="fd-empty">Hozircha restoranlar ulanmagan.</p>
           )}
         </div>
+      </section>
+
+      <section className="fd-section">
+        <h2 className="fd-section-title">Siz buyurtma qilgansiz</h2>
+        <p className="fd-empty">
+          Bu yerda siz avval buyurtma qilgan taomlar va mahsulotlar paydo bo‘ladi.
+        </p>
       </section>
     </div>
   );

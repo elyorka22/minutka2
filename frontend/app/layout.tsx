@@ -29,6 +29,29 @@ function Header() {
   );
 }
 
+function BottomBar() {
+  return (
+    <nav className="fd-bottom-bar">
+      <Link href="/" className="fd-bottom-item fd-bottom-item--active">
+        <span className="fd-bottom-icon">🏠</span>
+        <span className="fd-bottom-label">Bosh sahifa</span>
+      </Link>
+      <Link href="/restaurants" className="fd-bottom-item">
+        <span className="fd-bottom-icon">🍽️</span>
+        <span className="fd-bottom-label">Restoranlar</span>
+      </Link>
+      <Link href="/checkout" className="fd-bottom-item">
+        <span className="fd-bottom-icon">🧺</span>
+        <span className="fd-bottom-label">Savat</span>
+      </Link>
+      <button type="button" className="fd-bottom-item fd-bottom-item--ghost">
+        <span className="fd-bottom-icon">👤</span>
+        <span className="fd-bottom-label">Profil</span>
+      </button>
+    </nav>
+  );
+}
+
 export default function RootLayout({ children }: { children: ReactNode }) {
   return (
     <html lang="uz">
@@ -42,6 +65,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
         <CartProvider>
           <Header />
           <main className="fd-main">{children}</main>
+          <BottomBar />
         </CartProvider>
       </body>
     </html>
