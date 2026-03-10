@@ -30,7 +30,7 @@ export const api = {
     try {
       return await request<any>(`/restaurants/${id}`);
     } catch {
-      return { id, name: "Ресторан недоступен", dishes: [] };
+      return { id, name: "Restoran mavjud emas", dishes: [] };
     }
   },
 };

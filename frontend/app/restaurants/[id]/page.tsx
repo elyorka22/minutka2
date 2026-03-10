@@ -24,7 +24,7 @@ function RestaurantPageClient({ restaurant, dishes }: { restaurant: any; dishes:
     <div className="fd-shell fd-restaurant">
       <header className="fd-restaurant-header">
         <div>
-          <h1>{restaurant?.name ?? "Ресторан"}</h1>
+          <h1>{restaurant?.name ?? "Restoran"}</h1>
           {restaurant?.description && (
             <p className="fd-restaurant-desc">{restaurant.description}</p>
           )}
@@ -32,7 +32,7 @@ function RestaurantPageClient({ restaurant, dishes }: { restaurant: any; dishes:
       </header>
 
       <section className="fd-section">
-        <h2 className="fd-section-title">Меню</h2>
+        <h2 className="fd-section-title">Menyu</h2>
         <div className="fd-grid">
           {dishes.map((dish) => (
             <article key={dish.id} className="fd-card fd-card--dish">
@@ -42,7 +42,7 @@ function RestaurantPageClient({ restaurant, dishes }: { restaurant: any; dishes:
                   <p className="fd-card-desc">{dish.description}</p>
                 )}
                 <div className="fd-dish-footer">
-                  <span className="fd-price">{Number(dish.price).toFixed(0)} ₽</span>
+                  <span className="fd-price">{Number(dish.price).toFixed(0)} so&apos;m</span>
                   <button
                     type="button"
                     className="fd-btn fd-btn-primary"
@@ -56,14 +56,14 @@ function RestaurantPageClient({ restaurant, dishes }: { restaurant: any; dishes:
                       })
                     }
                   >
-                    В корзину
+                    Savatga qo‘shish
                   </button>
                 </div>
               </div>
             </article>
           ))}
           {dishes.length === 0 && (
-            <p className="fd-empty">Меню пока пустое.</p>
+            <p className="fd-empty">Menyu hozircha bo‘sh.</p>
           )}
         </div>
       </section>

@@ -16,14 +16,14 @@ function Header() {
           минутку
         </Link>
         <nav className="fd-nav">
-          <Link href="/" className="fd-nav-link">Главная</Link>
-          <Link href="/restaurants" className="fd-nav-link">Рестораны</Link>
+          <Link href="/" className="fd-nav-link">Bosh sahifa</Link>
+          <Link href="/restaurants" className="fd-nav-link">Restoranlar</Link>
         </nav>
       </div>
       <Link href="/checkout" className="fd-cart">
         <span className="fd-cart-count">{count}</span>
-        <span className="fd-cart-label">Корзина</span>
-        <span className="fd-cart-total">{total.toFixed(0)} ₽</span>
+        <span className="fd-cart-label">Savat</span>
+        <span className="fd-cart-total">{total.toFixed(0)} so&apos;m</span>
       </Link>
     </header>
   );
@@ -31,7 +31,7 @@ function Header() {
 
 export default function RootLayout({ children }: { children: ReactNode }) {
   return (
-    <html lang="ru">
+    <html lang="uz">
       <head>
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />

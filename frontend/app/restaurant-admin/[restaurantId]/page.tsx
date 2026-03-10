@@ -45,8 +45,8 @@ export default function RestaurantAdminPage({
 
   return (
     <div className="fd-shell fd-section">
-      <h1 className="fd-section-title">Заказы ресторана</h1>
-      {loading && <p>Загрузка...</p>}
+      <h1 className="fd-section-title">Restoran buyurtmalari</h1>
+      {loading && <p>Yuklanmoqda...</p>}
       {error && <p className="fd-empty">{error}</p>}
       <div className="fd-admin-orders">
         {orders.map((o) => (
@@ -54,7 +54,7 @@ export default function RestaurantAdminPage({
             <div>
               <div>#{o.id.slice(0, 6)}</div>
               <div className="fd-checkout-meta">
-                {o.items?.length ?? 0} позиций · {o.total} ₽ · {o.status}
+                {(o.items?.length ?? 0)} ta pozitsiya · {o.total} so&apos;m · {o.status}
               </div>
             </div>
             <div style={{ display: "flex", gap: 8 }}>
@@ -63,20 +63,20 @@ export default function RestaurantAdminPage({
                 type="button"
                 onClick={() => changeStatus(o.id, "ACCEPTED")}
               >
-                Принять
+                Qabul qilish
               </button>
               <button
                 className="fd-btn"
                 type="button"
                 onClick={() => changeStatus(o.id, "DELIVERED")}
               >
-                Доставлен
+                Yetkazildi
               </button>
             </div>
           </div>
         ))}
         {orders.length === 0 && !loading && !error && (
-          <p className="fd-empty">Заказов нет.</p>
+          <p className="fd-empty">Buyurtmalar yo‘q.</p>
         )}
       </div>
     </div>

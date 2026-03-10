@@ -26,18 +26,18 @@ export default async function HomePage() {
     <div className="fd-shell">
       <section className="fd-hero">
         <div className="fd-hero-content">
-          <h1>Доставка еды из лучших ресторанов</h1>
-          <p>Закажи горячее за минуты — рестораны рядом, оплата картой или наличными.</p>
+          <h1>Eng yaxshi restoranlardan yetkazib berish</h1>
+          <p>Issiq ovqatni bir necha daqiqada buyurtma qiling — yoningizdagi restoranlar, karta yoki naqd to‘lov.</p>
           <div className="fd-hero-actions">
             <Link href="/restaurants" className="fd-btn fd-btn-primary">
-              Выбрать ресторан
+              Restoran tanlash
             </Link>
           </div>
         </div>
       </section>
 
       <section className="fd-section">
-        <h2 className="fd-section-title">Рестораны рядом</h2>
+        <h2 className="fd-section-title">Yaqin atrofdagi restoranlar</h2>
         <div className="fd-grid">
           {restaurants.map((r) => (
             <Link key={r.id} href={`/restaurants/${r.id}`} className="fd-card">
@@ -56,7 +56,7 @@ export default async function HomePage() {
             </Link>
           ))}
           {restaurants.length === 0 && (
-            <p className="fd-empty">Рестораны пока не подключены.</p>
+            <p className="fd-empty">Hozircha restoranlar ulanmagan.</p>
           )}
         </div>
       </section>

@@ -8,7 +8,7 @@ export default async function RestaurantsPage() {
   return (
     <div className="fd-shell">
       <section className="fd-section">
-        <h1 className="fd-section-title">Все рестораны</h1>
+        <h1 className="fd-section-title">Barcha restoranlar</h1>
         <div className="fd-grid">
           {restaurants.map((r: any) => (
             <Link key={r.id} href={`/restaurants/${r.id}`} className="fd-card">
@@ -24,7 +24,7 @@ export default async function RestaurantsPage() {
             </Link>
           ))}
           {restaurants.length === 0 && (
-            <p className="fd-empty">Рестораны пока не подключены.</p>
+            <p className="fd-empty">Hozircha restoranlar ulanmagan.</p>
           )}
         </div>
       </section>

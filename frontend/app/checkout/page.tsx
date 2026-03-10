@@ -47,67 +47,67 @@ export default function CheckoutPage() {
 
   return (
     <div className="fd-shell fd-checkout">
-      <h1 className="fd-section-title">Оформление заказа</h1>
+      <h1 className="fd-section-title">Buyurtmani rasmiylashtirish</h1>
       <div className="fd-checkout-layout">
         <section className="fd-checkout-cart">
-          <h2>Корзина</h2>
-          {items.length === 0 && <p className="fd-empty">Корзина пуста.</p>}
+          <h2>Savat</h2>
+          {items.length === 0 && <p className="fd-empty">Savat bo‘sh.</p>}
           {items.map((item) => (
             <div key={item.dish.id} className="fd-checkout-item">
               <div>
                 <div>{item.dish.name}</div>
                 <div className="fd-checkout-meta">
-                  {item.quantity} × {item.dish.price.toFixed(0)} ₽
+                  {item.quantity} × {item.dish.price.toFixed(0)} so&apos;m
                 </div>
               </div>
               <div className="fd-price">
-                {(item.dish.price * item.quantity).toFixed(0)} ₽
+                {(item.dish.price * item.quantity).toFixed(0)} so&apos;m
               </div>
             </div>
           ))}
           {items.length > 0 && (
             <div className="fd-checkout-total">
-              <span>Итого:</span>
-              <span className="fd-price">{total.toFixed(0)} ₽</span>
+              <span>Jami:</span>
+              <span className="fd-price">{total.toFixed(0)} so&apos;m</span>
             </div>
           )}
         </section>
 
         <section className="fd-checkout-form">
-          <h2>Адрес, геолокация и оплата</h2>
+          <h2>Manzil, geolokatsiya va to‘lov</h2>
           {submitted ? (
             <p className="fd-success">
-              Заказ отправлен (демо). В реальном проекте здесь будет статус заказа.
+              Buyurtma yuborildi (demo). Real loyihada bu yerda buyurtma holati bo‘ladi.
             </p>
           ) : (
             <form onSubmit={handleSubmit} className="fd-form">
               <label className="fd-field">
-                <span>Улица и дом</span>
+                <span>Ko‘cha va uy</span>
                 <input
                   required
-                  placeholder="ул. Пример, 1"
+                  placeholder="Masalan: Chilonzor, 1"
                   value={street}
                   onChange={(e) => setStreet(e.target.value)}
                 />
               </label>
               <label className="fd-field">
-                <span>Город</span>
+                <span>Shahar</span>
                 <input
                   required
-                  placeholder="Москва"
+                  placeholder="Toshkent"
                   value={city}
                   onChange={(e) => setCity(e.target.value)}
                 />
               </label>
 
               <div className="fd-field">
-                <span>Геолокация (широта и долгота)</span>
+                <span>Geolokatsiya (kenglik va uzunlik)</span>
                 <div className="fd-geo-inputs">
-                  <input placeholder="Широта" value={lat} onChange={(e) => setLat(e.target.value)} />
-                  <input placeholder="Долгота" value={lng} onChange={(e) => setLng(e.target.value)} />
+                  <input placeholder="Kenglik" value={lat} onChange={(e) => setLat(e.target.value)} />
+                  <input placeholder="Uzunlik" value={lng} onChange={(e) => setLng(e.target.value)} />
                 </div>
                 <button type="button" className="fd-btn fd-geo-btn" onClick={handleGeoClick}>
-                  Использовать мою геопозицию
+                  Mening geolokatsiyamni ishlatish
                 </button>
               </div>
 
@@ -122,7 +122,7 @@ export default function CheckoutPage() {
               )}
 
               <fieldset className="fd-field">
-                <span>Способ оплаты</span>
+                <span>To‘lov usuli</span>
                 <div className="fd-radio-group">
                   <label>
                     <input
@@ -130,7 +130,7 @@ export default function CheckoutPage() {
                       checked={paymentMethod === "CASH"}
                       onChange={() => setPaymentMethod("CASH")}
                     />
-                    <span>Наличными курьеру</span>
+                    <span>Kuryerga naqd</span>
                   </label>
                   <label>
                     <input
@@ -138,15 +138,15 @@ export default function CheckoutPage() {
                       checked={paymentMethod === "CARD"}
                       onChange={() => setPaymentMethod("CARD")}
                     />
-                    <span>Картой онлайн (демо)</span>
+                    <span>Onlayn karta (demo)</span>
                   </label>
                 </div>
               </fieldset>
 
               <label className="fd-field">
-                <span>Комментарий</span>
+                <span>Izoh</span>
                 <textarea
-                  placeholder="Например: без лука, позвонить при доставке"
+                  placeholder="Masalan: piyozsiz, yetkazilganda qo‘ng‘iroq qiling"
                   value={comment}
                   onChange={(e) => setComment(e.target.value)}
                 />
@@ -157,7 +157,7 @@ export default function CheckoutPage() {
                 type="submit"
                 disabled={items.length === 0}
               >
-                Подтвердить заказ
+                Buyurtmani tasdiqlash
               </button>
             </form>
           )}

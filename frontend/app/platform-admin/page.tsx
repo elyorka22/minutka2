@@ -50,17 +50,16 @@ export default function PlatformAdminPage() {
 
   return (
     <div className="fd-shell fd-section">
-      <h1 className="fd-section-title">Платформенная админ-панель</h1>
+      <h1 className="fd-section-title">Platforma admin paneli</h1>
       <p className="fd-checkout-meta">
-        Требуется JWT токен PLATFORM_ADMIN в localStorage (получить можно на
-        странице /login).
+        PLATFORM_ADMIN JWT tokeni kerak (uni /login sahifasidan olish mumkin).
       </p>
-      {loading && <p>Загрузка...</p>}
+      {loading && <p>Yuklanmoqda...</p>}
       {error && <p className="fd-empty">{error}</p>}
       {data && (
         <div className="fd-platform-grid">
           <section>
-            <h2>Рестораны</h2>
+            <h2>Restoranlar</h2>
             {data.restaurants?.map((r: any) => (
               <div key={r.id} className="fd-checkout-item">
                 <div>
@@ -70,12 +69,12 @@ export default function PlatformAdminPage() {
               </div>
             ))}
             {(!data.restaurants || data.restaurants.length === 0) && (
-              <p className="fd-empty">Рестораны не найдены.</p>
+              <p className="fd-empty">Restoranlar topilmadi.</p>
             )}
           </section>
 
           <section>
-            <h2>Пользователи</h2>
+            <h2>Foydalanuvchilar</h2>
             {data.users?.map((u: any) => (
               <div key={u.id} className="fd-checkout-item">
                 <div>
@@ -87,12 +86,12 @@ export default function PlatformAdminPage() {
               </div>
             ))}
             {(!data.users || data.users.length === 0) && (
-              <p className="fd-empty">Пользователи не найдены.</p>
+              <p className="fd-empty">Foydalanuvchilar topilmadi.</p>
             )}
           </section>
 
           <section>
-            <h2>Последние заказы</h2>
+            <h2>So‘nggi buyurtmalar</h2>
             {data.recentOrders?.map((o: any) => (
               <div key={o.id} className="fd-checkout-item">
                 <div>
@@ -104,7 +103,7 @@ export default function PlatformAdminPage() {
               </div>
             ))}
             {(!data.recentOrders || data.recentOrders.length === 0) && (
-              <p className="fd-empty">Заказов нет.</p>
+              <p className="fd-empty">Buyurtmalar yo‘q.</p>
             )}
           </section>
         </div>

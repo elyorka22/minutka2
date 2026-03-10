@@ -4,6 +4,6 @@ import { test, expect } from '@playwright/test';
 
 test('главная открывается и показывает заголовок', async ({ page }) => {
   await page.goto('/');
-  await expect(page.getByRole('heading', { name: 'Доставка еды из лучших ресторанов' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Eng yaxshi restoranlardan yetkazib berish' })).toBeVisible();
 });
 

@@ -22,21 +22,21 @@ export default function LoginPage() {
         body: JSON.stringify({ email, password }),
       });
       if (!res.ok) {
-        throw new Error("Неверные данные");
+        throw new Error("Noto‘g‘ri maʼlumotlar");
       }
       const data = (await res.json()) as { accessToken: string };
       window.localStorage.setItem("token", data.accessToken);
       setToken(data.accessToken);
     } catch (err: any) {
-      setError(err.message ?? "Ошибка авторизации");
+      setError(err.message ?? "Avtorizatsiya xatosi");
     }
   }
 
   return (
     <div className="fd-shell fd-section">
-      <h1 className="fd-section-title">Вход для админа</h1>
+      <h1 className="fd-section-title">Admin uchun kirish</h1>
       {token && (
-        <p className="fd-success">Токен сохранён в браузере. Можно открывать админ-панели.</p>
+        <p className="fd-success">Token brauzerda saqlandi. Admin panellarini ochish mumkin.</p>
       )}
       <form onSubmit={handleSubmit} className="fd-form" style={{ maxWidth: 360 }}>
         <label className="fd-field">
@@ -49,7 +49,7 @@ export default function LoginPage() {
           />
         </label>
         <label className="fd-field">
-          <span>Пароль</span>
+          <span>Parol</span>
           <input
             value={password}
             onChange={(e) => setPassword(e.target.value)}
