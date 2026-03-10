@@ -600,6 +600,46 @@ body {
   align-items: start;
 }
 
+/* Platform admin */
+.fd-platform-grid {
+  margin-top: 24px;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 20px;
+}
+
+.fd-admin-kpis {
+  margin-top: 24px;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 12px;
+}
+
+.fd-admin-kpi {
+  padding: 12px 14px;
+  border-radius: var(--radius-lg);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  box-shadow: var(--shadow-sm);
+}
+
+.fd-admin-kpi-label {
+  font-size: 0.8rem;
+  color: var(--color-text-secondary);
+}
+
+.fd-admin-kpi-value {
+  margin-top: 4px;
+  font-size: 1.2rem;
+  font-weight: 700;
+}
+
+.fd-admin-kpi-sub {
+  margin-top: 2px;
+  font-size: 0.8rem;
+  color: var(--color-text-muted);
+}
+
 .fd-checkout-cart,
 .fd-checkout-form {
   padding: 24px;

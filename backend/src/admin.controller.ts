@@ -1,4 +1,14 @@
-import { Controller, Get, Req, UseGuards, ForbiddenException } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  Patch,
+  Param,
+  Req,
+  UseGuards,
+  ForbiddenException,
+  BadRequestException,
+} from '@nestjs/common';
 import { JwtAuthGuard } from './auth/jwt-auth.guard';
 import { PrismaService } from './prisma.service';
 
@@ -41,5 +51,30 @@ export class AdminController {
       users,
       recentOrders,
     };
+  }
+
+  @Patch('users/:id/role')
+  async updateUserRole(
+    @Param('id') id: string,
+    @Body() body: { role?: string },
+    @Req() req: RequestWithUser,
+  ) {
+    if (req.user?.role !== 'PLATFORM_ADMIN') {
+      throw new ForbiddenException('Only platform admin allowed');
+    }
+
+    const allowedRoles = ['CUSTOMER', 'RESTAURANT_ADMIN', 'PLATFORM_ADMIN', 'COURIER'];
+    const role = body.role;
+
+    if (!role || !allowedRoles.includes(role)) {
+      throw new BadRequestException('Invalid role');
+    }
+
+    const user = await this.prisma.user.update({
+      where: { id },
+      data: { role },
+    });
+
+    return user;
   }
 }

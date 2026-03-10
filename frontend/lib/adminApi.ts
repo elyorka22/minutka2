@@ -35,4 +35,12 @@ export const adminApi = {
       headers: getAuthHeaders(),
       body: JSON.stringify({ status }),
     }),
+  updateUserRole: (id: string, role: string) =>
+    request<any>(`/admin/users/${id}/role`, {
+      method: "PATCH",
+      headers: {
+        ...getAuthHeaders(),
+      },
+      body: JSON.stringify({ role }),
+    }),
 };
