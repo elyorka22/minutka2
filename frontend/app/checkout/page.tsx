@@ -12,7 +12,9 @@ export default function CheckoutPage() {
   const [comment, setComment] = useState("");
   const [lat, setLat] = useState<string>("");
   const [lng, setLng] = useState<string>("");
-  const [paymentMethod, setPaymentMethod] = useState<"CARD" | "CASH">("CASH");
+  const [paymentMethod] = useState<"CARD" | "CASH">("CASH");
+  const [addressMode, setAddressMode] = useState<"manual" | "auto">("manual");
+  const [autoAddressConfirmed, setAutoAddressConfirmed] = useState(false);
 
   function handleGeoClick() {
     if (typeof navigator === "undefined" || !navigator.geolocation) {
@@ -23,6 +25,7 @@ export default function CheckoutPage() {
       (pos) => {
         setLat(pos.coords.latitude.toFixed(6));
         setLng(pos.coords.longitude.toFixed(6));
+        setAutoAddressConfirmed(true);
       },
       () => {
         alert("Не удалось получить геолокацию.");
@@ -81,37 +84,70 @@ export default function CheckoutPage() {
             </p>
           ) : (
             <form onSubmit={handleSubmit} className="fd-form">
-              <label className="fd-field">
-                <span>Ko‘cha va uy</span>
-                <input
-                  required
-                  placeholder="Masalan: Chilonzor, 1"
-                  value={street}
-                  onChange={(e) => setStreet(e.target.value)}
-                />
-              </label>
-              <label className="fd-field">
-                <span>Shahar</span>
-                <input
-                  required
-                  placeholder="Toshkent"
-                  value={city}
-                  onChange={(e) => setCity(e.target.value)}
-                />
-              </label>
-
-              <div className="fd-field">
-                <span>Geolokatsiya (kenglik va uzunlik)</span>
-                <div className="fd-geo-inputs">
-                  <input placeholder="Kenglik" value={lat} onChange={(e) => setLat(e.target.value)} />
-                  <input placeholder="Uzunlik" value={lng} onChange={(e) => setLng(e.target.value)} />
+              <fieldset className="fd-field">
+                <span>Manzilni ko‘rsatish usuli</span>
+                <div className="fd-radio-group">
+                  <label>
+                    <input
+                      type="radio"
+                      checked={addressMode === "manual"}
+                      onChange={() => setAddressMode("manual")}
+                    />
+                    <span>Manzilni qo‘lda kiritaman</span>
+                  </label>
+                  <label>
+                    <input
+                      type="radio"
+                      checked={addressMode === "auto"}
+                      onChange={() => setAddressMode("auto")}
+                    />
+                    <span>Manzilni geolokatsiya orqali aniqlash</span>
+                  </label>
                 </div>
-                <button type="button" className="fd-btn fd-geo-btn" onClick={handleGeoClick}>
-                  Mening geolokatsiyamni ishlatish
-                </button>
-              </div>
+              </fieldset>
 
-              {hasCoords && (
+              {addressMode === "manual" && (
+                <>
+                  <label className="fd-field">
+                    <span>Ko‘cha va uy</span>
+                    <input
+                      required
+                      placeholder="Masalan: Chilonzor, 1"
+                      value={street}
+                      onChange={(e) => setStreet(e.target.value)}
+                    />
+                  </label>
+                  <label className="fd-field">
+                    <span>Shahar</span>
+                    <input
+                      required
+                      placeholder="Toshkent"
+                      value={city}
+                      onChange={(e) => setCity(e.target.value)}
+                    />
+                  </label>
+                </>
+              )}
+
+              {addressMode === "auto" && (
+                <div className="fd-field">
+                  <span>Geolokatsiya</span>
+                  <button
+                    type="button"
+                    className="fd-btn fd-geo-btn"
+                    onClick={handleGeoClick}
+                  >
+                    Mening geolokatsiyamni ishlatish
+                  </button>
+                  {autoAddressConfirmed && (
+                    <p className="fd-checkout-meta">
+                      Manzilingiz geolokatsiya orqali aniqlanadi va kuryer bilan aniqlashtiriladi.
+                    </p>
+                  )}
+                </div>
+              )}
+
+              {addressMode === "manual" && hasCoords && (
                 <div className="fd-map-wrap">
                   <iframe
                     title="Карта доставки"
@@ -121,27 +157,9 @@ export default function CheckoutPage() {
                 </div>
               )}
 
-              <fieldset className="fd-field">
-                <span>To‘lov usuli</span>
-                <div className="fd-radio-group">
-                  <label>
-                    <input
-                      type="radio"
-                      checked={paymentMethod === "CASH"}
-                      onChange={() => setPaymentMethod("CASH")}
-                    />
-                    <span>Kuryerga naqd</span>
-                  </label>
-                  <label>
-                    <input
-                      type="radio"
-                      checked={paymentMethod === "CARD"}
-                      onChange={() => setPaymentMethod("CARD")}
-                    />
-                    <span>Onlayn karta (demo)</span>
-                  </label>
-                </div>
-              </fieldset>
+              <p className="fd-checkout-meta">
+                To‘lov: faqat kuryerga naqd buyurtma qabul qilinadi.
+              </p>
 
               <label className="fd-field">
                 <span>Izoh</span>
