@@ -64,7 +64,7 @@ export default function ProfilePage() {
             <Link href="/login" className="fd-btn fd-btn-primary">
               Kirish (adminlar uchun)
             </Link>
-            <Link href="/login" className="fd-btn">
+            <Link href="/register" className="fd-btn">
               Ro‘yxatdan o‘tish (adminlar uchun)
             </Link>
           </div>
