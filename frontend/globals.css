@@ -100,6 +100,16 @@ body {
   background: var(--color-orange-light);
 }
 
+.fd-link {
+  color: var(--color-orange);
+  text-decoration: none;
+  font-weight: 500;
+}
+
+.fd-link:hover {
+  text-decoration: underline;
+}
+
 .fd-cart {
   display: flex;
   align-items: center;
@@ -638,6 +648,59 @@ body {
   margin-top: 2px;
   font-size: 0.8rem;
   color: var(--color-text-muted);
+}
+
+.fd-admin-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-bottom: 20px;
+  border-bottom: 1px solid var(--color-border);
+  padding-bottom: 0;
+}
+
+.fd-admin-tab {
+  padding: 10px 16px;
+  border: none;
+  background: transparent;
+  color: var(--color-text-secondary);
+  font-size: 0.9375rem;
+  font-weight: 500;
+  cursor: pointer;
+  border-radius: var(--radius-sm);
+  transition: background 0.15s, color 0.15s;
+}
+
+.fd-admin-tab:hover {
+  background: var(--color-orange-light);
+  color: var(--color-orange);
+}
+
+.fd-admin-tab-active {
+  color: var(--color-orange);
+  background: var(--color-orange-light);
+}
+
+.fd-admin-panel {
+  display: none;
+}
+
+.fd-admin-panel-active {
+  display: block;
+}
+
+.fd-form-block {
+  max-width: 420px;
+  padding: 20px;
+  border-radius: var(--radius-lg);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  margin-bottom: 24px;
+}
+
+.fd-form-block h3 {
+  margin: 0 0 16px;
+  font-size: 1rem;
 }
 
 .fd-checkout-cart,

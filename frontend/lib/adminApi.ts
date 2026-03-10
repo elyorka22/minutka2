@@ -24,6 +24,13 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
   return (await res.json()) as T;
 }
 
+function adminRequest<T>(path: string, init?: RequestInit): Promise<T> {
+  return request<T>(path, {
+    ...init,
+    headers: { ...getAuthHeaders(), ...(init?.headers || {}) },
+  });
+}
+
 export const adminApi = {
   getRestaurants: () => request<any>("/restaurants"),
   getRestaurantWithOrders: (id: string) => request<any>(`/restaurants/${id}`),
@@ -38,9 +45,40 @@ export const adminApi = {
   updateUserRole: (id: string, role: string) =>
     request<any>(`/admin/users/${id}/role`, {
       method: "PATCH",
-      headers: {
-        ...getAuthHeaders(),
-      },
+      headers: getAuthHeaders(),
       body: JSON.stringify({ role }),
+    }),
+  createRestaurant: (body: {
+    name: string;
+    description?: string;
+    address?: string;
+    deliveryFee?: number;
+    minOrderTotal?: number;
+    deliveryRadiusM?: number;
+  }) =>
+    adminRequest<any>("/admin/restaurants", {
+      method: "POST",
+      body: JSON.stringify(body),
+    }),
+  getRestaurantFull: (id: string) =>
+    adminRequest<any>(`/admin/restaurants/${id}/full`),
+  createCategory: (restaurantId: string, body: { name: string; sortOrder?: number }) =>
+    adminRequest<any>(`/admin/restaurants/${restaurantId}/categories`, {
+      method: "POST",
+      body: JSON.stringify(body),
+    }),
+  createDish: (
+    restaurantId: string,
+    body: {
+      name: string;
+      description?: string;
+      price: number;
+      categoryId?: string;
+      imageUrl?: string;
+    }
+  ) =>
+    adminRequest<any>(`/admin/restaurants/${restaurantId}/dishes`, {
+      method: "POST",
+      body: JSON.stringify(body),
     }),
 };

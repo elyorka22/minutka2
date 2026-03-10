@@ -4,6 +4,7 @@ import {
   Get,
   Patch,
   Param,
+  Post,
   Req,
   UseGuards,
   ForbiddenException,
@@ -82,5 +83,118 @@ export class AdminController {
     });
 
     return user;
+  }
+
+  @Post('restaurants')
+  async createRestaurant(
+    @Body()
+    body: {
+      name: string;
+      description?: string;
+      address?: string;
+      logoUrl?: string;
+      coverUrl?: string;
+      deliveryFee?: number;
+      minOrderTotal?: number;
+      deliveryRadiusM?: number;
+      latitude?: number;
+      longitude?: number;
+    },
+    @Req() req: RequestWithUser,
+  ) {
+    if (req.user?.role !== 'PLATFORM_ADMIN') {
+      throw new ForbiddenException('Only platform admin allowed');
+    }
+    if (!body.name || typeof body.name !== 'string') {
+      throw new BadRequestException('name is required');
+    }
+    const restaurant = await this.prisma.restaurant.create({
+      data: {
+        name: body.name.trim(),
+        description: body.description?.trim() ?? null,
+        address: body.address?.trim() ?? '',
+        logoUrl: body.logoUrl?.trim() ?? null,
+        coverUrl: body.coverUrl?.trim() ?? null,
+        deliveryFee: body.deliveryFee ?? 0,
+        minOrderTotal: body.minOrderTotal ?? 0,
+        deliveryRadiusM: body.deliveryRadiusM ?? 3000,
+        latitude: body.latitude ?? 0,
+        longitude: body.longitude ?? 0,
+      },
+    });
+    return restaurant;
+  }
+
+  @Get('restaurants/:id/full')
+  async getRestaurantFull(@Param('id') id: string, @Req() req: RequestWithUser) {
+    if (req.user?.role !== 'PLATFORM_ADMIN') {
+      throw new ForbiddenException('Only platform admin allowed');
+    }
+    const restaurant = await this.prisma.restaurant.findUnique({
+      where: { id },
+      include: {
+        categories: { orderBy: { sortOrder: 'asc' }, include: { dishes: true } },
+        dishes: true,
+      },
+    });
+    if (!restaurant) throw new BadRequestException('Restaurant not found');
+    return restaurant;
+  }
+
+  @Post('restaurants/:id/categories')
+  async createCategory(
+    @Param('id') id: string,
+    @Body() body: { name: string; sortOrder?: number },
+    @Req() req: RequestWithUser,
+  ) {
+    if (req.user?.role !== 'PLATFORM_ADMIN') {
+      throw new ForbiddenException('Only platform admin allowed');
+    }
+    if (!body.name || typeof body.name !== 'string') {
+      throw new BadRequestException('name is required');
+    }
+    const category = await this.prisma.category.create({
+      data: {
+        restaurantId: id,
+        name: body.name.trim(),
+        sortOrder: body.sortOrder ?? 0,
+      },
+    });
+    return category;
+  }
+
+  @Post('restaurants/:id/dishes')
+  async createDish(
+    @Param('id') id: string,
+    @Body()
+    body: {
+      name: string;
+      description?: string;
+      price: number;
+      categoryId?: string;
+      imageUrl?: string;
+    },
+    @Req() req: RequestWithUser,
+  ) {
+    if (req.user?.role !== 'PLATFORM_ADMIN') {
+      throw new ForbiddenException('Only platform admin allowed');
+    }
+    if (!body.name || typeof body.name !== 'string') {
+      throw new BadRequestException('name is required');
+    }
+    if (typeof body.price !== 'number' || body.price < 0) {
+      throw new BadRequestException('price must be a non-negative number');
+    }
+    const dish = await this.prisma.dish.create({
+      data: {
+        restaurantId: id,
+        name: body.name.trim(),
+        description: body.description?.trim() ?? null,
+        price: body.price,
+        categoryId: body.categoryId?.trim() || null,
+        imageUrl: body.imageUrl?.trim() ?? null,
+      },
+    });
+    return dish;
   }
 }
