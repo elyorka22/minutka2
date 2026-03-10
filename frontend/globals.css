@@ -558,4 +558,13 @@
   .fd-checkout-form {
     padding: 20px;
   }
+
+  .fd-checkout-item {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .fd-price {
+    font-size: 0.95rem;
+  }
 }
