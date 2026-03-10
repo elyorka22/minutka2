@@ -141,17 +141,18 @@ body {
 }
 
 .fd-main {
-  padding: 32px 24px 48px;
+  padding: 24px 20px 40px;
 }
 
 .fd-shell {
   max-width: 1100px;
+  width: 100%;
   margin: 0 auto;
 }
 
 /* Hero */
 .fd-hero {
-  padding: 40px 0 48px;
+  padding: 32px 0 40px;
   text-align: center;
 }
 
@@ -218,7 +219,7 @@ body {
 
 /* Sections */
 .fd-section {
-  margin-top: 40px;
+  margin-top: 32px;
 }
 
 .fd-section-title {
@@ -356,6 +357,10 @@ body {
 }
 
 /* Checkout */
+.fd-checkout {
+  overflow-x: hidden;
+}
+
 .fd-checkout .fd-section-title {
   margin-bottom: 24px;
 }
