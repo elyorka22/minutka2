@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { adminApi } from "../../lib/adminApi";
+import { imageUrl } from "../../lib/api";
 
 type TabId = "stats" | "restaurants" | "users" | "orders";
 
@@ -281,7 +282,7 @@ export default function PlatformAdminPage() {
                   </div>
                   {createLogoUrl.trim() && (
                     <img
-                      src={createLogoUrl.trim()}
+                      src={imageUrl(createLogoUrl.trim())}
                       alt="Logo"
                       style={{ marginTop: 8, maxWidth: 80, maxHeight: 80, objectFit: "contain", borderRadius: 8 }}
                       onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }}
@@ -312,7 +313,7 @@ export default function PlatformAdminPage() {
                   </div>
                   {createCoverUrl.trim() && (
                     <img
-                      src={createCoverUrl.trim()}
+                      src={imageUrl(createCoverUrl.trim())}
                       alt="Cover"
                       style={{ marginTop: 8, maxWidth: "100%", maxHeight: 120, objectFit: "cover", borderRadius: 8 }}
                       onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }}
@@ -337,7 +338,7 @@ export default function PlatformAdminPage() {
                 <button
                   type="submit"
                   className="fd-btn fd-btn-primary"
-                  disabled={createSubmitting}
+                  disabled={createSubmitting || createLogoUploading || createCoverUploading}
                 >
                   {createSubmitting ? "Saqlanmoqda..." : "Restoran qo‘shish"}
                 </button>

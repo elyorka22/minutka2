@@ -427,6 +427,11 @@ body {
   transform: translateY(-2px);
 }
 
+.fd-card-image {
+  display: block;
+  width: 100%;
+}
+
 .fd-card-image--placeholder {
   height: 160px;
   background: linear-gradient(135deg, var(--color-orange-light) 0%, var(--color-orange-muted) 100%);

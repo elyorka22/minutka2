@@ -1,11 +1,13 @@
 import Link from "next/link";
-import { api } from "../lib/api";
+import { api, imageUrl } from "../lib/api";
 
 type RestaurantCard = {
   id: string;
   name: string;
   description?: string | null;
   rating?: number | null;
+  logoUrl?: string | null;
+  coverUrl?: string | null;
 };
 
 async function getRestaurants(): Promise<RestaurantCard[]> {
@@ -16,6 +18,8 @@ async function getRestaurants(): Promise<RestaurantCard[]> {
     name: String(r.name),
     description: r.description ?? null,
     rating: typeof r.rating === "number" ? r.rating : null,
+    logoUrl: r.logoUrl ?? null,
+    coverUrl: r.coverUrl ?? null,
   }));
 }
 
@@ -79,7 +83,16 @@ export default async function HomePage() {
         <div className="fd-grid">
           {restaurants.map((r) => (
             <Link key={r.id} href={`/restaurants/${r.id}`} className="fd-card">
-              <div className="fd-card-image fd-card-image--placeholder" />
+              {(r.coverUrl || r.logoUrl) ? (
+                <img
+                  src={imageUrl(r.coverUrl || r.logoUrl)}
+                  alt=""
+                  className="fd-card-image"
+                  style={{ width: "100%", aspectRatio: "16/10", objectFit: "cover" }}
+                />
+              ) : (
+                <div className="fd-card-image fd-card-image--placeholder" />
+              )}
               <div className="fd-card-body">
                 <div className="fd-card-title-row">
                   <h3>{r.name}</h3>

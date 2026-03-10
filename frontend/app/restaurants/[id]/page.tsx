@@ -1,7 +1,7 @@
 "use client";
 
 import { useCart } from "../../../components/CartContext";
-import { api } from "../../../lib/api";
+import { api, imageUrl } from "../../../lib/api";
 
 async function loadRestaurant(id: string) {
   const data = await api.getRestaurant(id);
@@ -23,6 +23,13 @@ function RestaurantPageClient({ restaurant, dishes }: { restaurant: any; dishes:
   return (
     <div className="fd-shell fd-restaurant">
       <header className="fd-restaurant-header">
+        {(restaurant?.coverUrl || restaurant?.logoUrl) && (
+          <img
+            src={imageUrl(restaurant.coverUrl || restaurant.logoUrl)}
+            alt=""
+            style={{ width: "100%", maxHeight: 200, objectFit: "cover", borderRadius: "var(--radius-md)" }}
+          />
+        )}
         <div>
           <h1>{restaurant?.name ?? "Restoran"}</h1>
           {restaurant?.description && (

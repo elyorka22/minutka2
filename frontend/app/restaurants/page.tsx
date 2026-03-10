@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { api } from "../../lib/api";
+import { api, imageUrl } from "../../lib/api";
 
 export default async function RestaurantsPage() {
   const data = await api.getRestaurants();
@@ -12,7 +12,16 @@ export default async function RestaurantsPage() {
         <div className="fd-grid">
           {restaurants.map((r: any) => (
             <Link key={r.id} href={`/restaurants/${r.id}`} className="fd-card">
-              <div className="fd-card-image fd-card-image--placeholder" />
+              {(r.coverUrl || r.logoUrl) ? (
+                <img
+                  src={imageUrl(r.coverUrl || r.logoUrl)}
+                  alt=""
+                  className="fd-card-image"
+                  style={{ width: "100%", aspectRatio: "16/10", objectFit: "cover" }}
+                />
+              ) : (
+                <div className="fd-card-image fd-card-image--placeholder" />
+              )}
               <div className="fd-card-body">
                 <div className="fd-card-title-row">
                   <h3>{r.name}</h3>

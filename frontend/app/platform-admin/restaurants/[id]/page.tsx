@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useRouter, useParams } from "next/navigation";
 import Link from "next/link";
 import { adminApi } from "../../../../lib/adminApi";
+import { imageUrl } from "../../../../lib/api";
 
 export default function PlatformAdminRestaurantMenuPage() {
   const params = useParams();
@@ -220,7 +221,7 @@ export default function PlatformAdminRestaurantMenuPage() {
             </div>
             {editLogoUrl.trim() && (
               <img
-                src={editLogoUrl.trim()}
+                src={imageUrl(editLogoUrl.trim())}
                 alt="Logo"
                 style={{ marginTop: 8, maxWidth: 80, maxHeight: 80, objectFit: "contain", borderRadius: 8 }}
                 onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }}
@@ -251,7 +252,7 @@ export default function PlatformAdminRestaurantMenuPage() {
             </div>
             {editCoverUrl.trim() && (
               <img
-                src={editCoverUrl.trim()}
+                src={imageUrl(editCoverUrl.trim())}
                 alt="Cover"
                 style={{ marginTop: 8, maxWidth: "100%", maxHeight: 120, objectFit: "cover", borderRadius: 8 }}
                 onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }}
@@ -259,7 +260,7 @@ export default function PlatformAdminRestaurantMenuPage() {
             )}
           </label>
           {editError && <p style={{ color: "var(--color-orange)", fontSize: "0.875rem" }}>{editError}</p>}
-          <button type="submit" className="fd-btn fd-btn-primary" disabled={editSubmitting}>
+          <button type="submit" className="fd-btn fd-btn-primary" disabled={editSubmitting || editLogoUploading || editCoverUploading}>
             {editSubmitting ? "Saqlanmoqda..." : "Rasmlarni saqlash"}
           </button>
         </form>
