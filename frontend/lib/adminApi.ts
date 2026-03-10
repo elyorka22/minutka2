@@ -52,6 +52,8 @@ export const adminApi = {
     name: string;
     description?: string;
     address?: string;
+    logoUrl?: string;
+    coverUrl?: string;
     deliveryFee?: number;
     minOrderTotal?: number;
     deliveryRadiusM?: number;
@@ -62,6 +64,39 @@ export const adminApi = {
     }),
   getRestaurantFull: (id: string) =>
     adminRequest<any>(`/admin/restaurants/${id}/full`),
+  uploadImage: async (file: File): Promise<{ url: string }> => {
+    const formData = new FormData();
+    formData.append("file", file);
+    const token = typeof window !== "undefined" ? window.localStorage.getItem("token") : null;
+    const res = await fetch(`${API_BASE}/admin/upload`, {
+      method: "POST",
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+      body: formData,
+      cache: "no-store",
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.message || `Upload failed: ${res.status}`);
+    }
+    return res.json();
+  },
+  updateRestaurant: (
+    id: string,
+    body: {
+      name?: string;
+      description?: string;
+      address?: string;
+      logoUrl?: string;
+      coverUrl?: string;
+      deliveryFee?: number;
+      minOrderTotal?: number;
+      deliveryRadiusM?: number;
+    }
+  ) =>
+    adminRequest<any>(`/admin/restaurants/${id}`, {
+      method: "PATCH",
+      body: JSON.stringify(body),
+    }),
   createCategory: (restaurantId: string, body: { name: string; sortOrder?: number }) =>
     adminRequest<any>(`/admin/restaurants/${restaurantId}/categories`, {
       method: "POST",

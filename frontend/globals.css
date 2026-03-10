@@ -178,6 +178,10 @@ body {
   padding: 24px 20px 140px;
 }
 
+.fd-main--no-bottom-bar {
+  padding-bottom: 24px;
+}
+
 .fd-shell {
   max-width: 1100px;
   width: 100%;
@@ -864,6 +868,10 @@ body {
 @media (max-width: 768px) {
   .fd-main {
     padding: 24px 16px 40px;
+  }
+
+  .fd-main--no-bottom-bar {
+    padding-bottom: 24px;
   }
 
   .fd-header {

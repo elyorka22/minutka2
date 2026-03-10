@@ -7,12 +7,18 @@ import {
   Post,
   Req,
   UseGuards,
+  UseInterceptors,
+  UploadedFile,
   ForbiddenException,
   BadRequestException,
 } from '@nestjs/common';
+import { FileInterceptor } from '@nestjs/platform-express';
 import { JwtAuthGuard } from './auth/jwt-auth.guard';
 import { PrismaService } from './prisma.service';
 import { UserRole } from '../generated/prisma/enums';
+import * as fs from 'fs';
+import * as path from 'path';
+import { randomUUID } from 'crypto';
 
 interface RequestWithUser {
   user?: { id: string; role: string };
@@ -85,6 +91,37 @@ export class AdminController {
     return user;
   }
 
+  private static readonly ALLOWED_MIMES = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
+  private static readonly MAX_SIZE = 5 * 1024 * 1024; // 5MB
+
+  @Post('upload')
+  @UseInterceptors(FileInterceptor('file'))
+  async uploadImage(
+    @UploadedFile() file: { buffer: Buffer; originalname: string; mimetype: string; size: number } | undefined,
+    @Req() req: RequestWithUser & { protocol?: string; get?(name: string): string },
+  ) {
+    if (req.user?.role !== 'PLATFORM_ADMIN') {
+      throw new ForbiddenException('Only platform admin allowed');
+    }
+    if (!file || !file.buffer) {
+      throw new BadRequestException('File is required');
+    }
+    if (!AdminController.ALLOWED_MIMES.includes(file.mimetype)) {
+      throw new BadRequestException('Only JPEG, PNG, WebP, GIF allowed');
+    }
+    if (file.size > AdminController.MAX_SIZE) {
+      throw new BadRequestException('Max size 5MB');
+    }
+    const ext = path.extname(file.originalname) || (file.mimetype === 'image/png' ? '.png' : file.mimetype === 'image/webp' ? '.webp' : file.mimetype === 'image/gif' ? '.gif' : '.jpg');
+    const filename = randomUUID() + ext;
+    const uploadsDir = path.join(process.cwd(), 'uploads');
+    fs.mkdirSync(uploadsDir, { recursive: true });
+    fs.writeFileSync(path.join(uploadsDir, filename), file.buffer);
+    const baseUrl = process.env.PUBLIC_API_URL || (req.protocol && req.get ? `${req.protocol}://${req.get('host')}` : '');
+    const url = baseUrl ? `${baseUrl.replace(/\/$/, '')}/uploads/${filename}` : `/uploads/${filename}`;
+    return { url };
+  }
+
   @Post('restaurants')
   async createRestaurant(
     @Body()
@@ -120,6 +157,41 @@ export class AdminController {
         deliveryRadiusM: body.deliveryRadiusM ?? 3000,
         latitude: body.latitude ?? 0,
         longitude: body.longitude ?? 0,
+      },
+    });
+    return restaurant;
+  }
+
+  @Patch('restaurants/:id')
+  async updateRestaurant(
+    @Param('id') id: string,
+    @Body()
+    body: {
+      name?: string;
+      description?: string;
+      address?: string;
+      logoUrl?: string;
+      coverUrl?: string;
+      deliveryFee?: number;
+      minOrderTotal?: number;
+      deliveryRadiusM?: number;
+    },
+    @Req() req: RequestWithUser,
+  ) {
+    if (req.user?.role !== 'PLATFORM_ADMIN') {
+      throw new ForbiddenException('Only platform admin allowed');
+    }
+    const restaurant = await this.prisma.restaurant.update({
+      where: { id },
+      data: {
+        ...(body.name !== undefined && { name: body.name.trim() }),
+        ...(body.description !== undefined && { description: body.description?.trim() ?? null }),
+        ...(body.address !== undefined && { address: body.address?.trim() ?? '' }),
+        ...(body.logoUrl !== undefined && { logoUrl: body.logoUrl?.trim() ?? null }),
+        ...(body.coverUrl !== undefined && { coverUrl: body.coverUrl?.trim() ?? null }),
+        ...(body.deliveryFee !== undefined && { deliveryFee: body.deliveryFee }),
+        ...(body.minOrderTotal !== undefined && { minOrderTotal: body.minOrderTotal }),
+        ...(body.deliveryRadiusM !== undefined && { deliveryRadiusM: body.deliveryRadiusM }),
       },
     });
     return restaurant;

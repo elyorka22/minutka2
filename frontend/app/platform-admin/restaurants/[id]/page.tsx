@@ -25,6 +25,43 @@ export default function PlatformAdminRestaurantMenuPage() {
   const [dishSubmitting, setDishSubmitting] = useState(false);
   const [dishError, setDishError] = useState<string | null>(null);
 
+  const [editLogoUrl, setEditLogoUrl] = useState("");
+  const [editCoverUrl, setEditCoverUrl] = useState("");
+  const [editSubmitting, setEditSubmitting] = useState(false);
+  const [editError, setEditError] = useState<string | null>(null);
+  const [editLogoUploading, setEditLogoUploading] = useState(false);
+  const [editCoverUploading, setEditCoverUploading] = useState(false);
+
+  async function handleUploadLogo(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    e.target.value = "";
+    setEditLogoUploading(true);
+    try {
+      const { url } = await adminApi.uploadImage(file);
+      setEditLogoUrl(url);
+    } catch (err: any) {
+      setEditError(err?.message ?? "Yuklashda xatolik");
+    } finally {
+      setEditLogoUploading(false);
+    }
+  }
+
+  async function handleUploadCover(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    e.target.value = "";
+    setEditCoverUploading(true);
+    try {
+      const { url } = await adminApi.uploadImage(file);
+      setEditCoverUrl(url);
+    } catch (err: any) {
+      setEditError(err?.message ?? "Yuklashda xatolik");
+    } finally {
+      setEditCoverUploading(false);
+    }
+  }
+
   useEffect(() => {
     if (!id) return;
     let active = true;
@@ -34,6 +71,8 @@ export default function PlatformAdminRestaurantMenuPage() {
         const data = await adminApi.getRestaurantFull(id);
         if (!active) return;
         setRestaurant(data);
+        setEditLogoUrl(data?.logoUrl || "");
+        setEditCoverUrl(data?.coverUrl || "");
         if (data?.categories?.length && !dishCategoryId) {
           setDishCategoryId(data.categories[0].id);
         }
@@ -119,6 +158,26 @@ export default function PlatformAdminRestaurantMenuPage() {
     }
   }
 
+  async function handleUpdateRestaurant(e: React.FormEvent) {
+    e.preventDefault();
+    setEditError(null);
+    setEditSubmitting(true);
+    try {
+      await adminApi.updateRestaurant(id, {
+        logoUrl: editLogoUrl.trim() || undefined,
+        coverUrl: editCoverUrl.trim() || undefined,
+      });
+      const data = await adminApi.getRestaurantFull(id);
+      setRestaurant(data);
+      setEditLogoUrl(data?.logoUrl || "");
+      setEditCoverUrl(data?.coverUrl || "");
+    } catch (err: any) {
+      setEditError(err?.message ?? "Saqlashda xatolik");
+    } finally {
+      setEditSubmitting(false);
+    }
+  }
+
   if (!id) return null;
   if (loading) return <div className="fd-shell fd-section"><p>Yuklanmoqda...</p></div>;
   if (error) return <div className="fd-shell fd-section"><p className="fd-empty">{error}</p></div>;
@@ -133,6 +192,78 @@ export default function PlatformAdminRestaurantMenuPage() {
       </p>
       <h1 className="fd-section-title">{restaurant.name} — menyu</h1>
       <p className="fd-checkout-meta">{restaurant.address || "—"}</p>
+
+      <div className="fd-form-block" style={{ marginTop: 24 }}>
+        <h3>Restoran rasmlari</h3>
+        <form onSubmit={handleUpdateRestaurant} className="fd-form">
+          <label className="fd-field">
+            <span>Logo</span>
+            <input
+              type="url"
+              value={editLogoUrl}
+              onChange={(e) => setEditLogoUrl(e.target.value)}
+              placeholder="URL yoki telefondan yuklang"
+            />
+            <div style={{ marginTop: 8, display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
+              <input
+                type="file"
+                accept="image/*"
+                id="edit-logo-file"
+                style={{ display: "none" }}
+                onChange={handleUploadLogo}
+              />
+              <label htmlFor="edit-logo-file" style={{ margin: 0 }}>
+                <span className="fd-btn fd-btn-primary" style={{ cursor: "pointer", display: "inline-block" }}>
+                  {editLogoUploading ? "Yuklanmoqda..." : "Telefondan yuklash"}
+                </span>
+              </label>
+            </div>
+            {editLogoUrl.trim() && (
+              <img
+                src={editLogoUrl.trim()}
+                alt="Logo"
+                style={{ marginTop: 8, maxWidth: 80, maxHeight: 80, objectFit: "contain", borderRadius: 8 }}
+                onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }}
+              />
+            )}
+          </label>
+          <label className="fd-field">
+            <span>Banner / muqova</span>
+            <input
+              type="url"
+              value={editCoverUrl}
+              onChange={(e) => setEditCoverUrl(e.target.value)}
+              placeholder="URL yoki telefondan yuklang"
+            />
+            <div style={{ marginTop: 8, display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
+              <input
+                type="file"
+                accept="image/*"
+                id="edit-cover-file"
+                style={{ display: "none" }}
+                onChange={handleUploadCover}
+              />
+              <label htmlFor="edit-cover-file" style={{ margin: 0 }}>
+                <span className="fd-btn fd-btn-primary" style={{ cursor: "pointer", display: "inline-block" }}>
+                  {editCoverUploading ? "Yuklanmoqda..." : "Telefondan yuklash"}
+                </span>
+              </label>
+            </div>
+            {editCoverUrl.trim() && (
+              <img
+                src={editCoverUrl.trim()}
+                alt="Cover"
+                style={{ marginTop: 8, maxWidth: "100%", maxHeight: 120, objectFit: "cover", borderRadius: 8 }}
+                onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }}
+              />
+            )}
+          </label>
+          {editError && <p style={{ color: "var(--color-orange)", fontSize: "0.875rem" }}>{editError}</p>}
+          <button type="submit" className="fd-btn fd-btn-primary" disabled={editSubmitting}>
+            {editSubmitting ? "Saqlanmoqda..." : "Rasmlarni saqlash"}
+          </button>
+        </form>
+      </div>
 
       <div className="fd-form-block" style={{ marginTop: 24 }}>
         <h3>Kategoriya qo‘shish</h3>

@@ -15,10 +15,44 @@ export default function PlatformAdminPage() {
   const [createName, setCreateName] = useState("");
   const [createAddress, setCreateAddress] = useState("");
   const [createDesc, setCreateDesc] = useState("");
+  const [createLogoUrl, setCreateLogoUrl] = useState("");
+  const [createCoverUrl, setCreateCoverUrl] = useState("");
   const [createFee, setCreateFee] = useState("");
   const [createSubmitting, setCreateSubmitting] = useState(false);
   const [createError, setCreateError] = useState<string | null>(null);
+  const [createLogoUploading, setCreateLogoUploading] = useState(false);
+  const [createCoverUploading, setCreateCoverUploading] = useState(false);
   const router = useRouter();
+
+  async function handleUploadLogo(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    e.target.value = "";
+    setCreateLogoUploading(true);
+    try {
+      const { url } = await adminApi.uploadImage(file);
+      setCreateLogoUrl(url);
+    } catch (err: any) {
+      setCreateError(err?.message ?? "Yuklashda xatolik");
+    } finally {
+      setCreateLogoUploading(false);
+    }
+  }
+
+  async function handleUploadCover(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    e.target.value = "";
+    setCreateCoverUploading(true);
+    try {
+      const { url } = await adminApi.uploadImage(file);
+      setCreateCoverUrl(url);
+    } catch (err: any) {
+      setCreateError(err?.message ?? "Yuklashda xatolik");
+    } finally {
+      setCreateCoverUploading(false);
+    }
+  }
 
   useEffect(() => {
     let active = true;
@@ -222,6 +256,68 @@ export default function PlatformAdminPage() {
                     onChange={(e) => setCreateDesc(e.target.value)}
                     placeholder="Qisqacha tavsif"
                   />
+                </label>
+                <label className="fd-field">
+                  <span>Logo rasm</span>
+                  <input
+                    type="url"
+                    value={createLogoUrl}
+                    onChange={(e) => setCreateLogoUrl(e.target.value)}
+                    placeholder="URL yoki telefondan yuklang"
+                  />
+                  <div style={{ marginTop: 8, display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      id="create-logo-file"
+                      style={{ display: "none" }}
+                      onChange={handleUploadLogo}
+                    />
+                    <label htmlFor="create-logo-file" style={{ margin: 0 }}>
+                      <span className="fd-btn fd-btn-primary" style={{ cursor: "pointer", display: "inline-block" }}>
+                        {createLogoUploading ? "Yuklanmoqda..." : "Telefondan yuklash"}
+                      </span>
+                    </label>
+                  </div>
+                  {createLogoUrl.trim() && (
+                    <img
+                      src={createLogoUrl.trim()}
+                      alt="Logo"
+                      style={{ marginTop: 8, maxWidth: 80, maxHeight: 80, objectFit: "contain", borderRadius: 8 }}
+                      onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }}
+                    />
+                  )}
+                </label>
+                <label className="fd-field">
+                  <span>Banner / muqova rasm</span>
+                  <input
+                    type="url"
+                    value={createCoverUrl}
+                    onChange={(e) => setCreateCoverUrl(e.target.value)}
+                    placeholder="URL yoki telefondan yuklang"
+                  />
+                  <div style={{ marginTop: 8, display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      id="create-cover-file"
+                      style={{ display: "none" }}
+                      onChange={handleUploadCover}
+                    />
+                    <label htmlFor="create-cover-file" style={{ margin: 0 }}>
+                      <span className="fd-btn fd-btn-primary" style={{ cursor: "pointer", display: "inline-block" }}>
+                        {createCoverUploading ? "Yuklanmoqda..." : "Telefondan yuklash"}
+                      </span>
+                    </label>
+                  </div>
+                  {createCoverUrl.trim() && (
+                    <img
+                      src={createCoverUrl.trim()}
+                      alt="Cover"
+                      style={{ marginTop: 8, maxWidth: "100%", maxHeight: 120, objectFit: "cover", borderRadius: 8 }}
+                      onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }}
+                    />
+                  )}
                 </label>
                 <label className="fd-field">
                   <span>Yetkazib berish narxi (so‘m)</span>

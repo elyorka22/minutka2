@@ -4,6 +4,7 @@ import "../globals.css";
 import type { ReactNode } from "react";
 import Link from "next/link";
 import { useEffect, useState } from "react";
+import { usePathname } from "next/navigation";
 import { CartProvider } from "../components/CartContext";
 
 function Header() {
@@ -92,7 +93,17 @@ function BottomBar() {
   );
 }
 
+function useShowBottomBar() {
+  const pathname = usePathname();
+  if (!pathname) return true;
+  if (pathname.startsWith("/platform-admin")) return false;
+  if (pathname.startsWith("/restaurant-admin")) return false;
+  return true;
+}
+
 export default function RootLayout({ children }: { children: ReactNode }) {
+  const showBottomBar = useShowBottomBar();
+
   useEffect(() => {
     if (typeof window === "undefined") return;
     if ("serviceWorker" in navigator) {
@@ -119,8 +130,10 @@ export default function RootLayout({ children }: { children: ReactNode }) {
       <body className="fd-body">
         <CartProvider>
           <Header />
-          <main className="fd-main">{children}</main>
-          <BottomBar />
+          <main className={showBottomBar ? "fd-main" : "fd-main fd-main--no-bottom-bar"}>
+            {children}
+          </main>
+          {showBottomBar && <BottomBar />}
         </CartProvider>
       </body>
     </html>
