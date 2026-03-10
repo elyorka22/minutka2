@@ -8,8 +8,7 @@ import { CartProvider } from "../components/CartContext";
 
 function Header() {
   const [canInstall, setCanInstall] = useState(false);
-  const [installEvent, setInstallEvent] =
-    useState<BeforeInstallPromptEvent | null>(null);
+  const [installEvent, setInstallEvent] = useState<any | null>(null);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -24,8 +23,8 @@ function Header() {
 
   async function handleInstallClick() {
     if (!installEvent) return;
-    installEvent.prompt();
-    await installEvent.userChoice;
+    installEvent.prompt?.();
+    await installEvent.userChoice?.();
     setCanInstall(false);
     setInstallEvent(null);
   }
