@@ -602,18 +602,18 @@ body {
 }
 
 .fd-card--dish .fd-card-body {
-  padding: 20px;
+  padding: 14px 14px 12px;
 }
 
 .fd-card--dish h3 {
-  font-size: 1.0625rem;
+  font-size: 0.96rem;
   font-weight: 600;
-  margin: 0 0 6px;
+  margin: 0 0 4px;
 }
 
 .fd-dish-footer {
-  margin-top: 16px;
-  padding-top: 16px;
+  margin-top: 10px;
+  padding-top: 10px;
   border-top: 1px solid var(--color-border);
   display: flex;
   align-items: center;
@@ -623,7 +623,7 @@ body {
 
 .fd-price {
   font-weight: 700;
-  font-size: 1.0625rem;
+  font-size: 0.95rem;
   color: var(--color-text);
 }
 
@@ -694,6 +694,7 @@ body {
   border: none;
   padding: 6px 0;
   cursor: pointer;
+  position: relative;
 }
 
 .fd-bottom-label {
@@ -704,15 +705,17 @@ body {
 }
 
 .fd-bottom-badge {
-  margin-top: 2px;
-  min-width: 18px;
-  padding: 0 6px;
+  position: absolute;
+  top: -2px;
+  right: 18px;
+  min-width: 14px;
+  padding: 0 4px;
   border-radius: 9999px;
   background: var(--color-orange);
   color: #fff;
-  font-size: 0.7rem;
+  font-size: 0.6rem;
   font-weight: 600;
-  line-height: 1.6;
+  line-height: 1.4;
 }
 
 .fd-bottom-item--active {
