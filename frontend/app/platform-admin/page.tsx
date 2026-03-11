@@ -34,6 +34,7 @@ export default function PlatformAdminPage() {
   const [productName, setProductName] = useState("");
   const [productPrice, setProductPrice] = useState("");
   const [productUnit, setProductUnit] = useState("dona");
+  const [productImageUrl, setProductImageUrl] = useState("");
   const [productError, setProductError] = useState<string | null>(null);
   const [productSubmitting, setProductSubmitting] = useState(false);
   const router = useRouter();
@@ -65,6 +66,20 @@ export default function PlatformAdminPage() {
       setCreateError(err?.message ?? "Yuklashda xatolik");
     } finally {
       setCreateCoverUploading(false);
+    }
+  }
+
+  async function handleUploadProductImage(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    e.target.value = "";
+    setProductImageUrl(""); // очистим предыдущий URL перед загрузкой
+    setProductError(null);
+    try {
+      const { url } = await adminApi.uploadImage(file);
+      setProductImageUrl(url);
+    } catch (err: any) {
+      setProductError(err?.message ?? "Yuklashda xatolik");
     }
   }
 
@@ -201,10 +216,12 @@ export default function PlatformAdminPage() {
         name: productName.trim(),
         price,
         unit: productUnit || "dona",
+        imageUrl: productImageUrl.trim() || undefined,
       });
       setProductName("");
       setProductPrice("");
       setProductUnit("dona");
+      setProductImageUrl("");
       setProductError("Mahsulot qo‘shildi.");
     } catch (err: any) {
       setProductError(err?.message ?? "Mahsulot qo‘shishda xatolik");
@@ -557,6 +574,37 @@ export default function PlatformAdminPage() {
                         onChange={(e) => setProductUnit(e.target.value)}
                         placeholder="dona, kg va hokazo"
                       />
+                    </label>
+                    <label className="fd-field">
+                      <span>Rasm (ixtiyoriy)</span>
+                      <input
+                        type="url"
+                        value={productImageUrl}
+                        onChange={(e) => setProductImageUrl(e.target.value)}
+                        placeholder="URL yoki telefondan yuklang"
+                      />
+                      <div style={{ marginTop: 8, display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
+                        <input
+                          type="file"
+                          accept="image/*"
+                          id="product-image-file"
+                          style={{ display: "none" }}
+                          onChange={handleUploadProductImage}
+                        />
+                        <label htmlFor="product-image-file" style={{ margin: 0 }}>
+                          <span className="fd-btn fd-btn-primary" style={{ cursor: "pointer", display: "inline-block" }}>
+                            Telefondan yuklash
+                          </span>
+                        </label>
+                      </div>
+                      {productImageUrl.trim() && (
+                        <img
+                          src={imageUrl(productImageUrl.trim())}
+                          alt="Mahsulot rasm"
+                          style={{ marginTop: 8, maxWidth: "100%", maxHeight: 120, objectFit: "cover", borderRadius: 8 }}
+                          onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }}
+                        />
+                      )}
                     </label>
                     {productError && (
                       <p style={{ color: "var(--color-orange)", fontSize: "0.875rem" }}>
