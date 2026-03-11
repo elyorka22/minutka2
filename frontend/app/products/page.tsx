@@ -18,6 +18,7 @@ type Product = {
 type ProductCategory = {
   id: string;
   name: string;
+  imageUrl?: string | null;
 };
 
 export default function ProductsPage() {
@@ -50,6 +51,7 @@ export default function ProductsPage() {
           .map((c: any) => ({
             id: String(c.id),
             name: String(c.name),
+            imageUrl: c.imageUrl ?? null,
           }));
         setCategories(cats);
       } finally {
@@ -78,8 +80,11 @@ export default function ProductsPage() {
               className="fd-card fd-product-cat-card"
               onClick={() => setActiveCategoryId("all")}
             >
+              <div className="fd-product-cat-image-wrap">
+                <span className="fd-product-cat-name">Barchasi</span>
+              </div>
               <span className="fd-product-cat-name">
-                Barchasi
+                Hammasi
               </span>
             </button>
             {categories.map((c) => (
@@ -91,6 +96,15 @@ export default function ProductsPage() {
                 }`}
                 onClick={() => setActiveCategoryId(c.id)}
               >
+                <div className="fd-product-cat-image-wrap">
+                  <SafeImage
+                    src={c.imageUrl ? imageUrl(c.imageUrl) : ""}
+                    alt=""
+                    className="fd-product-cat-image"
+                    style={{ width: "100%", aspectRatio: "1 / 1", objectFit: "cover" }}
+                    fallbackStyle={{ height: 40 }}
+                  />
+                </div>
                 <span className="fd-product-cat-name">
                   {c.name}
                 </span>

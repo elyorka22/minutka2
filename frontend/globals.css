@@ -516,14 +516,26 @@ body {
 }
 
 .fd-product-cat-card {
-  padding: 12px;
+  padding: 8px;
   text-align: center;
   cursor: pointer;
 }
 
+.fd-product-cat-image-wrap {
+  width: 100%;
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  margin-bottom: 6px;
+  background: var(--color-orange-light);
+}
+
+.fd-product-cat-image {
+  display: block;
+}
+
 .fd-product-cat-name {
   display: block;
-  font-size: 0.8rem;
+  font-size: 0.78rem;
   font-weight: 600;
 }
 

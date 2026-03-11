@@ -134,6 +134,7 @@ export const adminApi = {
     }),
   createProductCategory: (body: {
     name: string;
+    imageUrl?: string;
     sortOrder?: number;
     isActive?: boolean;
   }) =>
@@ -145,6 +146,7 @@ export const adminApi = {
     id: string,
     body: {
       name?: string;
+      imageUrl?: string;
       sortOrder?: number;
       isActive?: boolean;
     }

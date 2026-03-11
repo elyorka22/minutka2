@@ -331,7 +331,7 @@ export class AdminController {
 
   @Post('product-categories')
   async createProductCategory(
-    @Body() body: { name: string; sortOrder?: number; isActive?: boolean },
+    @Body() body: { name: string; imageUrl?: string; sortOrder?: number; isActive?: boolean },
     @Req() req: RequestWithUser,
   ) {
     if (req.user?.role !== 'PLATFORM_ADMIN') {
@@ -343,6 +343,7 @@ export class AdminController {
     const category = await this.prisma.productCategory.create({
       data: {
         name: body.name.trim(),
+        imageUrl: body.imageUrl?.trim() ?? null,
         sortOrder: typeof body.sortOrder === 'number' ? body.sortOrder : 0,
         isActive: body.isActive ?? true,
       },
@@ -353,7 +354,7 @@ export class AdminController {
   @Patch('product-categories/:id')
   async updateProductCategory(
     @Param('id') id: string,
-    @Body() body: { name?: string; sortOrder?: number; isActive?: boolean },
+    @Body() body: { name?: string; imageUrl?: string; sortOrder?: number; isActive?: boolean },
     @Req() req: RequestWithUser,
   ) {
     if (req.user?.role !== 'PLATFORM_ADMIN') {
@@ -363,6 +364,7 @@ export class AdminController {
       where: { id },
       data: {
         ...(body.name !== undefined && { name: body.name.trim() }),
+        ...(body.imageUrl !== undefined && { imageUrl: body.imageUrl?.trim() ?? null }),
         ...(body.sortOrder !== undefined && { sortOrder: body.sortOrder }),
         ...(body.isActive !== undefined && { isActive: body.isActive }),
       },

@@ -42,6 +42,8 @@ export default function PlatformAdminPage() {
   const [productCategoryName, setProductCategoryName] = useState("");
   const [productCategorySort, setProductCategorySort] = useState("");
   const [productCategorySubmitting, setProductCategorySubmitting] = useState(false);
+  const [productCategoryImageUrl, setProductCategoryImageUrl] = useState("");
+  const [productCategoryImageUploading, setProductCategoryImageUploading] = useState(false);
   const [banners, setBanners] = useState<any[]>([]);
   const [bannerTitle, setBannerTitle] = useState("");
   const [bannerText, setBannerText] = useState("");
@@ -258,12 +260,14 @@ export default function PlatformAdminPage() {
     try {
       const created = await adminApi.createProductCategory({
         name: productCategoryName.trim(),
+        imageUrl: productCategoryImageUrl.trim() || undefined,
         sortOrder: productCategorySort ? Number(productCategorySort) : undefined,
         isActive: true,
       });
       setProductCategories((prev) => [created, ...prev]);
       setProductCategoryName("");
       setProductCategorySort("");
+      setProductCategoryImageUrl("");
     } catch (err: any) {
       setProductError(err.message ?? "Kategoriya qo‘shishda xatolik");
     } finally {
@@ -277,6 +281,22 @@ export default function PlatformAdminPage() {
       setProductCategories((prev) => prev.map((c) => (c.id === id ? updated : c)));
     } catch (err: any) {
       setProductError(err.message ?? "Kategoriya yangilashda xatolik");
+    }
+  }
+
+  async function handleUploadProductCategoryImage(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    e.target.value = "";
+    setProductCategoryImageUploading(true);
+    setProductError(null);
+    try {
+      const { url } = await adminApi.uploadImage(file);
+      setProductCategoryImageUrl(url);
+    } catch (err: any) {
+      setProductError(err?.message ?? "Yuklashda xatolik");
+    } finally {
+      setProductCategoryImageUploading(false);
     }
   }
 
@@ -652,6 +672,37 @@ export default function PlatformAdminPage() {
                         onChange={(e) => setProductCategorySort(e.target.value)}
                         placeholder="0"
                       />
+                    </label>
+                    <label className="fd-field">
+                      <span>Rasm (ixtiyoriy)</span>
+                      <input
+                        type="url"
+                        value={productCategoryImageUrl}
+                        onChange={(e) => setProductCategoryImageUrl(e.target.value)}
+                        placeholder="URL yoki telefondan yuklang"
+                      />
+                      <div style={{ marginTop: 8, display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
+                        <input
+                          type="file"
+                          accept="image/*"
+                          id="product-category-image-file"
+                          style={{ display: "none" }}
+                          onChange={handleUploadProductCategoryImage}
+                        />
+                        <label htmlFor="product-category-image-file" style={{ margin: 0 }}>
+                          <span className="fd-btn fd-btn-primary" style={{ cursor: "pointer", display: "inline-block" }}>
+                            {productCategoryImageUploading ? "Yuklanmoqda..." : "Telefondan yuklash"}
+                          </span>
+                        </label>
+                      </div>
+                      {productCategoryImageUrl.trim() && (
+                        <img
+                          src={imageUrl(productCategoryImageUrl.trim())}
+                          alt="Kategoriya rasm"
+                          style={{ marginTop: 8, maxWidth: 80, maxHeight: 80, objectFit: "cover", borderRadius: 8 }}
+                          onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }}
+                        />
+                      )}
                     </label>
                     <button
                       type="submit"
