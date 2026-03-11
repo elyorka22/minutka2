@@ -4,6 +4,7 @@ import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { AdminController } from './admin.controller';
 import { ProductsController } from './products.controller';
+import { BannersController } from './banners.controller';
 import { PrismaModule } from './prisma.module';
 import { UsersModule } from './users/users.module';
 import { AuthModule } from './auth/auth.module';
@@ -23,7 +24,7 @@ import { OrdersModule } from './orders/orders.module';
     MenuModule,
     OrdersModule,
   ],
-  controllers: [AppController, AdminController, ProductsController],
+  controllers: [AppController, AdminController, ProductsController, BannersController],
   providers: [AppService],
 })
 export class AppModule {}

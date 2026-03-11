@@ -49,4 +49,12 @@ export const api = {
       return [];
     }
   },
+  async getBanners() {
+    try {
+      const data = await request<any[]>("/banners");
+      return Array.isArray(data) ? data : [];
+    } catch {
+      return [];
+    }
+  },
 };

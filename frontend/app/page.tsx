@@ -11,6 +11,15 @@ type RestaurantCard = {
   coverUrl?: string | null;
 };
 
+type BannerCard = {
+  id: string;
+  title: string;
+  text?: string | null;
+  imageUrl?: string | null;
+  ctaLabel?: string | null;
+  ctaHref?: string | null;
+};
+
 async function getRestaurants(): Promise<RestaurantCard[]> {
   const data = await api.getRestaurants();
   if (!Array.isArray(data)) return [];
@@ -24,8 +33,24 @@ async function getRestaurants(): Promise<RestaurantCard[]> {
   }));
 }
 
+async function getBannersForHome(): Promise<BannerCard[]> {
+  const data = await api.getBanners();
+  if (!Array.isArray(data)) return [];
+  return data.map((b: any) => ({
+    id: String(b.id),
+    title: String(b.title),
+    text: b.text ?? null,
+    imageUrl: b.imageUrl ?? null,
+    ctaLabel: b.ctaLabel ?? null,
+    ctaHref: b.ctaHref ?? null,
+  }));
+}
+
 export default async function HomePage() {
-  const restaurants = await getRestaurants();
+  const [restaurants, banners] = await Promise.all([
+    getRestaurants(),
+    getBannersForHome(),
+  ]);
 
   return (
     <div className="fd-shell">
@@ -51,17 +76,41 @@ export default async function HomePage() {
       </section>
 
       <section className="fd-home-banners">
-        <article className="fd-banner fd-banner--primary">
-          <div className="fd-banner-title">Chegirma 30%</div>
-          <p className="fd-banner-text">Sevimli restoranlardan issiq yetkazib berish.</p>
-          <button type="button" className="fd-btn fd-btn-primary fd-banner-btn">
-            Aksiyani ko‘rish
-          </button>
-        </article>
-        <article className="fd-banner fd-banner--secondary">
-          <div className="fd-banner-title">Tezkor kuryer</div>
-          <p className="fd-banner-text">Mahsulotlarni yaqin do‘konlardan tez yetkazib beramiz.</p>
-        </article>
+        {(banners.length ? banners : [
+          {
+            id: "demo-1",
+            title: "Chegirma 30%",
+            text: "Sevimli restoranlardan issiq yetkazib berish.",
+            ctaLabel: "Aksiyani ko‘rish",
+            ctaHref: undefined,
+          },
+          {
+            id: "demo-2",
+            title: "Tezkor kuryer",
+            text: "Mahsulotlarni yaqin do‘konlardan tez yetkazib beramiz.",
+            ctaLabel: undefined,
+            ctaHref: undefined,
+          },
+        ]).map((b, index) => {
+          const isPrimary = index === 0;
+          const bannerClass = isPrimary ? "fd-banner fd-banner--primary" : "fd-banner fd-banner--secondary";
+          const content = (
+            <>
+              <div className="fd-banner-title">{b.title}</div>
+              {b.text && <p className="fd-banner-text">{b.text}</p>}
+              {b.ctaLabel && (
+                <button type="button" className="fd-btn fd-btn-primary fd-banner-btn">
+                  {b.ctaLabel}
+                </button>
+              )}
+            </>
+          );
+          return (
+            <article key={b.id} className={bannerClass}>
+              {content}
+            </article>
+          );
+        })}
       </section>
 
       <section className="fd-section">

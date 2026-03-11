@@ -37,6 +37,14 @@ export default function PlatformAdminPage() {
   const [productImageUrl, setProductImageUrl] = useState("");
   const [productError, setProductError] = useState<string | null>(null);
   const [productSubmitting, setProductSubmitting] = useState(false);
+  const [banners, setBanners] = useState<any[]>([]);
+  const [bannerTitle, setBannerTitle] = useState("");
+  const [bannerText, setBannerText] = useState("");
+  const [bannerCtaLabel, setBannerCtaLabel] = useState("");
+  const [bannerCtaHref, setBannerCtaHref] = useState("");
+  const [bannerSortOrder, setBannerSortOrder] = useState("");
+  const [bannerSubmitting, setBannerSubmitting] = useState(false);
+  const [bannerError, setBannerError] = useState<string | null>(null);
   const router = useRouter();
 
   async function handleUploadLogo(e: React.ChangeEvent<HTMLInputElement>) {
@@ -91,6 +99,7 @@ export default function PlatformAdminPage() {
         const overview = await fetchOverview();
         if (!active) return;
         setData(overview);
+        setBanners(overview.banners ?? []);
       } catch (err: any) {
         if (!active) return;
         setError(err.message ?? "Yuklashda xatolik");
@@ -227,6 +236,45 @@ export default function PlatformAdminPage() {
       setProductError(err?.message ?? "Mahsulot qo‘shishda xatolik");
     } finally {
       setProductSubmitting(false);
+    }
+  }
+
+  async function handleCreateBanner(e: React.FormEvent) {
+    e.preventDefault();
+    setBannerError(null);
+    if (!bannerTitle.trim()) {
+      setBannerError("Sarlavha kiritilishi shart");
+      return;
+    }
+    setBannerSubmitting(true);
+    try {
+      const created = await adminApi.createBanner({
+        title: bannerTitle.trim(),
+        text: bannerText.trim() || undefined,
+        ctaLabel: bannerCtaLabel.trim() || undefined,
+        ctaHref: bannerCtaHref.trim() || undefined,
+        sortOrder: bannerSortOrder ? Number(bannerSortOrder) : undefined,
+        isActive: true,
+      });
+      setBanners((prev) => [created, ...prev]);
+      setBannerTitle("");
+      setBannerText("");
+      setBannerCtaLabel("");
+      setBannerCtaHref("");
+      setBannerSortOrder("");
+    } catch (err: any) {
+      setBannerError(err.message ?? "Banner qo‘shishda xatolik");
+    } finally {
+      setBannerSubmitting(false);
+    }
+  }
+
+  async function handleUpdateBanner(id: string, patch: any) {
+    try {
+      const updated = await adminApi.updateBanner(id, patch);
+      setBanners((prev) => prev.map((b) => (b.id === id ? updated : b)));
+    } catch (err: any) {
+      setBannerError(err.message ?? "Banner yangilashda xatolik");
     }
   }
 
@@ -653,10 +701,126 @@ export default function PlatformAdminPage() {
             >
               <section>
                 <h2>Sayt sozlamalari</h2>
-                <p className="fd-empty">
-                  Bu yerda keyinchalik komissiyalar, promo-kodlar, to‘lov integratsiyalari va boshqa
-                  global sozlamalar bo‘ladi.
-                </p>
+                <div className="fd-form-block" style={{ marginTop: 16 }}>
+                  <h3>Bosh sahifa bannerlari</h3>
+                  <p className="fd-checkout-meta">
+                    Bu yerda kategoriya tugmalarining ostida ko‘rinadigan reklama bannerlarini
+                    boshqarishingiz mumkin.
+                  </p>
+
+                  <form onSubmit={handleCreateBanner} className="fd-form" style={{ marginTop: 16 }}>
+                    <label className="fd-field">
+                      <span>Sarlavha *</span>
+                      <input
+                        value={bannerTitle}
+                        onChange={(e) => setBannerTitle(e.target.value)}
+                        placeholder="Masalan: Chegirma 30%"
+                        required
+                      />
+                    </label>
+                    <label className="fd-field">
+                      <span>Matn</span>
+                      <input
+                        value={bannerText}
+                        onChange={(e) => setBannerText(e.target.value)}
+                        placeholder="Qisqacha izoh"
+                      />
+                    </label>
+                    <label className="fd-field">
+                      <span>Tugma matni</span>
+                      <input
+                        value={bannerCtaLabel}
+                        onChange={(e) => setBannerCtaLabel(e.target.value)}
+                        placeholder="Masalan: Aksiyani ko‘rish"
+                      />
+                    </label>
+                    <label className="fd-field">
+                      <span>Tugma havolasi (ixtiyoriy)</span>
+                      <input
+                        value={bannerCtaHref}
+                        onChange={(e) => setBannerCtaHref(e.target.value)}
+                        placeholder="Masalan: /products"
+                      />
+                    </label>
+                    <label className="fd-field">
+                      <span>Tartib (ixtiyoriy)</span>
+                      <input
+                        type="number"
+                        value={bannerSortOrder}
+                        onChange={(e) => setBannerSortOrder(e.target.value)}
+                        placeholder="0"
+                      />
+                    </label>
+                    {bannerError && (
+                      <p style={{ color: "var(--color-orange)", fontSize: "0.875rem" }}>
+                        {bannerError}
+                      </p>
+                    )}
+                    <button
+                      type="submit"
+                      className="fd-btn fd-btn-primary"
+                      disabled={bannerSubmitting}
+                    >
+                      {bannerSubmitting ? "Saqlanmoqda..." : "Banner qo‘shish"}
+                    </button>
+                  </form>
+                </div>
+
+                <section style={{ marginTop: 24 }}>
+                  <h3>Mavjud bannerlar</h3>
+                  {banners.length === 0 && (
+                    <p className="fd-empty">Hozircha bannerlar yo‘q.</p>
+                  )}
+                  <div className="fd-admin-kpis" style={{ marginTop: 12 }}>
+                    {banners.map((b) => (
+                      <div key={b.id} className="fd-admin-kpi">
+                        <div className="fd-admin-kpi-label">ID: {b.id.slice(0, 8)}</div>
+                        <div className="fd-admin-kpi-value">{b.title}</div>
+                        {b.text && (
+                          <div className="fd-admin-kpi-sub">{b.text}</div>
+                        )}
+                        <div
+                          style={{
+                            marginTop: 8,
+                            display: "flex",
+                            gap: 8,
+                            alignItems: "center",
+                            flexWrap: "wrap",
+                          }}
+                        >
+                          <label className="fd-checkout-meta">
+                            <input
+                              type="checkbox"
+                              checked={!!b.isActive}
+                              onChange={(e) =>
+                                handleUpdateBanner(b.id, { isActive: e.target.checked })
+                              }
+                            />{" "}
+                            Faol
+                          </label>
+                          <label className="fd-checkout-meta">
+                            Tartib:{" "}
+                            <input
+                              type="number"
+                              defaultValue={b.sortOrder ?? 0}
+                              style={{
+                                width: 72,
+                                marginLeft: 4,
+                                padding: "2px 6px",
+                                fontSize: "0.8rem",
+                              }}
+                              onBlur={(e) =>
+                                handleUpdateBanner(b.id, {
+                                  sortOrder: Number(e.target.value) || 0,
+                                })
+                              }
+                            />
+                          </label>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </section>
               </section>
             </div>
           </div>
