@@ -37,15 +37,15 @@ export default async function HomePage() {
         </div>
 
         <div className="fd-home-chips">
-          <button type="button" className="fd-chip fd-chip--active">
+          <Link href="/restaurants" className="fd-chip fd-chip--active">
             Restoranlar
-          </button>
-          <button type="button" className="fd-chip">
+          </Link>
+          <Link href="/products" className="fd-chip">
             Mahsulotlar
-          </button>
-          <button type="button" className="fd-chip">
+          </Link>
+          <Link href="/couriers" className="fd-chip">
             Kuryer
-          </button>
+          </Link>
         </div>
       </section>
 
