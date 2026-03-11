@@ -5,7 +5,7 @@ import { useCart } from "../../components/CartContext";
 import { BackLink } from "../../components/BackLink";
 
 export default function CheckoutPage() {
-  const { items, total, clear } = useCart();
+  const { items, total, clear, changeQuantity } = useCart();
   const [submitted, setSubmitted] = useState(false);
 
   const [street, setStreet] = useState("");
@@ -57,19 +57,41 @@ export default function CheckoutPage() {
         <section className="fd-checkout-cart">
           <h2>Savat</h2>
           {items.length === 0 && <p className="fd-empty">Savat bo‘sh.</p>}
-          {items.map((item) => (
-            <div key={item.dish.id} className="fd-checkout-item">
-              <div>
-                <div>{item.dish.name}</div>
-                <div className="fd-checkout-meta">
-                  {item.quantity} × {item.dish.price.toFixed(0)} so&apos;m
+          {items.map((item) => {
+            const id = item.dish.id;
+            const lineTotal = (item.dish.price * item.quantity).toFixed(0);
+
+            return (
+              <div key={id} className="fd-checkout-item">
+                <div>
+                  <div>{item.dish.name}</div>
+                  <div className="fd-checkout-meta">
+                    {item.dish.price.toFixed(0)} so&apos;m / dona
+                  </div>
+                </div>
+                <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                  <div className="fd-qty">
+                    <button
+                      type="button"
+                      className="fd-qty-btn"
+                      onClick={() => changeQuantity(id, item.quantity - 1)}
+                    >
+                      −
+                    </button>
+                    <span className="fd-qty-value">{item.quantity}</span>
+                    <button
+                      type="button"
+                      className="fd-qty-btn"
+                      onClick={() => changeQuantity(id, item.quantity + 1)}
+                    >
+                      +
+                    </button>
+                  </div>
+                  <div className="fd-price">{lineTotal} so&apos;m</div>
                 </div>
               </div>
-              <div className="fd-price">
-                {(item.dish.price * item.quantity).toFixed(0)} so&apos;m
-              </div>
-            </div>
-          ))}
+            );
+          })}
           {items.length > 0 && (
             <div className="fd-checkout-total">
               <span>Jami:</span>
