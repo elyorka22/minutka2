@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { adminApi } from "../../../lib/adminApi";
+import { BackLink } from "../../../components/BackLink";
 
 export default function RestaurantAdminPage({
   params,
@@ -45,6 +46,7 @@ export default function RestaurantAdminPage({
 
   return (
     <div className="fd-shell fd-section">
+      <BackLink href="/profile">← Profil</BackLink>
       <h1 className="fd-section-title">Restoran buyurtmalari</h1>
       {loading && <p>Yuklanmoqda...</p>}
       {error && <p className="fd-empty">{error}</p>}

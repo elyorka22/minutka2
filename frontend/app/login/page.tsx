@@ -2,6 +2,7 @@
 
 import { FormEvent, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import { BackLink } from "../../components/BackLink";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:4000";
 
@@ -50,6 +51,7 @@ export default function LoginPage() {
 
   return (
     <div className="fd-shell fd-section">
+      <BackLink href="/" />
       <h1 className="fd-section-title">Admin uchun kirish</h1>
       {token && (
         <p className="fd-success">Token brauzerda saqlandi. Admin panellarini ochish mumkin.</p>

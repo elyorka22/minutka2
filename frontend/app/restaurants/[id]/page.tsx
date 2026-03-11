@@ -3,6 +3,7 @@
 import { useCart } from "../../../components/CartContext";
 import { api, imageUrl } from "../../../lib/api";
 import { SafeImage } from "../../../components/SafeImage";
+import { BackLink } from "../../../components/BackLink";
 
 async function loadRestaurant(id: string) {
   const data = await api.getRestaurant(id);
@@ -23,6 +24,7 @@ function RestaurantPageClient({ restaurant, dishes }: { restaurant: any; dishes:
 
   return (
     <div className="fd-shell fd-restaurant">
+      <BackLink href="/restaurants">← Restoranlar</BackLink>
       <header className="fd-restaurant-header">
         {(restaurant?.coverUrl || restaurant?.logoUrl) && (
           <SafeImage

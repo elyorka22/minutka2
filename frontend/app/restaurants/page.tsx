@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { api, imageUrl } from "../../lib/api";
 import { SafeImage } from "../../components/SafeImage";
+import { BackLink } from "../../components/BackLink";
 
 export default async function RestaurantsPage() {
   const data = await api.getRestaurants();
@@ -8,6 +9,7 @@ export default async function RestaurantsPage() {
 
   return (
     <div className="fd-shell">
+      <BackLink href="/" />
       <section className="fd-section">
         <h1 className="fd-section-title">Barcha restoranlar</h1>
         <div className="fd-grid">

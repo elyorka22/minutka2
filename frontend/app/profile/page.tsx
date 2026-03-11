@@ -48,6 +48,7 @@ export default function ProfilePage() {
 
   return (
     <div className="fd-shell fd-section">
+      <BackLink href="/" />
       <h1 className="fd-section-title">Profil</h1>
 
       {!hasToken && (

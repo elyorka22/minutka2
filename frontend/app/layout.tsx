@@ -71,21 +71,72 @@ function Header() {
 }
 
 function BottomBar() {
+  const pathname = usePathname() || "/";
+
+  const activeKey =
+    pathname === "/"
+      ? "home"
+      : pathname.startsWith("/restaurants")
+        ? "restaurants"
+        : pathname.startsWith("/products")
+          ? "products"
+          : pathname.startsWith("/couriers")
+            ? "couriers"
+        : pathname.startsWith("/checkout")
+          ? "checkout"
+          : pathname.startsWith("/profile") ||
+              pathname.startsWith("/login") ||
+              pathname.startsWith("/register")
+            ? "profile"
+            : null;
+
   return (
     <nav className="fd-bottom-bar">
-      <Link href="/" className="fd-bottom-item fd-bottom-item--active">
+      <Link
+        href="/"
+        className={`fd-bottom-item ${activeKey === "home" ? "fd-bottom-item--active" : ""}`}
+        aria-current={activeKey === "home" ? "page" : undefined}
+      >
         <span className="fd-bottom-icon material-symbols-rounded">home</span>
         <span className="fd-bottom-label">Bosh sahifa</span>
       </Link>
-      <Link href="/restaurants" className="fd-bottom-item">
+      <Link
+        href="/restaurants"
+        className={`fd-bottom-item ${activeKey === "restaurants" ? "fd-bottom-item--active" : ""}`}
+        aria-current={activeKey === "restaurants" ? "page" : undefined}
+      >
         <span className="fd-bottom-icon material-symbols-rounded">restaurant</span>
         <span className="fd-bottom-label">Restoranlar</span>
       </Link>
-      <Link href="/checkout" className="fd-bottom-item">
+      <Link
+        href="/products"
+        className={`fd-bottom-item ${activeKey === "products" ? "fd-bottom-item--active" : ""}`}
+        aria-current={activeKey === "products" ? "page" : undefined}
+      >
+        <span className="fd-bottom-icon material-symbols-rounded">grocery</span>
+        <span className="fd-bottom-label">Mahsulotlar</span>
+      </Link>
+      <Link
+        href="/couriers"
+        className={`fd-bottom-item ${activeKey === "couriers" ? "fd-bottom-item--active" : ""}`}
+        aria-current={activeKey === "couriers" ? "page" : undefined}
+      >
+        <span className="fd-bottom-icon material-symbols-rounded">local_shipping</span>
+        <span className="fd-bottom-label">Kuryerlar</span>
+      </Link>
+      <Link
+        href="/checkout"
+        className={`fd-bottom-item ${activeKey === "checkout" ? "fd-bottom-item--active" : ""}`}
+        aria-current={activeKey === "checkout" ? "page" : undefined}
+      >
         <span className="fd-bottom-icon material-symbols-rounded">shopping_bag</span>
         <span className="fd-bottom-label">Savat</span>
       </Link>
-      <Link href="/profile" className="fd-bottom-item fd-bottom-item--ghost">
+      <Link
+        href="/profile"
+        className={`fd-bottom-item fd-bottom-item--ghost ${activeKey === "profile" ? "fd-bottom-item--active" : ""}`}
+        aria-current={activeKey === "profile" ? "page" : undefined}
+      >
         <span className="fd-bottom-icon material-symbols-rounded">person</span>
         <span className="fd-bottom-label">Profil</span>
       </Link>

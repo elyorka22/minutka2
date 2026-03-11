@@ -2,9 +2,9 @@
 
 import { useEffect, useState } from "react";
 import { useRouter, useParams } from "next/navigation";
-import Link from "next/link";
 import { adminApi } from "../../../../lib/adminApi";
 import { imageUrl } from "../../../../lib/api";
+import { BackLink } from "../../../../components/BackLink";
 
 export default function PlatformAdminRestaurantMenuPage() {
   const params = useParams();
@@ -186,11 +186,7 @@ export default function PlatformAdminRestaurantMenuPage() {
 
   return (
     <div className="fd-shell fd-section">
-      <p style={{ marginBottom: 16 }}>
-        <Link href="/platform-admin" className="fd-link">
-          ← Platforma admin
-        </Link>
-      </p>
+      <BackLink href="/platform-admin">← Platforma admin</BackLink>
       <h1 className="fd-section-title">{restaurant.name} — menyu</h1>
       <p className="fd-checkout-meta">{restaurant.address || "—"}</p>
 

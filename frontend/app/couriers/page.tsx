@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useMemo, useState } from "react";
+import { BackLink } from "../../components/BackLink";
 
 type Courier = {
   id: string;
@@ -41,11 +42,9 @@ export default function CouriersPage() {
   return (
     <div className="fd-shell">
       <section className="fd-section">
+        <BackLink href="/" />
         <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", gap: 12 }}>
           <h1 className="fd-section-title">Kuryerlar</h1>
-          <Link className="fd-link" href="/">
-            ← Bosh sahifa
-          </Link>
         </div>
         <p className="fd-empty" style={{ marginTop: 8 }}>
           Bu sahifa demo. Keyingi bosqichda kuryerlar real tizimdan keladi va buyurtmaga biriktiriladi.

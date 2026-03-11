@@ -2,6 +2,7 @@
 
 import { FormEvent, useState } from "react";
 import { useCart } from "../../components/CartContext";
+import { BackLink } from "../../components/BackLink";
 
 export default function CheckoutPage() {
   const { items, total, clear } = useCart();
@@ -50,6 +51,7 @@ export default function CheckoutPage() {
 
   return (
     <div className="fd-shell fd-checkout">
+      <BackLink href="/" />
       <h1 className="fd-section-title">Buyurtmani rasmiylashtirish</h1>
       <div className="fd-checkout-layout">
         <section className="fd-checkout-cart">

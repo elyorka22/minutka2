@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useMemo, useState } from "react";
 import { SafeImage } from "../../components/SafeImage";
+import { BackLink } from "../../components/BackLink";
 
 type Product = {
   id: string;
@@ -89,11 +90,9 @@ export default function ProductsPage() {
   return (
     <div className="fd-shell">
       <section className="fd-section">
+        <BackLink href="/" />
         <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", gap: 12 }}>
           <h1 className="fd-section-title">Mahsulotlar</h1>
-          <Link className="fd-link" href="/">
-            ← Bosh sahifa
-          </Link>
         </div>
         <p className="fd-empty" style={{ marginTop: 8 }}>
           Hozircha bu sahifa demo. Keyingi bosqichda mahsulotlar do‘konlar bo‘yicha real bazadan keladi.
@@ -121,7 +120,7 @@ export default function ProductsPage() {
           </div>
         </div>
 
-        <div className="fd-grid fd-grid--mobile-2" style={{ marginTop: 16 }}>
+        <div className="fd-grid fd-grid--2" style={{ marginTop: 16 }}>
           {filtered.map((p) => (
             <article key={p.id} className="fd-card">
               <SafeImage

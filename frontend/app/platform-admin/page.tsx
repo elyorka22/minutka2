@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { adminApi } from "../../lib/adminApi";
 import { imageUrl } from "../../lib/api";
+import { BackLink } from "../../components/BackLink";
 
 type TabId = "stats" | "restaurants" | "users" | "orders";
 
@@ -179,6 +180,7 @@ export default function PlatformAdminPage() {
 
   return (
     <div className="fd-shell fd-section">
+      <BackLink href="/profile">← Profil</BackLink>
       <h1 className="fd-section-title">Platforma admin paneli</h1>
       {loading && <p>Yuklanmoqda...</p>}
       {error && <p className="fd-empty">{error}</p>}

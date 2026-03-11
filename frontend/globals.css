@@ -110,6 +110,24 @@ body {
   text-decoration: underline;
 }
 
+.fd-back-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--color-orange);
+  text-decoration: none;
+  font-weight: 500;
+  font-size: 0.9375rem;
+  padding: 8px 0;
+  margin-bottom: 16px;
+  transition: opacity 0.15s ease;
+}
+
+.fd-back-link:hover {
+  text-decoration: underline;
+  opacity: 0.9;
+}
+
 .fd-cart {
   display: flex;
   align-items: center;
@@ -424,6 +442,10 @@ body {
   gap: 20px;
 }
 
+.fd-grid--2 {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
 @media (max-width: 640px) {
   .fd-grid--mobile-2 {
     grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -576,13 +598,20 @@ body {
   flex-direction: column;
   align-items: center;
   gap: 3px;
-  font-size: 0.72rem;
+  font-size: 0.7rem;
   color: var(--color-text-secondary);
   text-decoration: none;
   background: transparent;
   border: none;
   padding: 6px 0;
   cursor: pointer;
+}
+
+.fd-bottom-label {
+  max-width: 72px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .fd-bottom-item--active {
