@@ -23,7 +23,7 @@ import { OrdersModule } from './orders/orders.module';
     MenuModule,
     OrdersModule,
   ],
-  controllers: [AppController, AdminController],
+  controllers: [AppController, AdminController, ProductsController],
   providers: [AppService],
 })
 export class AppModule {}
