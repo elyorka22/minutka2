@@ -3,9 +3,9 @@
 import "../globals.css";
 import type { ReactNode } from "react";
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { usePathname } from "next/navigation";
-import { CartProvider } from "../components/CartContext";
+import { CartProvider, useCart } from "../components/CartContext";
 
 function Header() {
   const [canInstall, setCanInstall] = useState(false);
@@ -72,6 +72,12 @@ function Header() {
 
 function BottomBar() {
   const pathname = usePathname() || "/";
+  const { items } = useCart();
+
+  const cartCount = useMemo(
+    () => items.reduce((sum, i) => sum + i.quantity, 0),
+    [items],
+  );
 
   const activeKey =
     pathname === "/"
@@ -121,6 +127,11 @@ function BottomBar() {
       >
         <span className="fd-bottom-icon material-symbols-rounded">shopping_bag</span>
         <span className="fd-bottom-label">Savat</span>
+        {cartCount > 0 && (
+          <span className="fd-bottom-badge">
+            {cartCount > 99 ? "99+" : cartCount}
+          </span>
+        )}
       </Link>
       <Link
         href="/profile"

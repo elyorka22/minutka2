@@ -44,7 +44,7 @@ function RestaurantPageClient({ restaurant, dishes }: { restaurant: any; dishes:
 
       <section className="fd-section">
         <h2 className="fd-section-title">Menyu</h2>
-        <div className="fd-grid">
+        <div className="fd-grid fd-grid--2">
           {dishes.map((dish) => {
             const id = String(dish.id);
             const quantity =
