@@ -41,4 +41,12 @@ export const api = {
       return { id, name: "Restoran mavjud emas", dishes: [] };
     }
   },
+  async getProducts() {
+    try {
+      const data = await request<any[]>("/products");
+      return Array.isArray(data) ? data : [];
+    } catch {
+      return [];
+    }
+  },
 };

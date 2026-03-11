@@ -116,4 +116,15 @@ export const adminApi = {
       method: "POST",
       body: JSON.stringify(body),
     }),
+  createProduct: (body: {
+    name: string;
+    description?: string;
+    price: number;
+    unit?: string;
+    imageUrl?: string;
+  }) =>
+    adminRequest<any>("/admin/products", {
+      method: "POST",
+      body: JSON.stringify(body),
+    }),
 };

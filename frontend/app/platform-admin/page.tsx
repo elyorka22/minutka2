@@ -31,9 +31,9 @@ export default function PlatformAdminPage() {
   const [createError, setCreateError] = useState<string | null>(null);
   const [createLogoUploading, setCreateLogoUploading] = useState(false);
   const [createCoverUploading, setCreateCoverUploading] = useState(false);
-  const [productRestaurantId, setProductRestaurantId] = useState("");
   const [productName, setProductName] = useState("");
   const [productPrice, setProductPrice] = useState("");
+  const [productUnit, setProductUnit] = useState("dona");
   const [productError, setProductError] = useState<string | null>(null);
   const [productSubmitting, setProductSubmitting] = useState(false);
   const router = useRouter();
@@ -186,10 +186,6 @@ export default function PlatformAdminPage() {
   async function handleCreateProduct(e: React.FormEvent) {
     e.preventDefault();
     setProductError(null);
-    if (!productRestaurantId.trim()) {
-      setProductError("Restoran ID kiritilishi shart");
-      return;
-    }
     if (!productName.trim()) {
       setProductError("Mahsulot nomi kiritilishi shart");
       return;
@@ -201,13 +197,15 @@ export default function PlatformAdminPage() {
     }
     setProductSubmitting(true);
     try {
-      await adminApi.createDish(productRestaurantId.trim(), {
+      await adminApi.createProduct({
         name: productName.trim(),
         price,
+        unit: productUnit || "dona",
       });
       setProductName("");
       setProductPrice("");
-      setProductError("Mahsulot qo‘shildi (restoran menyusiga).");
+      setProductUnit("dona");
+      setProductError("Mahsulot qo‘shildi.");
     } catch (err: any) {
       setProductError(err?.message ?? "Mahsulot qo‘shishda xatolik");
     } finally {
@@ -525,21 +523,12 @@ export default function PlatformAdminPage() {
               <section>
                 <h2>Mahsulotlar</h2>
                 <p className="fd-card-desc" style={{ marginBottom: 12 }}>
-                  Hozircha mahsulotlar restoran menyusidagi taomlar sifatida saqlanadi. Quyidagi
-                  shakl orqali istalgan restoran menyusiga mahsulot qo‘shishingiz mumkin.
+                  Bu yerda umumiy mahsulotlar katalogi shakllanadi. Har bir mahsulotni alohida
+                  qo‘shish mumkin, u maʼlum bir sahifaga emas, umumiy ro‘yxatga tushadi.
                 </p>
                 <div className="fd-form-block">
                   <h3>Mahsulot qo‘shish</h3>
                   <form onSubmit={handleCreateProduct} className="fd-form">
-                    <label className="fd-field">
-                      <span>Restoran ID *</span>
-                      <input
-                        value={productRestaurantId}
-                        onChange={(e) => setProductRestaurantId(e.target.value)}
-                        placeholder="Restoran ID (profil sahifasidan olishingiz mumkin)"
-                        required
-                      />
-                    </label>
                     <label className="fd-field">
                       <span>Mahsulot nomi *</span>
                       <input
@@ -559,6 +548,14 @@ export default function PlatformAdminPage() {
                         onChange={(e) => setProductPrice(e.target.value)}
                         placeholder="12000"
                         required
+                      />
+                    </label>
+                    <label className="fd-field">
+                      <span>O‘lchov birligi</span>
+                      <input
+                        value={productUnit}
+                        onChange={(e) => setProductUnit(e.target.value)}
+                        placeholder="dona, kg va hokazo"
                       />
                     </label>
                     {productError && (

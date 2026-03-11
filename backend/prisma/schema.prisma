@@ -198,6 +198,18 @@ model Payment {
   orderId String @unique
 }
 
+model Product {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  name        String
+  description String?
+  price       Decimal
+  unit        String  @default("dona")
+  imageUrl    String?
+}
+
 model PromoCode {
   id        String   @id @default(cuid())
   createdAt DateTime @default(now())

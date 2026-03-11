@@ -11,7 +11,6 @@ type Product = {
   price: number;
   unit: string;
   imageUrl?: string | null;
-  restaurantName: string;
 };
 
 export default function ProductsPage() {
@@ -23,22 +22,15 @@ export default function ProductsPage() {
     async function load() {
       try {
         setLoading(true);
-        const data = await api.getRestaurants();
+        const data = await api.getProducts();
         if (!active) return;
-        const next: Product[] = [];
-        (Array.isArray(data) ? data : []).forEach((r: any) => {
-          const dishes = Array.isArray(r?.dishes) ? r.dishes : [];
-          dishes.forEach((d: any) => {
-            next.push({
-              id: String(d.id),
-              name: String(d.name),
-              price: Number(d.price),
-              unit: "dona",
-              imageUrl: d.imageUrl ?? null,
-              restaurantName: String(r.name),
-            });
-          });
-        });
+        const next: Product[] = (Array.isArray(data) ? data : []).map((p: any) => ({
+          id: String(p.id),
+          name: String(p.name),
+          price: Number(p.price),
+          unit: String(p.unit ?? "dona"),
+          imageUrl: p.imageUrl ?? null,
+        }));
         setProducts(next);
       } finally {
         if (active) setLoading(false);
@@ -78,11 +70,8 @@ export default function ProductsPage() {
                 <div className="fd-card-title-row">
                   <h3>{p.name}</h3>
                 </div>
-                <p className="fd-card-desc" style={{ marginBottom: 10 }}>
-                  {p.restaurantName}
-                </p>
                 <div className="fd-price">
-                  {p.price.toLocaleString()} so‘m
+                  {p.price.toLocaleString()} so‘m / {p.unit}
                 </div>
               </div>
             </article>

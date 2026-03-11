@@ -275,4 +275,37 @@ export class AdminController {
     });
     return dish;
   }
+
+  @Post('products')
+  async createProduct(
+    @Body()
+    body: {
+      name: string;
+      description?: string;
+      price: number;
+      unit?: string;
+      imageUrl?: string;
+    },
+    @Req() req: RequestWithUser,
+  ) {
+    if (req.user?.role !== 'PLATFORM_ADMIN') {
+      throw new ForbiddenException('Only platform admin allowed');
+    }
+    if (!body.name || typeof body.name !== 'string') {
+      throw new BadRequestException('name is required');
+    }
+    if (typeof body.price !== 'number' || body.price <= 0) {
+      throw new BadRequestException('price must be a positive number');
+    }
+    const product = await this.prisma.product.create({
+      data: {
+        name: body.name.trim(),
+        description: body.description?.trim() ?? null,
+        price: body.price,
+        unit: body.unit?.trim() || 'dona',
+        imageUrl: body.imageUrl?.trim() ?? null,
+      },
+    });
+    return product;
+  }
 }
