@@ -7,13 +7,20 @@ import { adminApi } from "../../lib/adminApi";
 import { imageUrl } from "../../lib/api";
 import { BackLink } from "../../components/BackLink";
 
-type TabId = "stats" | "restaurants" | "users" | "orders";
+type TabId =
+  | "stats"
+  | "users"
+  | "restaurants"
+  | "supermarkets"
+  | "products"
+  | "couriers"
+  | "settings";
 
 export default function PlatformAdminPage() {
   const [data, setData] = useState<any | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<TabId>("restaurants");
+  const [activeTab, setActiveTab] = useState<TabId>("stats");
   const [createName, setCreateName] = useState("");
   const [createAddress, setCreateAddress] = useState("");
   const [createDesc, setCreateDesc] = useState("");
@@ -173,9 +180,12 @@ export default function PlatformAdminPage() {
 
   const tabs: { id: TabId; label: string }[] = [
     { id: "stats", label: "Statistika" },
-    { id: "restaurants", label: "Restoranlar" },
     { id: "users", label: "Foydalanuvchilar" },
-    { id: "orders", label: "Buyurtmalar" },
+    { id: "restaurants", label: "Restoranlar" },
+    { id: "supermarkets", label: "Supermarketlar" },
+    { id: "products", label: "Mahsulotlar" },
+    { id: "couriers", label: "Kuryerlar" },
+    { id: "settings", label: "Sozlamalar" },
   ];
 
   return (
@@ -185,7 +195,7 @@ export default function PlatformAdminPage() {
       {loading && <p>Yuklanmoqda...</p>}
       {error && <p className="fd-empty">{error}</p>}
       {data && (
-        <>
+        <div className="fd-admin-layout">
           <nav className="fd-admin-tabs">
             {tabs.map((t) => (
               <button
@@ -199,228 +209,271 @@ export default function PlatformAdminPage() {
             ))}
           </nav>
 
-          <div
-            className={`fd-admin-panel ${activeTab === "stats" ? "fd-admin-panel-active" : ""}`}
-          >
-            <section className="fd-admin-kpis">
-              {(() => {
-                const s = getStats();
-                return (
-                  <>
-                    <div className="fd-admin-kpi">
-                      <div className="fd-admin-kpi-label">Restoranlar</div>
-                      <div className="fd-admin-kpi-value">{s.restaurants}</div>
-                    </div>
-                    <div className="fd-admin-kpi">
-                      <div className="fd-admin-kpi-label">Foydalanuvchilar</div>
-                      <div className="fd-admin-kpi-value">{s.users}</div>
-                      <div className="fd-admin-kpi-sub">Adminlar: {s.admins}</div>
-                    </div>
-                    <div className="fd-admin-kpi">
-                      <div className="fd-admin-kpi-label">Buyurtmalar (oxirgilar)</div>
-                      <div className="fd-admin-kpi-value">{s.totalOrders}</div>
-                      <div className="fd-admin-kpi-sub">
-                        Yetkazilgan: {s.delivered} · Bekor: {s.cancelled}
+          <div className="fd-admin-main">
+            <div
+              className={`fd-admin-panel ${activeTab === "stats" ? "fd-admin-panel-active" : ""}`}
+            >
+              <section className="fd-admin-kpis">
+                {(() => {
+                  const s = getStats();
+                  return (
+                    <>
+                      <div className="fd-admin-kpi">
+                        <div className="fd-admin-kpi-label">Restoranlar</div>
+                        <div className="fd-admin-kpi-value">{s.restaurants}</div>
+                      </div>
+                      <div className="fd-admin-kpi">
+                        <div className="fd-admin-kpi-label">Foydalanuvchilar</div>
+                        <div className="fd-admin-kpi-value">{s.users}</div>
+                        <div className="fd-admin-kpi-sub">Adminlar: {s.admins}</div>
+                      </div>
+                      <div className="fd-admin-kpi">
+                        <div className="fd-admin-kpi-label">Buyurtmalar (oxirgilar)</div>
+                        <div className="fd-admin-kpi-value">{s.totalOrders}</div>
+                        <div className="fd-admin-kpi-sub">
+                          Yetkazilgan: {s.delivered} · Bekor: {s.cancelled}
+                        </div>
+                      </div>
+                    </>
+                  );
+                })()}
+              </section>
+
+              <section style={{ marginTop: 24 }}>
+                <h2>So‘nggi buyurtmalar</h2>
+                {data.recentOrders?.map((o: any) => (
+                  <div key={o.id} className="fd-checkout-item">
+                    <div>
+                      <div>#{o.id.slice(0, 8)}</div>
+                      <div className="fd-checkout-meta">
+                        {o.restaurant?.name} · {o.customer?.email} · {o.status}
                       </div>
                     </div>
-                  </>
-                );
-              })()}
-            </section>
-          </div>
-
-          <div
-            className={`fd-admin-panel ${activeTab === "restaurants" ? "fd-admin-panel-active" : ""}`}
-          >
-            <div className="fd-form-block">
-              <h3>Yangi restoran qo‘shish</h3>
-              <form onSubmit={handleCreateRestaurant} className="fd-form">
-                <label className="fd-field">
-                  <span>Restoran nomi *</span>
-                  <input
-                    value={createName}
-                    onChange={(e) => setCreateName(e.target.value)}
-                    placeholder="Masalan: Osh markazi"
-                    required
-                  />
-                </label>
-                <label className="fd-field">
-                  <span>Manzil</span>
-                  <input
-                    value={createAddress}
-                    onChange={(e) => setCreateAddress(e.target.value)}
-                    placeholder="Toshkent, ..."
-                  />
-                </label>
-                <label className="fd-field">
-                  <span>Tavsif</span>
-                  <input
-                    value={createDesc}
-                    onChange={(e) => setCreateDesc(e.target.value)}
-                    placeholder="Qisqacha tavsif"
-                  />
-                </label>
-                <label className="fd-field">
-                  <span>Logo rasm</span>
-                  <input
-                    type="url"
-                    value={createLogoUrl}
-                    onChange={(e) => setCreateLogoUrl(e.target.value)}
-                    placeholder="URL yoki telefondan yuklang"
-                  />
-                  <div style={{ marginTop: 8, display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
-                    <input
-                      type="file"
-                      accept="image/*"
-                      id="create-logo-file"
-                      style={{ display: "none" }}
-                      onChange={handleUploadLogo}
-                    />
-                    <label htmlFor="create-logo-file" style={{ margin: 0 }}>
-                      <span className="fd-btn fd-btn-primary" style={{ cursor: "pointer", display: "inline-block" }}>
-                        {createLogoUploading ? "Yuklanmoqda..." : "Telefondan yuklash"}
-                      </span>
-                    </label>
                   </div>
-                  {createLogoUrl.trim() && (
-                    <img
-                      src={imageUrl(createLogoUrl.trim())}
-                      alt="Logo"
-                      style={{ marginTop: 8, maxWidth: 80, maxHeight: 80, objectFit: "contain", borderRadius: 8 }}
-                      onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }}
-                    />
-                  )}
-                </label>
-                <label className="fd-field">
-                  <span>Banner / muqova rasm</span>
-                  <input
-                    type="url"
-                    value={createCoverUrl}
-                    onChange={(e) => setCreateCoverUrl(e.target.value)}
-                    placeholder="URL yoki telefondan yuklang"
-                  />
-                  <div style={{ marginTop: 8, display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
-                    <input
-                      type="file"
-                      accept="image/*"
-                      id="create-cover-file"
-                      style={{ display: "none" }}
-                      onChange={handleUploadCover}
-                    />
-                    <label htmlFor="create-cover-file" style={{ margin: 0 }}>
-                      <span className="fd-btn fd-btn-primary" style={{ cursor: "pointer", display: "inline-block" }}>
-                        {createCoverUploading ? "Yuklanmoqda..." : "Telefondan yuklash"}
-                      </span>
-                    </label>
-                  </div>
-                  {createCoverUrl.trim() && (
-                    <img
-                      src={imageUrl(createCoverUrl.trim())}
-                      alt="Cover"
-                      style={{ marginTop: 8, maxWidth: "100%", maxHeight: 120, objectFit: "cover", borderRadius: 8 }}
-                      onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }}
-                    />
-                  )}
-                </label>
-                <label className="fd-field">
-                  <span>Yetkazib berish narxi (so‘m)</span>
-                  <input
-                    type="number"
-                    min={0}
-                    value={createFee}
-                    onChange={(e) => setCreateFee(e.target.value)}
-                    placeholder="0"
-                  />
-                </label>
-                {createError && (
-                  <p style={{ color: "var(--color-orange)", fontSize: "0.875rem" }}>
-                    {createError}
-                  </p>
+                ))}
+                {(!data.recentOrders || data.recentOrders.length === 0) && (
+                  <p className="fd-empty">Buyurtmalar yo‘q.</p>
                 )}
-                <button
-                  type="submit"
-                  className="fd-btn fd-btn-primary"
-                  disabled={createSubmitting || createLogoUploading || createCoverUploading}
-                >
-                  {createSubmitting ? "Saqlanmoqda..." : "Restoran qo‘shish"}
-                </button>
-              </form>
+              </section>
             </div>
-            <section>
-              <h2>Barcha restoranlar</h2>
-              {data.restaurants?.map((r: any) => (
-                <div key={r.id} className="fd-checkout-item">
-                  <div>
-                    <div>{r.name}</div>
-                    <div className="fd-checkout-meta">{r.address || "—"}</div>
+
+            <div
+              className={`fd-admin-panel ${activeTab === "users" ? "fd-admin-panel-active" : ""}`}
+            >
+              <section>
+                <h2>Foydalanuvchilar</h2>
+                {data.users?.map((u: any) => (
+                  <div key={u.id} className="fd-checkout-item">
+                    <div>
+                      <div>{u.email}</div>
+                      <div className="fd-checkout-meta">
+                        {u.name} · {u.role}
+                      </div>
+                    </div>
+                    <select
+                      value={u.role}
+                      onChange={(e) => changeUserRole(u.id, e.target.value)}
+                      style={{ marginLeft: "auto" }}
+                    >
+                      <option value="CUSTOMER">CUSTOMER</option>
+                      <option value="RESTAURANT_ADMIN">RESTAURANT_ADMIN</option>
+                      <option value="PLATFORM_ADMIN">PLATFORM_ADMIN</option>
+                      <option value="COURIER">COURIER</option>
+                    </select>
                   </div>
-                  <Link
-                    href={`/platform-admin/restaurants/${r.id}`}
+                ))}
+                {(!data.users || data.users.length === 0) && (
+                  <p className="fd-empty">Foydalanuvchilar yo‘q.</p>
+                )}
+              </section>
+            </div>
+
+            <div
+              className={`fd-admin-panel ${activeTab === "restaurants" ? "fd-admin-panel-active" : ""}`}
+            >
+              <div className="fd-form-block">
+                <h3>Yangi restoran qo‘shish</h3>
+                <form onSubmit={handleCreateRestaurant} className="fd-form">
+                  <label className="fd-field">
+                    <span>Restoran nomi *</span>
+                    <input
+                      value={createName}
+                      onChange={(e) => setCreateName(e.target.value)}
+                      placeholder="Masalan: Osh markazi"
+                      required
+                    />
+                  </label>
+                  <label className="fd-field">
+                    <span>Manzil</span>
+                    <input
+                      value={createAddress}
+                      onChange={(e) => setCreateAddress(e.target.value)}
+                      placeholder="Toshkent, ..."
+                    />
+                  </label>
+                  <label className="fd-field">
+                    <span>Tavsif</span>
+                    <input
+                      value={createDesc}
+                      onChange={(e) => setCreateDesc(e.target.value)}
+                      placeholder="Qisqacha tavsif"
+                    />
+                  </label>
+                  <label className="fd-field">
+                    <span>Logo rasm</span>
+                    <input
+                      type="url"
+                      value={createLogoUrl}
+                      onChange={(e) => setCreateLogoUrl(e.target.value)}
+                      placeholder="URL yoki telefondan yuklang"
+                    />
+                    <div style={{ marginTop: 8, display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
+                      <input
+                        type="file"
+                        accept="image/*"
+                        id="create-logo-file"
+                        style={{ display: "none" }}
+                        onChange={handleUploadLogo}
+                      />
+                      <label htmlFor="create-logo-file" style={{ margin: 0 }}>
+                        <span className="fd-btn fd-btn-primary" style={{ cursor: "pointer", display: "inline-block" }}>
+                          {createLogoUploading ? "Yuklanmoqda..." : "Telefondan yuklash"}
+                        </span>
+                      </label>
+                    </div>
+                    {createLogoUrl.trim() && (
+                      <img
+                        src={imageUrl(createLogoUrl.trim())}
+                        alt="Logo"
+                        style={{ marginTop: 8, maxWidth: 80, maxHeight: 80, objectFit: "contain", borderRadius: 8 }}
+                        onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }}
+                      />
+                    )}
+                  </label>
+                  <label className="fd-field">
+                    <span>Banner / muqova rasm</span>
+                    <input
+                      type="url"
+                      value={createCoverUrl}
+                      onChange={(e) => setCreateCoverUrl(e.target.value)}
+                      placeholder="URL yoki telefondan yuklang"
+                    />
+                    <div style={{ marginTop: 8, display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
+                      <input
+                        type="file"
+                        accept="image/*"
+                        id="create-cover-file"
+                        style={{ display: "none" }}
+                        onChange={handleUploadCover}
+                      />
+                      <label htmlFor="create-cover-file" style={{ margin: 0 }}>
+                        <span className="fd-btn fd-btn-primary" style={{ cursor: "pointer", display: "inline-block" }}>
+                          {createCoverUploading ? "Yuklanmoqda..." : "Telefondan yuklash"}
+                        </span>
+                      </label>
+                    </div>
+                    {createCoverUrl.trim() && (
+                      <img
+                        src={imageUrl(createCoverUrl.trim())}
+                        alt="Cover"
+                        style={{ marginTop: 8, maxWidth: "100%", maxHeight: 120, objectFit: "cover", borderRadius: 8 }}
+                        onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }}
+                      />
+                    )}
+                  </label>
+                  <label className="fd-field">
+                    <span>Yetkazib berish narxi (so‘m)</span>
+                    <input
+                      type="number"
+                      min={0}
+                      value={createFee}
+                      onChange={(e) => setCreateFee(e.target.value)}
+                      placeholder="0"
+                    />
+                  </label>
+                  {createError && (
+                    <p style={{ color: "var(--color-orange)", fontSize: "0.875rem" }}>
+                      {createError}
+                    </p>
+                  )}
+                  <button
+                    type="submit"
                     className="fd-btn fd-btn-primary"
-                    style={{ textDecoration: "none", flexShrink: 0 }}
+                    disabled={createSubmitting || createLogoUploading || createCoverUploading}
                   >
-                    Menyu
-                  </Link>
-                </div>
-              ))}
-              {(!data.restaurants || data.restaurants.length === 0) && (
-                <p className="fd-empty">Restoranlar yo‘q. Yuqoridagi formadan qo‘shing.</p>
-              )}
-            </section>
-          </div>
-
-          <div
-            className={`fd-admin-panel ${activeTab === "users" ? "fd-admin-panel-active" : ""}`}
-          >
-            <section>
-              <h2>Foydalanuvchilar</h2>
-              {data.users?.map((u: any) => (
-                <div key={u.id} className="fd-checkout-item">
-                  <div>
-                    <div>{u.email}</div>
-                    <div className="fd-checkout-meta">
-                      {u.name} · {u.role}
+                    {createSubmitting ? "Saqlanmoqda..." : "Restoran qo‘shish"}
+                  </button>
+                </form>
+              </div>
+              <section>
+                <h2>Barcha restoranlar</h2>
+                {data.restaurants?.map((r: any) => (
+                  <div key={r.id} className="fd-checkout-item">
+                    <div>
+                      <div>{r.name}</div>
+                      <div className="fd-checkout-meta">{r.address || "—"}</div>
                     </div>
+                    <Link
+                      href={`/platform-admin/restaurants/${r.id}`}
+                      className="fd-btn fd-btn-primary"
+                      style={{ textDecoration: "none", flexShrink: 0 }}
+                    >
+                      Menyu
+                    </Link>
                   </div>
-                  <select
-                    value={u.role}
-                    onChange={(e) => changeUserRole(u.id, e.target.value)}
-                    style={{ marginLeft: "auto" }}
-                  >
-                    <option value="CUSTOMER">CUSTOMER</option>
-                    <option value="RESTAURANT_ADMIN">RESTAURANT_ADMIN</option>
-                    <option value="PLATFORM_ADMIN">PLATFORM_ADMIN</option>
-                    <option value="COURIER">COURIER</option>
-                  </select>
-                </div>
-              ))}
-              {(!data.users || data.users.length === 0) && (
-                <p className="fd-empty">Foydalanuvchilar yo‘q.</p>
-              )}
-            </section>
-          </div>
+                ))}
+                {(!data.restaurants || data.restaurants.length === 0) && (
+                  <p className="fd-empty">Restoranlar yo‘q. Yuqoridagi formadan qo‘shing.</p>
+                )}
+              </section>
+            </div>
 
-          <div
-            className={`fd-admin-panel ${activeTab === "orders" ? "fd-admin-panel-active" : ""}`}
-          >
-            <section>
-              <h2>So‘nggi buyurtmalar</h2>
-              {data.recentOrders?.map((o: any) => (
-                <div key={o.id} className="fd-checkout-item">
-                  <div>
-                    <div>#{o.id.slice(0, 8)}</div>
-                    <div className="fd-checkout-meta">
-                      {o.restaurant?.name} · {o.customer?.email} · {o.status}
-                    </div>
-                  </div>
-                </div>
-              ))}
-              {(!data.recentOrders || data.recentOrders.length === 0) && (
-                <p className="fd-empty">Buyurtmalar yo‘q.</p>
-              )}
-            </section>
+            <div
+              className={`fd-admin-panel ${activeTab === "supermarkets" ? "fd-admin-panel-active" : ""}`}
+            >
+              <section>
+                <h2>Supermarketlar</h2>
+                <p className="fd-empty">
+                  Bu bo‘limda keyinchalik supermarketlar va ularning mahsulotlari boshqariladi.
+                </p>
+              </section>
+            </div>
+
+            <div
+              className={`fd-admin-panel ${activeTab === "products" ? "fd-admin-panel-active" : ""}`}
+            >
+              <section>
+                <h2>Mahsulotlar</h2>
+                <p className="fd-empty">
+                  Bu bo‘limda keyinchalik umumiy mahsulot katalogi va kategoriyalar boshqariladi.
+                </p>
+              </section>
+            </div>
+
+            <div
+              className={`fd-admin-panel ${activeTab === "couriers" ? "fd-admin-panel-active" : ""}`}
+            >
+              <section>
+                <h2>Kuryerlar</h2>
+                <p className="fd-empty">
+                  Bu bo‘limda keyinchalik kuryerlar, ularning statuslari va yuklamasi boshqariladi.
+                </p>
+              </section>
+            </div>
+
+            <div
+              className={`fd-admin-panel ${activeTab === "settings" ? "fd-admin-panel-active" : ""}`}
+            >
+              <section>
+                <h2>Sayt sozlamalari</h2>
+                <p className="fd-empty">
+                  Bu yerda keyinchalik komissiyalar, promo-kodlar, to‘lov integratsiyalari va boshqa
+                  global sozlamalar bo‘ladi.
+                </p>
+              </section>
+            </div>
           </div>
-        </>
+        </div>
       )}
     </div>
   );

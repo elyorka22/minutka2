@@ -451,6 +451,19 @@ body {
     grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 12px;
   }
+
+  .fd-admin-layout {
+    flex-direction: column;
+  }
+
+  .fd-admin-tabs {
+    flex-direction: row;
+    border-right: none;
+    border-bottom: 1px solid var(--color-border);
+    padding-right: 0;
+    padding-bottom: 8px;
+    overflow-x: auto;
+  }
 }
 
 .fd-card {
@@ -672,6 +685,18 @@ body {
 }
 
 /* Platform admin */
+.fd-admin-layout {
+  margin-top: 16px;
+  display: flex;
+  align-items: flex-start;
+  gap: 24px;
+}
+
+.fd-admin-main {
+  flex: 1;
+  min-width: 0;
+}
+
 .fd-platform-grid {
   margin-top: 24px;
   display: grid;
@@ -713,11 +738,11 @@ body {
 
 .fd-admin-tabs {
   display: flex;
-  flex-wrap: wrap;
+  flex-direction: column;
   gap: 4px;
-  margin-bottom: 20px;
-  border-bottom: 1px solid var(--color-border);
-  padding-bottom: 0;
+  padding-right: 12px;
+  border-right: 1px solid var(--color-border);
+  min-width: 200px;
 }
 
 .fd-admin-tab {

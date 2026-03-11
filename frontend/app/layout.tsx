@@ -80,8 +80,6 @@ function BottomBar() {
         ? "restaurants"
         : pathname.startsWith("/products")
           ? "products"
-          : pathname.startsWith("/couriers")
-            ? "couriers"
         : pathname.startsWith("/checkout")
           ? "checkout"
           : pathname.startsWith("/profile") ||
@@ -115,14 +113,6 @@ function BottomBar() {
       >
         <span className="fd-bottom-icon material-symbols-rounded">grocery</span>
         <span className="fd-bottom-label">Mahsulotlar</span>
-      </Link>
-      <Link
-        href="/couriers"
-        className={`fd-bottom-item ${activeKey === "couriers" ? "fd-bottom-item--active" : ""}`}
-        aria-current={activeKey === "couriers" ? "page" : undefined}
-      >
-        <span className="fd-bottom-icon material-symbols-rounded">local_shipping</span>
-        <span className="fd-bottom-label">Kuryerlar</span>
       </Link>
       <Link
         href="/checkout"
