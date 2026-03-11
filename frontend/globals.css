@@ -627,6 +627,45 @@ body {
   color: var(--color-text);
 }
 
+/* Quantity stepper */
+.fd-qty {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border-radius: 9999px;
+  background: #fff;
+  padding: 4px 8px;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.15);
+}
+
+.fd-qty-btn {
+  border: none;
+  background: transparent;
+  color: var(--color-orange);
+  font-size: 1rem;
+  width: 20px;
+  height: 20px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  padding: 0;
+}
+
+.fd-qty-value {
+  min-width: 18px;
+  text-align: center;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+.fd-qty--overlay {
+  position: absolute;
+  right: 8px;
+  bottom: 8px;
+}
+
 /* Bottom bar */
 .fd-bottom-bar {
   position: fixed;

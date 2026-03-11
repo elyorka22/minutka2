@@ -20,7 +20,7 @@ export default async function RestaurantPage({
 }
 
 function RestaurantPageClient({ restaurant, dishes }: { restaurant: any; dishes: any[] }) {
-  const { addToCart } = useCart();
+  const { items, addToCart, changeQuantity } = useCart();
 
   return (
     <div className="fd-shell fd-restaurant">
@@ -45,34 +45,62 @@ function RestaurantPageClient({ restaurant, dishes }: { restaurant: any; dishes:
       <section className="fd-section">
         <h2 className="fd-section-title">Menyu</h2>
         <div className="fd-grid">
-          {dishes.map((dish) => (
-            <article key={dish.id} className="fd-card fd-card--dish">
-              <div className="fd-card-body">
-                <h3>{dish.name}</h3>
-                {dish.description && (
-                  <p className="fd-card-desc">{dish.description}</p>
-                )}
-                <div className="fd-dish-footer">
-                  <span className="fd-price">{Number(dish.price).toFixed(0)} so&apos;m</span>
-                  <button
-                    type="button"
-                    className="fd-card-plus-btn"
-                    onClick={() =>
-                      addToCart({
-                        id: String(dish.id),
-                        name: String(dish.name),
-                        description: dish.description ?? null,
-                        price: Number(dish.price),
-                        imageUrl: dish.imageUrl ?? null,
-                      })
-                    }
-                  >
-                    <span className="material-symbols-rounded">add</span>
-                  </button>
+          {dishes.map((dish) => {
+            const id = String(dish.id);
+            const quantity =
+              items.find((i) => i.dish.id === id)?.quantity ?? 0;
+
+            return (
+              <article key={id} className="fd-card fd-card--dish">
+                <div className="fd-card-body">
+                  <h3>{dish.name}</h3>
+                  {dish.description && (
+                    <p className="fd-card-desc">{dish.description}</p>
+                  )}
+                  <div className="fd-dish-footer">
+                    <span className="fd-price">
+                      {Number(dish.price).toFixed(0)} so&apos;m
+                    </span>
+                    {quantity === 0 ? (
+                      <button
+                        type="button"
+                        className="fd-card-plus-btn"
+                        onClick={() =>
+                          addToCart({
+                            id,
+                            name: String(dish.name),
+                            description: dish.description ?? null,
+                            price: Number(dish.price),
+                            imageUrl: dish.imageUrl ?? null,
+                          })
+                        }
+                      >
+                        <span className="material-symbols-rounded">add</span>
+                      </button>
+                    ) : (
+                      <div className="fd-qty">
+                        <button
+                          type="button"
+                          className="fd-qty-btn"
+                          onClick={() => changeQuantity(id, quantity - 1)}
+                        >
+                          −
+                        </button>
+                        <span className="fd-qty-value">{quantity}</span>
+                        <button
+                          type="button"
+                          className="fd-qty-btn"
+                          onClick={() => changeQuantity(id, quantity + 1)}
+                        >
+                          +
+                        </button>
+                      </div>
+                    )}
+                  </div>
                 </div>
-              </div>
-            </article>
-          ))}
+              </article>
+            );
+          })}
           {dishes.length === 0 && (
             <p className="fd-empty">Menyu hozircha bo‘sh.</p>
           )}

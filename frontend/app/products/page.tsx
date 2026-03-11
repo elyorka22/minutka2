@@ -4,6 +4,8 @@ import { useEffect, useState } from "react";
 import { SafeImage } from "../../components/SafeImage";
 import { BackLink } from "../../components/BackLink";
 import { api, imageUrl } from "../../lib/api";
+import { useCart } from "../../components/CartContext";
+import type { Dish } from "../../lib/types";
 
 type Product = {
   id: string;
@@ -16,6 +18,7 @@ type Product = {
 export default function ProductsPage() {
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
+  const { items, addToCart, changeQuantity } = useCart();
 
   useEffect(() => {
     let active = true;
@@ -52,30 +55,68 @@ export default function ProductsPage() {
         {loading && <p className="fd-empty" style={{ marginTop: 8 }}>Yuklanmoqda...</p>}
 
         <div className="fd-grid fd-grid--2" style={{ marginTop: 16 }}>
-          {products.map((p) => (
-            <article key={p.id} className="fd-card fd-card--product">
-              <div className="fd-card-media">
-                <SafeImage
-                  src={p.imageUrl ? imageUrl(p.imageUrl) : ""}
-                  alt=""
-                  className="fd-card-image"
-                  style={{ width: "100%", aspectRatio: "4/5", objectFit: "cover" }}
-                  fallbackStyle={{ height: 140 }}
-                />
-                <button type="button" className="fd-card-plus-btn">
-                  <span className="material-symbols-rounded">add</span>
-                </button>
-              </div>
-              <div className="fd-card-body">
-                <div className="fd-card-title-row">
-                  <h3>{p.name}</h3>
+          {products.map((p) => {
+            const id = p.id;
+            const quantity =
+              items.find((i) => i.dish.id === id)?.quantity ?? 0;
+
+            const asDish: Dish = {
+              id,
+              name: p.name,
+              description: null,
+              price: p.price,
+              imageUrl: p.imageUrl ?? null,
+            };
+
+            return (
+              <article key={id} className="fd-card fd-card--product">
+                <div className="fd-card-media">
+                  <SafeImage
+                    src={p.imageUrl ? imageUrl(p.imageUrl) : ""}
+                    alt=""
+                    className="fd-card-image"
+                    style={{ width: "100%", aspectRatio: "4/5", objectFit: "cover" }}
+                    fallbackStyle={{ height: 140 }}
+                  />
+                  {quantity === 0 ? (
+                    <button
+                      type="button"
+                      className="fd-card-plus-btn"
+                      onClick={() => addToCart(asDish)}
+                    >
+                      <span className="material-symbols-rounded">add</span>
+                    </button>
+                  ) : (
+                    <div className="fd-qty fd-qty--overlay">
+                      <button
+                        type="button"
+                        className="fd-qty-btn"
+                        onClick={() => changeQuantity(id, quantity - 1)}
+                      >
+                        −
+                      </button>
+                      <span className="fd-qty-value">{quantity}</span>
+                      <button
+                        type="button"
+                        className="fd-qty-btn"
+                        onClick={() => changeQuantity(id, quantity + 1)}
+                      >
+                        +
+                      </button>
+                    </div>
+                  )}
                 </div>
-                <div className="fd-price">
-                  {p.price.toLocaleString()} so‘m / {p.unit}
+                <div className="fd-card-body">
+                  <div className="fd-card-title-row">
+                    <h3>{p.name}</h3>
+                  </div>
+                  <div className="fd-price">
+                    {p.price.toLocaleString()} so‘m / {p.unit}
+                  </div>
                 </div>
-              </div>
-            </article>
-          ))}
+              </article>
+            );
+          })}
 
           {!loading && products.length === 0 && (
             <p className="fd-empty">Mahsulotlar topilmadi. Restoran menyulariga taom qo‘shing.</p>
