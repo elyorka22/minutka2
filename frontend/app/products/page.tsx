@@ -81,11 +81,14 @@ export default function ProductsPage() {
               onClick={() => setActiveCategoryId("all")}
             >
               <div className="fd-product-cat-image-wrap">
-                <span className="fd-product-cat-name">Barchasi</span>
+                <SafeImage
+                  src=""
+                  alt=""
+                  className="fd-product-cat-image"
+                  style={{ width: "100%", aspectRatio: "1 / 1", objectFit: "cover" }}
+                  fallbackStyle={{ height: 40 }}
+                />
               </div>
-              <span className="fd-product-cat-name">
-                Hammasi
-              </span>
             </button>
             {categories.map((c) => (
               <button
@@ -105,9 +108,6 @@ export default function ProductsPage() {
                     fallbackStyle={{ height: 40 }}
                   />
                 </div>
-                <span className="fd-product-cat-name">
-                  {c.name}
-                </span>
               </button>
             ))}
           </div>

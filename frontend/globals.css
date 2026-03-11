@@ -541,9 +541,7 @@ body {
 }
 
 .fd-product-cat-name {
-  display: block;
-  font-size: 0.78rem;
-  font-weight: 600;
+  display: none;
 }
 
 .fd-product-cat-card--active {
