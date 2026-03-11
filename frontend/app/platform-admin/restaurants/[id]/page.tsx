@@ -25,6 +25,8 @@ export default function PlatformAdminRestaurantMenuPage() {
   const [dishCategoryId, setDishCategoryId] = useState("");
   const [dishSubmitting, setDishSubmitting] = useState(false);
   const [dishError, setDishError] = useState<string | null>(null);
+  const [dishImageUrl, setDishImageUrl] = useState("");
+  const [dishImageUploading, setDishImageUploading] = useState(false);
 
   const [editLogoUrl, setEditLogoUrl] = useState("");
   const [editCoverUrl, setEditCoverUrl] = useState("");
@@ -60,6 +62,22 @@ export default function PlatformAdminRestaurantMenuPage() {
       setEditError(err?.message ?? "Yuklashda xatolik");
     } finally {
       setEditCoverUploading(false);
+    }
+  }
+
+  async function handleUploadDishImage(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    e.target.value = "";
+    setDishImageUploading(true);
+    setDishError(null);
+    try {
+      const { url } = await adminApi.uploadImage(file);
+      setDishImageUrl(url);
+    } catch (err: any) {
+      setDishError(err?.message ?? "Yuklashda xatolik");
+    } finally {
+      setDishImageUploading(false);
     }
   }
 
@@ -146,10 +164,12 @@ export default function PlatformAdminRestaurantMenuPage() {
         description: dishDesc.trim() || undefined,
         price,
         categoryId: dishCategoryId || undefined,
+        imageUrl: dishImageUrl.trim() || undefined,
       });
       setDishName("");
       setDishDesc("");
       setDishPrice("");
+      setDishImageUrl("");
       const data = await adminApi.getRestaurantFull(id);
       setRestaurant(data);
     } catch (err: any) {
@@ -349,6 +369,37 @@ export default function PlatformAdminRestaurantMenuPage() {
                 <option key={c.id} value={c.id}>{c.name}</option>
               ))}
             </select>
+          </label>
+          <label className="fd-field">
+            <span>Taom rasmi (ixtiyoriy)</span>
+            <input
+              type="url"
+              value={dishImageUrl}
+              onChange={(e) => setDishImageUrl(e.target.value)}
+              placeholder="URL yoki telefondan yuklang"
+            />
+            <div style={{ marginTop: 8, display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
+              <input
+                type="file"
+                accept="image/*"
+                id="dish-image-file"
+                style={{ display: "none" }}
+                onChange={handleUploadDishImage}
+              />
+              <label htmlFor="dish-image-file" style={{ margin: 0 }}>
+                <span className="fd-btn fd-btn-primary" style={{ cursor: "pointer", display: "inline-block" }}>
+                  {dishImageUploading ? "Yuklanmoqda..." : "Telefondan yuklash"}
+                </span>
+              </label>
+            </div>
+            {dishImageUrl.trim() && (
+              <img
+                src={imageUrl(dishImageUrl.trim())}
+                alt="Taom rasmi"
+                style={{ marginTop: 8, maxWidth: 120, maxHeight: 120, objectFit: "cover", borderRadius: 8 }}
+                onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }}
+              />
+            )}
           </label>
           {dishError && <p style={{ color: "var(--color-orange)", fontSize: "0.875rem" }}>{dishError}</p>}
           <button type="submit" className="fd-btn fd-btn-primary" disabled={dishSubmitting}>
