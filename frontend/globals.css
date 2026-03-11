@@ -382,8 +382,8 @@ body {
   border-radius: var(--radius-lg);
   padding: 14px 14px 16px;
   color: #111827;
-  min-width: 260px;
-  max-width: 320px;
+  min-width: 150px;
+  max-width: 180px;
   scroll-snap-align: start;
   flex-shrink: 0;
 }
