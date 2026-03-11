@@ -117,7 +117,13 @@ export class AdminController {
     const uploadsDir = path.join(process.cwd(), 'uploads');
     fs.mkdirSync(uploadsDir, { recursive: true });
     fs.writeFileSync(path.join(uploadsDir, filename), file.buffer);
-    const baseUrl = process.env.PUBLIC_API_URL || (req.protocol && req.get ? `${req.protocol}://${req.get('host')}` : '');
+    const header = (name: string) => (req.get ? req.get(name) : undefined);
+    const forwardedProto = header('x-forwarded-proto')?.split(',')[0]?.trim();
+    const forwardedHost = header('x-forwarded-host')?.split(',')[0]?.trim();
+    const host = forwardedHost || header('host')?.split(',')[0]?.trim();
+    const protocol = forwardedProto || req.protocol;
+    const inferredBase = protocol && host ? `${protocol}://${host}` : '';
+    const baseUrl = process.env.PUBLIC_API_URL || inferredBase;
     const url = baseUrl ? `${baseUrl.replace(/\/$/, '')}/uploads/${filename}` : `/uploads/${filename}`;
     return { url };
   }

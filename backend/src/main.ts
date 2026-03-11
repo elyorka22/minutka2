@@ -7,6 +7,8 @@ import * as fs from 'fs';
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
   app.enableCors({ origin: true, credentials: true });
+  const expressApp = app.getHttpAdapter().getInstance();
+  expressApp.set('trust proxy', 1);
   const uploadsDir = path.join(process.cwd(), 'uploads');
   fs.mkdirSync(uploadsDir, { recursive: true });
   app.use('/uploads', express.static(uploadsDir));

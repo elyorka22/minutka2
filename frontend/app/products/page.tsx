@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useMemo, useState } from "react";
+import { SafeImage } from "../../components/SafeImage";
 
 type Product = {
   id: string;
@@ -120,14 +121,15 @@ export default function ProductsPage() {
           </div>
         </div>
 
-        <div className="fd-grid" style={{ marginTop: 16 }}>
+        <div className="fd-grid fd-grid--mobile-2" style={{ marginTop: 16 }}>
           {filtered.map((p) => (
             <article key={p.id} className="fd-card">
-              <img
+              <SafeImage
                 src={p.image}
                 alt=""
                 className="fd-card-image"
                 style={{ width: "100%", aspectRatio: "16/10", objectFit: "cover" }}
+                fallbackStyle={{ height: 140 }}
               />
               <div className="fd-card-body">
                 <div className="fd-card-title-row">

@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { api, imageUrl } from "../lib/api";
+import { SafeImage } from "../components/SafeImage";
 
 type RestaurantCard = {
   id: string;
@@ -83,16 +84,13 @@ export default async function HomePage() {
         <div className="fd-grid">
           {restaurants.map((r) => (
             <Link key={r.id} href={`/restaurants/${r.id}`} className="fd-card">
-              {(r.coverUrl || r.logoUrl) ? (
-                <img
-                  src={imageUrl(r.coverUrl || r.logoUrl)}
-                  alt=""
-                  className="fd-card-image"
-                  style={{ width: "100%", aspectRatio: "16/10", objectFit: "cover" }}
-                />
-              ) : (
-                <div className="fd-card-image fd-card-image--placeholder" />
-              )}
+              <SafeImage
+                src={(r.coverUrl || r.logoUrl) ? imageUrl(r.coverUrl || r.logoUrl) : ""}
+                alt=""
+                className="fd-card-image"
+                style={{ width: "100%", aspectRatio: "16/10", objectFit: "cover" }}
+                fallbackStyle={{ height: 160 }}
+              />
               <div className="fd-card-body">
                 <div className="fd-card-title-row">
                   <h3>{r.name}</h3>

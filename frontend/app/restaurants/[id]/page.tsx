@@ -2,6 +2,7 @@
 
 import { useCart } from "../../../components/CartContext";
 import { api, imageUrl } from "../../../lib/api";
+import { SafeImage } from "../../../components/SafeImage";
 
 async function loadRestaurant(id: string) {
   const data = await api.getRestaurant(id);
@@ -24,10 +25,11 @@ function RestaurantPageClient({ restaurant, dishes }: { restaurant: any; dishes:
     <div className="fd-shell fd-restaurant">
       <header className="fd-restaurant-header">
         {(restaurant?.coverUrl || restaurant?.logoUrl) && (
-          <img
+          <SafeImage
             src={imageUrl(restaurant.coverUrl || restaurant.logoUrl)}
             alt=""
             style={{ width: "100%", maxHeight: 200, objectFit: "cover", borderRadius: "var(--radius-md)" }}
+            fallbackStyle={{ height: 160, borderRadius: "var(--radius-md)" }}
           />
         )}
         <div>
