@@ -35,7 +35,7 @@ export class AdminController {
       throw new ForbiddenException('Only platform admin allowed');
     }
 
-    const [restaurants, users, recentOrders, banners] = await Promise.all([
+    const [restaurants, users, recentOrders, banners, productCategories] = await Promise.all([
       this.prisma.restaurant.findMany({
         orderBy: { createdAt: 'desc' },
         take: 20,
@@ -55,6 +55,9 @@ export class AdminController {
       this.prisma.banner.findMany({
         orderBy: [{ sortOrder: 'asc' }, { createdAt: 'desc' }],
       }),
+      this.prisma.productCategory.findMany({
+        orderBy: [{ sortOrder: 'asc' }, { createdAt: 'desc' }],
+      }),
     ]);
 
     return {
@@ -62,6 +65,7 @@ export class AdminController {
       users,
       recentOrders,
       banners,
+      productCategories,
     };
   }
 
@@ -289,6 +293,7 @@ export class AdminController {
       price: number;
       unit?: string;
       imageUrl?: string;
+      categoryId?: string;
     },
     @Req() req: RequestWithUser,
   ) {
@@ -308,9 +313,61 @@ export class AdminController {
         price: body.price,
         unit: body.unit?.trim() || 'dona',
         imageUrl: body.imageUrl?.trim() ?? null,
+        categoryId: body.categoryId?.trim() || null,
       },
     });
     return product;
+  }
+
+  @Get('product-categories')
+  async getProductCategories(@Req() req: RequestWithUser) {
+    if (req.user?.role !== 'PLATFORM_ADMIN') {
+      throw new ForbiddenException('Only platform admin allowed');
+    }
+    return this.prisma.productCategory.findMany({
+      orderBy: [{ sortOrder: 'asc' }, { createdAt: 'desc' }],
+    });
+  }
+
+  @Post('product-categories')
+  async createProductCategory(
+    @Body() body: { name: string; sortOrder?: number; isActive?: boolean },
+    @Req() req: RequestWithUser,
+  ) {
+    if (req.user?.role !== 'PLATFORM_ADMIN') {
+      throw new ForbiddenException('Only platform admin allowed');
+    }
+    if (!body.name || typeof body.name !== 'string') {
+      throw new BadRequestException('name is required');
+    }
+    const category = await this.prisma.productCategory.create({
+      data: {
+        name: body.name.trim(),
+        sortOrder: typeof body.sortOrder === 'number' ? body.sortOrder : 0,
+        isActive: body.isActive ?? true,
+      },
+    });
+    return category;
+  }
+
+  @Patch('product-categories/:id')
+  async updateProductCategory(
+    @Param('id') id: string,
+    @Body() body: { name?: string; sortOrder?: number; isActive?: boolean },
+    @Req() req: RequestWithUser,
+  ) {
+    if (req.user?.role !== 'PLATFORM_ADMIN') {
+      throw new ForbiddenException('Only platform admin allowed');
+    }
+    const category = await this.prisma.productCategory.update({
+      where: { id },
+      data: {
+        ...(body.name !== undefined && { name: body.name.trim() }),
+        ...(body.sortOrder !== undefined && { sortOrder: body.sortOrder }),
+        ...(body.isActive !== undefined && { isActive: body.isActive }),
+      },
+    });
+    return category;
   }
 
   @Get('banners')

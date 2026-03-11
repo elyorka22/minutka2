@@ -208,6 +208,9 @@ model Product {
   price       Decimal
   unit        String  @default("dona")
   imageUrl    String?
+
+  category   ProductCategory? @relation(fields: [categoryId], references: [id])
+  categoryId String?
 }
 
 model Banner {
@@ -224,6 +227,18 @@ model Banner {
 
   sortOrder Int     @default(0)
   isActive Boolean @default(true)
+}
+
+model ProductCategory {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  name      String
+  sortOrder Int     @default(0)
+  isActive  Boolean @default(true)
+
+  products Product[]
 }
 
 model PromoCode {

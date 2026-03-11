@@ -15,8 +15,15 @@ type Product = {
   imageUrl?: string | null;
 };
 
+type ProductCategory = {
+  id: string;
+  name: string;
+};
+
 export default function ProductsPage() {
   const [products, setProducts] = useState<Product[]>([]);
+  const [categories, setCategories] = useState<ProductCategory[]>([]);
+  const [activeCategoryId, setActiveCategoryId] = useState<string | "all">("all");
   const [loading, setLoading] = useState(true);
   const { items, addToCart, changeQuantity } = useCart();
 
@@ -25,9 +32,12 @@ export default function ProductsPage() {
     async function load() {
       try {
         setLoading(true);
-        const data = await api.getProducts();
+        const [productsData, categoriesData] = await Promise.all([
+          api.getProducts(),
+          api.getProductCategories(),
+        ]);
         if (!active) return;
-        const next: Product[] = (Array.isArray(data) ? data : []).map((p: any) => ({
+        const next: Product[] = (Array.isArray(productsData) ? productsData : []).map((p: any) => ({
           id: String(p.id),
           name: String(p.name),
           price: Number(p.price),
@@ -35,6 +45,13 @@ export default function ProductsPage() {
           imageUrl: p.imageUrl ?? null,
         }));
         setProducts(next);
+        const cats: ProductCategory[] = (Array.isArray(categoriesData) ? categoriesData : [])
+          .filter((c: any) => c.isActive !== false)
+          .map((c: any) => ({
+            id: String(c.id),
+            name: String(c.name),
+          }));
+        setCategories(cats);
       } finally {
         if (active) setLoading(false);
       }
@@ -53,6 +70,34 @@ export default function ProductsPage() {
           <h1 className="fd-section-title">Mahsulotlar</h1>
         </div>
         {loading && <p className="fd-empty" style={{ marginTop: 8 }}>Yuklanmoqda...</p>}
+
+        {categories.length > 0 && (
+          <div className="fd-grid fd-grid--3" style={{ marginTop: 16 }}>
+            <button
+              type="button"
+              className="fd-card fd-product-cat-card"
+              onClick={() => setActiveCategoryId("all")}
+            >
+              <span className="fd-product-cat-name">
+                Barchasi
+              </span>
+            </button>
+            {categories.map((c) => (
+              <button
+                key={c.id}
+                type="button"
+                className={`fd-card fd-product-cat-card ${
+                  activeCategoryId === c.id ? "fd-product-cat-card--active" : ""
+                }`}
+                onClick={() => setActiveCategoryId(c.id)}
+              >
+                <span className="fd-product-cat-name">
+                  {c.name}
+                </span>
+              </button>
+            ))}
+          </div>
+        )}
 
         <div className="fd-grid fd-grid--2" style={{ marginTop: 16 }}>
           {products.map((p) => {

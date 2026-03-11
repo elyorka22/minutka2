@@ -460,6 +460,10 @@ body {
   grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 
+.fd-grid--3 {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
 @media (max-width: 640px) {
   .fd-grid--mobile-2 {
     grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -509,6 +513,23 @@ body {
 
 .fd-card--product .fd-price {
   font-size: 0.85rem;
+}
+
+.fd-product-cat-card {
+  padding: 12px;
+  text-align: center;
+  cursor: pointer;
+}
+
+.fd-product-cat-name {
+  display: block;
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+
+.fd-product-cat-card--active {
+  border-color: var(--color-orange);
+  box-shadow: 0 0 0 1px var(--color-orange);
 }
 
 .fd-card-image {

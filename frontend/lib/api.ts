@@ -49,6 +49,14 @@ export const api = {
       return [];
     }
   },
+  async getProductCategories() {
+    try {
+      const data = await request<any[]>("/product-categories");
+      return Array.isArray(data) ? data : [];
+    } catch {
+      return [];
+    }
+  },
   async getBanners() {
     try {
       const data = await request<any[]>("/banners");

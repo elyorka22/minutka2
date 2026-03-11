@@ -122,9 +122,35 @@ export const adminApi = {
     price: number;
     unit?: string;
     imageUrl?: string;
+    categoryId?: string;
   }) =>
     adminRequest<any>("/admin/products", {
       method: "POST",
+      body: JSON.stringify(body),
+    }),
+  getProductCategories: () =>
+    adminRequest<any>("/admin/product-categories", {
+      method: "GET",
+    }),
+  createProductCategory: (body: {
+    name: string;
+    sortOrder?: number;
+    isActive?: boolean;
+  }) =>
+    adminRequest<any>("/admin/product-categories", {
+      method: "POST",
+      body: JSON.stringify(body),
+    }),
+  updateProductCategory: (
+    id: string,
+    body: {
+      name?: string;
+      sortOrder?: number;
+      isActive?: boolean;
+    }
+  ) =>
+    adminRequest<any>(`/admin/product-categories/${id}`, {
+      method: "PATCH",
       body: JSON.stringify(body),
     }),
   getBanners: () =>
