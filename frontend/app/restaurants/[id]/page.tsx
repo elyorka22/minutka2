@@ -52,6 +52,50 @@ function RestaurantPageClient({ restaurant, dishes }: { restaurant: any; dishes:
 
             return (
               <article key={id} className="fd-card fd-card--dish">
+                <div className="fd-card-media">
+                  <SafeImage
+                    src={dish.imageUrl ? imageUrl(dish.imageUrl) : ""}
+                    alt=""
+                    className="fd-card-image"
+                    style={{ width: "100%", aspectRatio: "4/5", objectFit: "cover" }}
+                    fallbackStyle={{ height: 140 }}
+                  />
+                  {quantity === 0 ? (
+                    <button
+                      type="button"
+                      className="fd-card-plus-btn"
+                      onClick={() =>
+                        addToCart({
+                          id,
+                          name: String(dish.name),
+                          description: dish.description ?? null,
+                          price: Number(dish.price),
+                          imageUrl: dish.imageUrl ?? null,
+                        })
+                      }
+                    >
+                      <span className="material-symbols-rounded">add</span>
+                    </button>
+                  ) : (
+                    <div className="fd-qty fd-qty--overlay">
+                      <button
+                        type="button"
+                        className="fd-qty-btn"
+                        onClick={() => changeQuantity(id, quantity - 1)}
+                      >
+                        −
+                      </button>
+                      <span className="fd-qty-value">{quantity}</span>
+                      <button
+                        type="button"
+                        className="fd-qty-btn"
+                        onClick={() => changeQuantity(id, quantity + 1)}
+                      >
+                        +
+                      </button>
+                    </div>
+                  )}
+                </div>
                 <div className="fd-card-body">
                   <h3>{dish.name}</h3>
                   {dish.description && (
@@ -61,41 +105,6 @@ function RestaurantPageClient({ restaurant, dishes }: { restaurant: any; dishes:
                     <span className="fd-price">
                       {Number(dish.price).toFixed(0)} so&apos;m
                     </span>
-                    {quantity === 0 ? (
-                      <button
-                        type="button"
-                        className="fd-card-plus-btn"
-                        onClick={() =>
-                          addToCart({
-                            id,
-                            name: String(dish.name),
-                            description: dish.description ?? null,
-                            price: Number(dish.price),
-                            imageUrl: dish.imageUrl ?? null,
-                          })
-                        }
-                      >
-                        <span className="material-symbols-rounded">add</span>
-                      </button>
-                    ) : (
-                      <div className="fd-qty">
-                        <button
-                          type="button"
-                          className="fd-qty-btn"
-                          onClick={() => changeQuantity(id, quantity - 1)}
-                        >
-                          −
-                        </button>
-                        <span className="fd-qty-value">{quantity}</span>
-                        <button
-                          type="button"
-                          className="fd-qty-btn"
-                          onClick={() => changeQuantity(id, quantity + 1)}
-                        >
-                          +
-                        </button>
-                      </div>
-                    )}
                   </div>
                 </div>
               </article>
