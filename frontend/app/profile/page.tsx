@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import { BackLink } from "../../components/BackLink";
 
 type JwtPayload = {
   sub?: string;
