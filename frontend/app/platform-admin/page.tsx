@@ -35,8 +35,13 @@ export default function PlatformAdminPage() {
   const [productPrice, setProductPrice] = useState("");
   const [productUnit, setProductUnit] = useState("dona");
   const [productImageUrl, setProductImageUrl] = useState("");
+  const [productCategoryId, setProductCategoryId] = useState("");
   const [productError, setProductError] = useState<string | null>(null);
   const [productSubmitting, setProductSubmitting] = useState(false);
+  const [productCategories, setProductCategories] = useState<any[]>([]);
+  const [productCategoryName, setProductCategoryName] = useState("");
+  const [productCategorySort, setProductCategorySort] = useState("");
+  const [productCategorySubmitting, setProductCategorySubmitting] = useState(false);
   const [banners, setBanners] = useState<any[]>([]);
   const [bannerTitle, setBannerTitle] = useState("");
   const [bannerText, setBannerText] = useState("");
@@ -100,6 +105,7 @@ export default function PlatformAdminPage() {
         if (!active) return;
         setData(overview);
         setBanners(overview.banners ?? []);
+        setProductCategories(overview.productCategories ?? []);
       } catch (err: any) {
         if (!active) return;
         setError(err.message ?? "Yuklashda xatolik");
@@ -226,16 +232,51 @@ export default function PlatformAdminPage() {
         price,
         unit: productUnit || "dona",
         imageUrl: productImageUrl.trim() || undefined,
+        categoryId: productCategoryId || undefined,
       });
       setProductName("");
       setProductPrice("");
       setProductUnit("dona");
       setProductImageUrl("");
+      setProductCategoryId("");
       setProductError("Mahsulot qo‘shildi.");
     } catch (err: any) {
       setProductError(err?.message ?? "Mahsulot qo‘shishda xatolik");
     } finally {
       setProductSubmitting(false);
+    }
+  }
+
+  async function handleCreateProductCategory(e: React.FormEvent) {
+    e.preventDefault();
+    setProductError(null);
+    if (!productCategoryName.trim()) {
+      setProductError("Kategoriya nomi kiritilishi shart");
+      return;
+    }
+    setProductCategorySubmitting(true);
+    try {
+      const created = await adminApi.createProductCategory({
+        name: productCategoryName.trim(),
+        sortOrder: productCategorySort ? Number(productCategorySort) : undefined,
+        isActive: true,
+      });
+      setProductCategories((prev) => [created, ...prev]);
+      setProductCategoryName("");
+      setProductCategorySort("");
+    } catch (err: any) {
+      setProductError(err.message ?? "Kategoriya qo‘shishda xatolik");
+    } finally {
+      setProductCategorySubmitting(false);
+    }
+  }
+
+  async function handleUpdateProductCategory(id: string, patch: any) {
+    try {
+      const updated = await adminApi.updateProductCategory(id, patch);
+      setProductCategories((prev) => prev.map((c) => (c.id === id ? updated : c)));
+    } catch (err: any) {
+      setProductError(err.message ?? "Kategoriya yangilashda xatolik");
     }
   }
 
@@ -586,11 +627,97 @@ export default function PlatformAdminPage() {
               className={`fd-admin-panel ${activeTab === "products" ? "fd-admin-panel-active" : ""}`}
             >
               <section>
-                <h2>Mahsulotlar</h2>
+                <h2>Mahsulotlar va kategoriyalar</h2>
                 <p className="fd-card-desc" style={{ marginBottom: 12 }}>
-                  Bu yerda umumiy mahsulotlar katalogi shakllanadi. Har bir mahsulotni alohida
-                  qo‘shish mumkin, u maʼlum bir sahifaga emas, umumiy ro‘yxatga tushadi.
+                  Bu yerda umumiy mahsulotlar katalogi va ularning kategoriyalari boshqariladi.
                 </p>
+
+                <div className="fd-form-block">
+                  <h3>Mahsulot kategoriyalari</h3>
+                  <form onSubmit={handleCreateProductCategory} className="fd-form">
+                    <label className="fd-field">
+                      <span>Nomi *</span>
+                      <input
+                        value={productCategoryName}
+                        onChange={(e) => setProductCategoryName(e.target.value)}
+                        placeholder="Masalan: Sut mahsulotlari"
+                        required
+                      />
+                    </label>
+                    <label className="fd-field">
+                      <span>Tartib (ixtiyoriy)</span>
+                      <input
+                        type="number"
+                        value={productCategorySort}
+                        onChange={(e) => setProductCategorySort(e.target.value)}
+                        placeholder="0"
+                      />
+                    </label>
+                    <button
+                      type="submit"
+                      className="fd-btn fd-btn-primary"
+                      disabled={productCategorySubmitting}
+                    >
+                      {productCategorySubmitting ? "Saqlanmoqda..." : "Kategoriya qo‘shish"}
+                    </button>
+                  </form>
+
+                  <section style={{ marginTop: 16 }}>
+                    <h3>Mavjud kategoriyalar</h3>
+                    {productCategories.length === 0 && (
+                      <p className="fd-empty">Hozircha mahsulot kategoriyalari yo‘q.</p>
+                    )}
+                    <div className="fd-admin-kpis" style={{ marginTop: 12 }}>
+                      {productCategories.map((c) => (
+                        <div key={c.id} className="fd-admin-kpi">
+                          <div className="fd-admin-kpi-label">ID: {c.id.slice(0, 8)}</div>
+                          <div className="fd-admin-kpi-value">{c.name}</div>
+                          <div
+                            style={{
+                              marginTop: 8,
+                              display: "flex",
+                              gap: 8,
+                              alignItems: "center",
+                              flexWrap: "wrap",
+                            }}
+                          >
+                            <label className="fd-checkout-meta">
+                              <input
+                                type="checkbox"
+                                checked={!!c.isActive}
+                                onChange={(e) =>
+                                  handleUpdateProductCategory(c.id, {
+                                    isActive: e.target.checked,
+                                  })
+                                }
+                              />{" "}
+                              Faol
+                            </label>
+                            <label className="fd-checkout-meta">
+                              Tartib:{" "}
+                              <input
+                                type="number"
+                                defaultValue={c.sortOrder ?? 0}
+                                style={{
+                                  width: 72,
+                                  marginLeft: 4,
+                                  padding: "2px 6px",
+                                  fontSize: "0.8rem",
+                                }}
+                                onBlur={(e) =>
+                                  handleUpdateProductCategory(c.id, {
+                                    sortOrder: Number(e.target.value) || 0,
+                                  })
+                                }
+                              />
+                            </label>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </section>
+                </div>
+
                 <div className="fd-form-block">
                   <h3>Mahsulot qo‘shish</h3>
                   <form onSubmit={handleCreateProduct} className="fd-form">
@@ -622,6 +749,22 @@ export default function PlatformAdminPage() {
                         onChange={(e) => setProductUnit(e.target.value)}
                         placeholder="dona, kg va hokazo"
                       />
+                    </label>
+                    <label className="fd-field">
+                      <span>Kategoriya</span>
+                      <select
+                        value={productCategoryId}
+                        onChange={(e) => setProductCategoryId(e.target.value)}
+                      >
+                        <option value="">— Tanlanmagan —</option>
+                        {productCategories
+                          .filter((c) => c.isActive)
+                          .map((c) => (
+                            <option key={c.id} value={c.id}>
+                              {c.name}
+                            </option>
+                          ))}
+                      </select>
                     </label>
                     <label className="fd-field">
                       <span>Rasm (ixtiyoriy)</span>
