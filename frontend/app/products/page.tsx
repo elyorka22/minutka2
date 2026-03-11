@@ -75,7 +75,7 @@ export default function ProductsPage() {
                     src={p.imageUrl ? imageUrl(p.imageUrl) : ""}
                     alt=""
                     className="fd-card-image"
-                    style={{ width: "100%", aspectRatio: "4/5", objectFit: "cover" }}
+                    style={{ width: "100%", aspectRatio: "4/5", objectFit: "contain" }}
                     fallbackStyle={{ height: 140 }}
                   />
                   {quantity === 0 ? (

@@ -1037,7 +1037,7 @@ body {
 /* Responsive */
 @media (max-width: 768px) {
   .fd-main {
-    padding: 24px 16px 40px;
+    padding: 24px 16px calc(96px + env(safe-area-inset-bottom));
   }
 
   .fd-main--no-bottom-bar {
