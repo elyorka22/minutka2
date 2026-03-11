@@ -499,6 +499,31 @@ body {
   padding: 18px;
 }
 
+.fd-card-media {
+  position: relative;
+}
+
+.fd-card-plus-btn {
+  position: absolute;
+  right: 8px;
+  bottom: 8px;
+  width: 32px;
+  height: 32px;
+  border-radius: 9999px;
+  border: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--color-orange);
+  color: #fff;
+  cursor: pointer;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.15);
+}
+
+.fd-card-plus-btn .material-symbols-rounded {
+  font-size: 20px;
+}
+
 .fd-card-title-row {
   display: flex;
   align-items: flex-start;

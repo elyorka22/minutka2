@@ -56,7 +56,7 @@ function RestaurantPageClient({ restaurant, dishes }: { restaurant: any; dishes:
                   <span className="fd-price">{Number(dish.price).toFixed(0)} so&apos;m</span>
                   <button
                     type="button"
-                    className="fd-btn fd-btn-primary"
+                    className="fd-card-plus-btn"
                     onClick={() =>
                       addToCart({
                         id: String(dish.id),
@@ -67,7 +67,7 @@ function RestaurantPageClient({ restaurant, dishes }: { restaurant: any; dishes:
                       })
                     }
                   >
-                    Savatga qo‘shish
+                    <span className="material-symbols-rounded">add</span>
                   </button>
                 </div>
               </div>
