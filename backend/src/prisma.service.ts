@@ -62,4 +62,8 @@ export class PrismaService implements OnModuleInit, OnModuleDestroy {
   get courier() {
     return this.client.courier;
   }
+
+  get product() {
+    return (this.client as any).product;
+  }
 }
