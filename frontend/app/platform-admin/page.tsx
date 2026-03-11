@@ -31,6 +31,11 @@ export default function PlatformAdminPage() {
   const [createError, setCreateError] = useState<string | null>(null);
   const [createLogoUploading, setCreateLogoUploading] = useState(false);
   const [createCoverUploading, setCreateCoverUploading] = useState(false);
+  const [productRestaurantId, setProductRestaurantId] = useState("");
+  const [productName, setProductName] = useState("");
+  const [productPrice, setProductPrice] = useState("");
+  const [productError, setProductError] = useState<string | null>(null);
+  const [productSubmitting, setProductSubmitting] = useState(false);
   const router = useRouter();
 
   async function handleUploadLogo(e: React.ChangeEvent<HTMLInputElement>) {
@@ -175,6 +180,38 @@ export default function PlatformAdminPage() {
       setCreateError(err.message ?? "Restoran qo‘shishda xatolik");
     } finally {
       setCreateSubmitting(false);
+    }
+  }
+
+  async function handleCreateProduct(e: React.FormEvent) {
+    e.preventDefault();
+    setProductError(null);
+    if (!productRestaurantId.trim()) {
+      setProductError("Restoran ID kiritilishi shart");
+      return;
+    }
+    if (!productName.trim()) {
+      setProductError("Mahsulot nomi kiritilishi shart");
+      return;
+    }
+    const price = productPrice ? Number(productPrice) : NaN;
+    if (!Number.isFinite(price) || price <= 0) {
+      setProductError("Narx noto‘g‘ri");
+      return;
+    }
+    setProductSubmitting(true);
+    try {
+      await adminApi.createDish(productRestaurantId.trim(), {
+        name: productName.trim(),
+        price,
+      });
+      setProductName("");
+      setProductPrice("");
+      setProductError("Mahsulot qo‘shildi (restoran menyusiga).");
+    } catch (err: any) {
+      setProductError(err?.message ?? "Mahsulot qo‘shishda xatolik");
+    } finally {
+      setProductSubmitting(false);
     }
   }
 
@@ -433,9 +470,52 @@ export default function PlatformAdminPage() {
             >
               <section>
                 <h2>Supermarketlar</h2>
-                <p className="fd-empty">
-                  Bu bo‘limda keyinchalik supermarketlar va ularning mahsulotlari boshqariladi.
+                <p className="fd-card-desc" style={{ marginBottom: 12 }}>
+                  Hozircha supermarketlar ham restoranlar kabi yagona jadvalda saqlanadi. Siz alohida
+                  „supermarket“ sifatida restoran yaratishingiz mumkin.
                 </p>
+                <div className="fd-form-block">
+                  <h3>Yangi supermarket qo‘shish</h3>
+                  <form onSubmit={handleCreateRestaurant} className="fd-form">
+                    <label className="fd-field">
+                      <span>Supermarket nomi *</span>
+                      <input
+                        value={createName}
+                        onChange={(e) => setCreateName(e.target.value)}
+                        placeholder="Masalan: Market 24/7"
+                        required
+                      />
+                    </label>
+                    <label className="fd-field">
+                      <span>Manzil</span>
+                      <input
+                        value={createAddress}
+                        onChange={(e) => setCreateAddress(e.target.value)}
+                        placeholder="Toshkent, ..."
+                      />
+                    </label>
+                    <label className="fd-field">
+                      <span>Tavsif</span>
+                      <input
+                        value={createDesc}
+                        onChange={(e) => setCreateDesc(e.target.value)}
+                        placeholder="Masalan: 24/7 supermarket"
+                      />
+                    </label>
+                    {createError && (
+                      <p style={{ color: "var(--color-orange)", fontSize: "0.875rem" }}>
+                        {createError}
+                      </p>
+                    )}
+                    <button
+                      type="submit"
+                      className="fd-btn fd-btn-primary"
+                      disabled={createSubmitting}
+                    >
+                      {createSubmitting ? "Saqlanmoqda..." : "Supermarket qo‘shish"}
+                    </button>
+                  </form>
+                </div>
               </section>
             </div>
 
@@ -444,9 +524,57 @@ export default function PlatformAdminPage() {
             >
               <section>
                 <h2>Mahsulotlar</h2>
-                <p className="fd-empty">
-                  Bu bo‘limda keyinchalik umumiy mahsulot katalogi va kategoriyalar boshqariladi.
+                <p className="fd-card-desc" style={{ marginBottom: 12 }}>
+                  Hozircha mahsulotlar restoran menyusidagi taomlar sifatida saqlanadi. Quyidagi
+                  shakl orqali istalgan restoran menyusiga mahsulot qo‘shishingiz mumkin.
                 </p>
+                <div className="fd-form-block">
+                  <h3>Mahsulot qo‘shish</h3>
+                  <form onSubmit={handleCreateProduct} className="fd-form">
+                    <label className="fd-field">
+                      <span>Restoran ID *</span>
+                      <input
+                        value={productRestaurantId}
+                        onChange={(e) => setProductRestaurantId(e.target.value)}
+                        placeholder="Restoran ID (profil sahifasidan olishingiz mumkin)"
+                        required
+                      />
+                    </label>
+                    <label className="fd-field">
+                      <span>Mahsulot nomi *</span>
+                      <input
+                        value={productName}
+                        onChange={(e) => setProductName(e.target.value)}
+                        placeholder="Masalan: Cola 1L"
+                        required
+                      />
+                    </label>
+                    <label className="fd-field">
+                      <span>Narx (so‘m) *</span>
+                      <input
+                        type="number"
+                        min={0}
+                        step={100}
+                        value={productPrice}
+                        onChange={(e) => setProductPrice(e.target.value)}
+                        placeholder="12000"
+                        required
+                      />
+                    </label>
+                    {productError && (
+                      <p style={{ color: "var(--color-orange)", fontSize: "0.875rem" }}>
+                        {productError}
+                      </p>
+                    )}
+                    <button
+                      type="submit"
+                      className="fd-btn fd-btn-primary"
+                      disabled={productSubmitting}
+                    >
+                      {productSubmitting ? "Saqlanmoqda..." : "Mahsulot qo‘shish"}
+                    </button>
+                  </form>
+                </div>
               </section>
             </div>
 
@@ -455,9 +583,23 @@ export default function PlatformAdminPage() {
             >
               <section>
                 <h2>Kuryerlar</h2>
-                <p className="fd-empty">
-                  Bu bo‘limda keyinchalik kuryerlar, ularning statuslari va yuklamasi boshqariladi.
+                <p className="fd-card-desc" style={{ marginBottom: 12 }}>
+                  Kuryerlar foydalanuvchilar orasida COURIER roli orqali boshqariladi. Yangi kuryer
+                  qo‘shish uchun avval foydalanuvchi yaratib, so‘ngra “Foydalanuvchilar” bo‘limida
+                  unga COURIER rolini bering.
                 </p>
+                <h3>Kuryerlar ro‘yxati</h3>
+                {data.users?.filter((u: any) => u.role === "COURIER").map((u: any) => (
+                  <div key={u.id} className="fd-checkout-item">
+                    <div>
+                      <div>{u.email}</div>
+                      <div className="fd-checkout-meta">{u.name}</div>
+                    </div>
+                  </div>
+                ))}
+                {(!data.users || !data.users.some((u: any) => u.role === "COURIER")) && (
+                  <p className="fd-empty">Hozircha kuryerlar qo‘shilmagan.</p>
+                )}
               </section>
             </div>
 
