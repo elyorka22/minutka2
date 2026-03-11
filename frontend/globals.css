@@ -378,6 +378,14 @@ body {
   scroll-snap-type: x mandatory;
 }
 
+.fd-home-banners::-webkit-scrollbar {
+  height: 0;
+}
+
+.fd-home-banners {
+  scrollbar-width: none; /* Firefox */
+}
+
 .fd-banner {
   border-radius: var(--radius-lg);
   padding: 14px 14px 16px;

@@ -25,21 +25,11 @@ function RestaurantPageClient({ restaurant, dishes }: { restaurant: any; dishes:
   return (
     <div className="fd-shell fd-restaurant">
       <BackLink href="/restaurants">← Restoranlar</BackLink>
-      <header className="fd-restaurant-header">
-        {(restaurant?.coverUrl || restaurant?.logoUrl) && (
-          <SafeImage
-            src={imageUrl(restaurant.coverUrl || restaurant.logoUrl)}
-            alt=""
-            style={{ width: "100%", maxHeight: 200, objectFit: "cover", borderRadius: "var(--radius-md)" }}
-            fallbackStyle={{ height: 160, borderRadius: "var(--radius-md)" }}
-          />
+      <header className="fd-restaurant-header" style={{ textAlign: "center" }}>
+        <h1>{restaurant?.name ?? "Restoran"}</h1>
+        {restaurant?.description && (
+          <p className="fd-restaurant-desc">{restaurant.description}</p>
         )}
-        <div>
-          <h1>{restaurant?.name ?? "Restoran"}</h1>
-          {restaurant?.description && (
-            <p className="fd-restaurant-desc">{restaurant.description}</p>
-          )}
-        </div>
       </header>
 
       <section className="fd-section">
