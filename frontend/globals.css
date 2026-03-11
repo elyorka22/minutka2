@@ -485,6 +485,18 @@ body {
   transform: translateY(-2px);
 }
 
+.fd-card--product .fd-card-body {
+  padding: 12px 14px;
+}
+
+.fd-card--product .fd-card-title-row h3 {
+  font-size: 0.9rem;
+}
+
+.fd-card--product .fd-price {
+  font-size: 0.85rem;
+}
+
 .fd-card-image {
   display: block;
   width: 100%;

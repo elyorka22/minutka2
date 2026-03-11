@@ -53,13 +53,13 @@ export default function ProductsPage() {
 
         <div className="fd-grid fd-grid--2" style={{ marginTop: 16 }}>
           {products.map((p) => (
-            <article key={p.id} className="fd-card">
+            <article key={p.id} className="fd-card fd-card--product">
               <div className="fd-card-media">
                 <SafeImage
                   src={p.imageUrl ? imageUrl(p.imageUrl) : ""}
                   alt=""
                   className="fd-card-image"
-                  style={{ width: "100%", aspectRatio: "16/10", objectFit: "cover" }}
+                  style={{ width: "100%", aspectRatio: "4/5", objectFit: "cover" }}
                   fallbackStyle={{ height: 140 }}
                 />
                 <button type="button" className="fd-card-plus-btn">
