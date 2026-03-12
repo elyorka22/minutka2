@@ -432,8 +432,9 @@ body {
 }
 
 .fd-home-stores > .fd-card {
-  min-width: 150px;
-  max-width: 180px;
+  min-width: 110px;
+  max-width: 120px;
+  aspect-ratio: 1 / 1;
   scroll-snap-align: start;
   flex-shrink: 0;
 }
@@ -520,7 +521,7 @@ body {
 }
 
 .fd-product-cat-card {
-  padding: 8px;
+  padding: 0;
   text-align: center;
   cursor: pointer;
 }
@@ -529,7 +530,6 @@ body {
   width: 100%;
   border-radius: var(--radius-md);
   overflow: hidden;
-  margin-bottom: 6px;
   background: var(--color-orange-light);
 }
 
