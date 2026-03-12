@@ -673,6 +673,68 @@ export default function PlatformAdminPage() {
                         placeholder="Masalan: 24/7 supermarket"
                       />
                     </label>
+                    <label className="fd-field">
+                      <span>Logo rasm</span>
+                      <input
+                        type="url"
+                        value={createLogoUrl}
+                        onChange={(e) => setCreateLogoUrl(e.target.value)}
+                        placeholder="URL yoki telefondan yuklang"
+                      />
+                      <div style={{ marginTop: 8, display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
+                        <input
+                          type="file"
+                          accept="image/*"
+                          id="create-supermarket-logo-file"
+                          style={{ display: "none" }}
+                          onChange={handleUploadLogo}
+                        />
+                        <label htmlFor="create-supermarket-logo-file" style={{ margin: 0 }}>
+                          <span className="fd-btn fd-btn-primary" style={{ cursor: "pointer", display: "inline-block" }}>
+                            {createLogoUploading ? "Yuklanmoqda..." : "Telefondan yuklash"}
+                          </span>
+                        </label>
+                      </div>
+                      {createLogoUrl.trim() && (
+                        <img
+                          src={imageUrl(createLogoUrl.trim())}
+                          alt="Logo"
+                          style={{ marginTop: 8, maxWidth: 80, maxHeight: 80, objectFit: "contain", borderRadius: 8 }}
+                          onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }}
+                        />
+                      )}
+                    </label>
+                    <label className="fd-field">
+                      <span>Banner / muqova rasm</span>
+                      <input
+                        type="url"
+                        value={createCoverUrl}
+                        onChange={(e) => setCreateCoverUrl(e.target.value)}
+                        placeholder="URL yoki telefondan yuklang"
+                      />
+                      <div style={{ marginTop: 8, display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
+                        <input
+                          type="file"
+                          accept="image/*"
+                          id="create-supermarket-cover-file"
+                          style={{ display: "none" }}
+                          onChange={handleUploadCover}
+                        />
+                        <label htmlFor="create-supermarket-cover-file" style={{ margin: 0 }}>
+                          <span className="fd-btn fd-btn-primary" style={{ cursor: "pointer", display: "inline-block" }}>
+                            {createCoverUploading ? "Yuklanmoqda..." : "Telefondan yuklash"}
+                          </span>
+                        </label>
+                      </div>
+                      {createCoverUrl.trim() && (
+                        <img
+                          src={imageUrl(createCoverUrl.trim())}
+                          alt="Cover"
+                          style={{ marginTop: 8, maxWidth: "100%", maxHeight: 120, objectFit: "cover", borderRadius: 8 }}
+                          onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }}
+                        />
+                      )}
+                    </label>
                     {createError && (
                       <p style={{ color: "var(--color-orange)", fontSize: "0.875rem" }}>
                         {createError}
