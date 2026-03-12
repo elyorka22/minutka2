@@ -9,8 +9,7 @@ export default function CheckoutPage() {
   const [submitted, setSubmitted] = useState(false);
 
   const [street, setStreet] = useState("");
-  const [city, setCity] = useState("");
-  const [comment, setComment] = useState("");
+  const [phone, setPhone] = useState("");
   const [lat, setLat] = useState<string>("");
   const [lng, setLng] = useState<string>("");
   const [paymentMethod] = useState<"CARD" | "CASH">("CASH");
@@ -141,15 +140,6 @@ export default function CheckoutPage() {
                       onChange={(e) => setStreet(e.target.value)}
                     />
                   </label>
-                  <label className="fd-field">
-                    <span>Shahar</span>
-                    <input
-                      required
-                      placeholder="Toshkent"
-                      value={city}
-                      onChange={(e) => setCity(e.target.value)}
-                    />
-                  </label>
                 </>
               )}
 
@@ -181,16 +171,14 @@ export default function CheckoutPage() {
                 </div>
               )}
 
-              <p className="fd-checkout-meta">
-                To‘lov: faqat kuryerga naqd buyurtma qabul qilinadi.
-              </p>
-
               <label className="fd-field">
-                <span>Izoh</span>
-                <textarea
-                  placeholder="Masalan: piyozsiz, yetkazilganda qo‘ng‘iroq qiling"
-                  value={comment}
-                  onChange={(e) => setComment(e.target.value)}
+                <span>Telefon raqami *</span>
+                <input
+                  required
+                  placeholder="+998 90 123 45 67"
+                  value={phone}
+                  onChange={(e) => setPhone(e.target.value)}
+                  type="tel"
                 />
               </label>
 
