@@ -15,10 +15,11 @@ export default function CheckoutPage() {
   const [paymentMethod] = useState<"CARD" | "CASH">("CASH");
   const [addressMode, setAddressMode] = useState<"manual" | "auto">("manual");
   const [autoAddressConfirmed, setAutoAddressConfirmed] = useState(false);
+  const [geoStatus, setGeoStatus] = useState<"idle" | "success" | "error">("idle");
 
   function handleGeoClick() {
     if (typeof navigator === "undefined" || !navigator.geolocation) {
-      alert("Геолокация не поддерживается в этом браузере.");
+      setGeoStatus("error");
       return;
     }
     navigator.geolocation.getCurrentPosition(
@@ -26,9 +27,10 @@ export default function CheckoutPage() {
         setLat(pos.coords.latitude.toFixed(6));
         setLng(pos.coords.longitude.toFixed(6));
         setAutoAddressConfirmed(true);
+        setGeoStatus("success");
       },
       () => {
-        alert("Не удалось получить геолокацию.");
+        setGeoStatus("error");
       },
     );
   }
@@ -149,13 +151,29 @@ export default function CheckoutPage() {
                   <button
                     type="button"
                     className="fd-btn fd-geo-btn"
+                    style={
+                      geoStatus === "success"
+                        ? { backgroundColor: "#16a34a", borderColor: "#16a34a" }
+                        : geoStatus === "error"
+                          ? { backgroundColor: "#dc2626", borderColor: "#dc2626" }
+                          : undefined
+                    }
                     onClick={handleGeoClick}
                   >
-                    Mening geolokatsiyamni ishlatish
+                    {geoStatus === "success"
+                      ? "Geolokatsiya aniqlangan"
+                      : geoStatus === "error"
+                        ? "Geolokatsiya xatosi"
+                        : "Mening geolokatsiyamni ishlatish"}
                   </button>
                   {autoAddressConfirmed && (
                     <p className="fd-checkout-meta">
                       Manzilingiz geolokatsiya orqali aniqlanadi va kuryer bilan aniqlashtiriladi.
+                    </p>
+                  )}
+                  {geoStatus === "error" && (
+                    <p className="fd-checkout-meta">
+                      Geolokatsiyani aniqlashning imkoni bo‘lmadi. Manzilni qo‘lda kiriting.
                     </p>
                   )}
                 </div>
