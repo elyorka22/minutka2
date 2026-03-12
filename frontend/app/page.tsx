@@ -9,6 +9,7 @@ type RestaurantCard = {
   rating?: number | null;
   logoUrl?: string | null;
   coverUrl?: string | null;
+  isSupermarket?: boolean | null;
 };
 
 type BannerCard = {
@@ -30,6 +31,7 @@ async function getRestaurants(): Promise<RestaurantCard[]> {
     rating: typeof r.rating === "number" ? r.rating : null,
     logoUrl: r.logoUrl ?? null,
     coverUrl: r.coverUrl ?? null,
+    isSupermarket: !!r.isSupermarket,
   }));
 }
 
@@ -51,6 +53,9 @@ export default async function HomePage() {
     getRestaurants(),
     getBannersForHome(),
   ]);
+
+  const supermarkets = restaurants.filter((r) => r.isSupermarket);
+  const normalRestaurants = restaurants.filter((r) => !r.isSupermarket);
 
   return (
     <div className="fd-shell">
@@ -115,47 +120,28 @@ export default async function HomePage() {
 
       <section className="fd-section">
         <h2 className="fd-section-title">Do‘konlardan mahsulotlar</h2>
-        <div className="fd-home-stores">
-          <button type="button" className="fd-card fd-product-cat-card">
-            <div className="fd-product-cat-image-wrap">
-              <SafeImage
-                src=""
-                alt=""
-                className="fd-product-cat-image"
-                style={{ width: "100%", aspectRatio: "1 / 1", objectFit: "cover" }}
-                fallbackStyle={{ height: 40 }}
-              />
-            </div>
-          </button>
-          <button type="button" className="fd-card fd-product-cat-card">
-            <div className="fd-product-cat-image-wrap">
-              <SafeImage
-                src=""
-                alt=""
-                className="fd-product-cat-image"
-                style={{ width: "100%", aspectRatio: "1 / 1", objectFit: "cover" }}
-                fallbackStyle={{ height: 40 }}
-              />
-            </div>
-          </button>
-          <button type="button" className="fd-card fd-product-cat-card">
-            <div className="fd-product-cat-image-wrap">
-              <SafeImage
-                src=""
-                alt=""
-                className="fd-product-cat-image"
-                style={{ width: "100%", aspectRatio: "1 / 1", objectFit: "cover" }}
-                fallbackStyle={{ height: 40 }}
-              />
-            </div>
-          </button>
-        </div>
+        {supermarkets.length > 0 && (
+          <div className="fd-home-stores">
+            {supermarkets.map((s) => (
+              <button key={s.id} type="button" className="fd-card fd-product-cat-card">
+                <div className="fd-product-cat-image-wrap">
+                  <SafeImage
+                    src={(s.coverUrl || s.logoUrl) ? imageUrl(s.coverUrl || s.logoUrl) : ""}
+                    alt=""
+                    className="fd-product-cat-image"
+                    fallbackStyle={{ height: 40 }}
+                  />
+                </div>
+              </button>
+            ))}
+          </div>
+        )}
       </section>
 
       <section className="fd-section">
         <h2 className="fd-section-title">Mashhur restoranlar</h2>
         <div className="fd-grid">
-          {restaurants.map((r) => (
+          {normalRestaurants.map((r) => (
             <Link key={r.id} href={`/restaurants/${r.id}`} className="fd-card">
               <SafeImage
                 src={(r.coverUrl || r.logoUrl) ? imageUrl(r.coverUrl || r.logoUrl) : ""}

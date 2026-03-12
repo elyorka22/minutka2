@@ -187,7 +187,7 @@ export default function PlatformAdminPage() {
     }
   }
 
-  async function handleCreateRestaurant(e: React.FormEvent) {
+  async function createRestaurantCommon(e: React.FormEvent, isSupermarket: boolean) {
     e.preventDefault();
     setCreateError(null);
     if (!createName.trim()) {
@@ -201,6 +201,7 @@ export default function PlatformAdminPage() {
         address: createAddress.trim() || undefined,
         description: createDesc.trim() || undefined,
         deliveryFee: createFee ? Number(createFee) : undefined,
+        isSupermarket,
       });
       setCreateName("");
       setCreateAddress("");
@@ -208,12 +209,20 @@ export default function PlatformAdminPage() {
       setCreateFee("");
       const overview = await fetchOverview();
       setData(overview);
-      setActiveTab("restaurants");
+      setActiveTab(isSupermarket ? "supermarkets" : "restaurants");
     } catch (err: any) {
       setCreateError(err.message ?? "Restoran qo‘shishda xatolik");
     } finally {
       setCreateSubmitting(false);
     }
+  }
+
+  function handleCreateRestaurant(e: React.FormEvent) {
+    return createRestaurantCommon(e, false);
+  }
+
+  function handleCreateSupermarket(e: React.FormEvent) {
+    return createRestaurantCommon(e, true);
   }
 
   async function handleCreateProduct(e: React.FormEvent) {
@@ -638,7 +647,7 @@ export default function PlatformAdminPage() {
                 </p>
                 <div className="fd-form-block">
                   <h3>Yangi supermarket qo‘shish</h3>
-                  <form onSubmit={handleCreateRestaurant} className="fd-form">
+                  <form onSubmit={handleCreateSupermarket} className="fd-form">
                     <label className="fd-field">
                       <span>Supermarket nomi *</span>
                       <input

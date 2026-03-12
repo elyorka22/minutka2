@@ -57,6 +57,7 @@ export const adminApi = {
     deliveryFee?: number;
     minOrderTotal?: number;
     deliveryRadiusM?: number;
+    isSupermarket?: boolean;
   }) =>
     adminRequest<any>("/admin/restaurants", {
       method: "POST",

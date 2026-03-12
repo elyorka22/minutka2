@@ -151,6 +151,7 @@ export class AdminController {
       deliveryRadiusM?: number;
       latitude?: number;
       longitude?: number;
+      isSupermarket?: boolean;
     },
     @Req() req: RequestWithUser,
   ) {
@@ -172,6 +173,7 @@ export class AdminController {
         deliveryRadiusM: body.deliveryRadiusM ?? 3000,
         latitude: body.latitude ?? 0,
         longitude: body.longitude ?? 0,
+        isSupermarket: !!body.isSupermarket,
       },
     });
     return restaurant;
