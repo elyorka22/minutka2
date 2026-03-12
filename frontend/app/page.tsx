@@ -115,15 +115,39 @@ export default async function HomePage() {
 
       <section className="fd-section">
         <h2 className="fd-section-title">Do‘konlardan mahsulotlar</h2>
-        <div className="fd-home-store-row">
-          <button type="button" className="fd-home-store-pill fd-home-store-pill--green">
-            Supermarketlar
+        <div className="fd-home-stores">
+          <button type="button" className="fd-card fd-product-cat-card">
+            <div className="fd-product-cat-image-wrap">
+              <SafeImage
+                src=""
+                alt=""
+                className="fd-product-cat-image"
+                style={{ width: "100%", aspectRatio: "1 / 1", objectFit: "cover" }}
+                fallbackStyle={{ height: 40 }}
+              />
+            </div>
           </button>
-          <button type="button" className="fd-home-store-pill fd-home-store-pill--orange">
-            Gazak va ichimliklar
+          <button type="button" className="fd-card fd-product-cat-card">
+            <div className="fd-product-cat-image-wrap">
+              <SafeImage
+                src=""
+                alt=""
+                className="fd-product-cat-image"
+                style={{ width: "100%", aspectRatio: "1 / 1", objectFit: "cover" }}
+                fallbackStyle={{ height: 40 }}
+              />
+            </div>
           </button>
-          <button type="button" className="fd-home-store-pill fd-home-store-pill--blue">
-            Maishiy tovarlar
+          <button type="button" className="fd-card fd-product-cat-card">
+            <div className="fd-product-cat-image-wrap">
+              <SafeImage
+                src=""
+                alt=""
+                className="fd-product-cat-image"
+                style={{ width: "100%", aspectRatio: "1 / 1", objectFit: "cover" }}
+                fallbackStyle={{ height: 40 }}
+              />
+            </div>
           </button>
         </div>
       </section>

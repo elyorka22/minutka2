@@ -422,31 +422,28 @@ body {
   font-size: 0.85rem;
 }
 
-.fd-home-store-row {
+.fd-home-stores {
+  margin-top: 16px;
   display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
+  gap: 12px;
+  overflow-x: auto;
+  padding-bottom: 4px;
+  scroll-snap-type: x mandatory;
 }
 
-.fd-home-store-pill {
-  padding: 10px 14px;
-  border-radius: var(--radius-md);
-  border: none;
-  font-size: 0.85rem;
-  cursor: pointer;
-  color: #111827;
+.fd-home-stores > .fd-card {
+  min-width: 150px;
+  max-width: 180px;
+  scroll-snap-align: start;
+  flex-shrink: 0;
 }
 
-.fd-home-store-pill--green {
-  background: #dcfce7;
+.fd-home-stores::-webkit-scrollbar {
+  height: 0;
 }
 
-.fd-home-store-pill--orange {
-  background: #ffedd5;
-}
-
-.fd-home-store-pill--blue {
-  background: #e0f2fe;
+.fd-home-stores {
+  scrollbar-width: none;
 }
 
 /* Grid & cards */
