@@ -201,12 +201,16 @@ export default function PlatformAdminPage() {
         address: createAddress.trim() || undefined,
         description: createDesc.trim() || undefined,
         deliveryFee: createFee ? Number(createFee) : undefined,
+        logoUrl: createLogoUrl.trim() || undefined,
+        coverUrl: createCoverUrl.trim() || undefined,
         isSupermarket,
       });
       setCreateName("");
       setCreateAddress("");
       setCreateDesc("");
       setCreateFee("");
+       setCreateLogoUrl("");
+       setCreateCoverUrl("");
       const overview = await fetchOverview();
       setData(overview);
       setActiveTab(isSupermarket ? "supermarkets" : "restaurants");
