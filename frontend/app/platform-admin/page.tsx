@@ -589,13 +589,36 @@ export default function PlatformAdminPage() {
                       <div>{r.name}</div>
                       <div className="fd-checkout-meta">{r.address || "—"}</div>
                     </div>
-                    <Link
-                      href={`/platform-admin/restaurants/${r.id}`}
-                      className="fd-btn fd-btn-primary"
-                      style={{ textDecoration: "none", flexShrink: 0 }}
-                    >
-                      Menyu
-                    </Link>
+                    <div style={{ display: "flex", gap: 8 }}>
+                      <Link
+                        href={`/platform-admin/restaurants/${r.id}`}
+                        className="fd-btn fd-btn-primary"
+                        style={{ textDecoration: "none", flexShrink: 0 }}
+                      >
+                        Menyu
+                      </Link>
+                      <button
+                        type="button"
+                        className="fd-btn"
+                        onClick={async () => {
+                          try {
+                            await adminApi.deleteRestaurant(r.id);
+                            setData((prev: any) =>
+                              prev
+                                ? {
+                                    ...prev,
+                                    restaurants: prev.restaurants.filter((x: any) => x.id !== r.id),
+                                  }
+                                : prev,
+                            );
+                          } catch (err: any) {
+                            setError(err?.message ?? "Restoranni o‘chirishda xatolik");
+                          }
+                        }}
+                      >
+                        O‘chirish
+                      </button>
+                    </div>
                   </div>
                 ))}
                 {(!data.restaurants || data.restaurants.length === 0) && (
@@ -777,6 +800,22 @@ export default function PlatformAdminPage() {
                                 }
                               />
                             </label>
+                            <button
+                              type="button"
+                              className="fd-btn"
+                              onClick={async () => {
+                                try {
+                                  await adminApi.deleteProductCategory(c.id);
+                                  setProductCategories((prev) =>
+                                    prev.filter((x: any) => x.id !== c.id),
+                                  );
+                                } catch (err: any) {
+                                  setProductError(err?.message ?? "Kategoriya o‘chirishda xatolik");
+                                }
+                              }}
+                            >
+                              O‘chirish
+                            </button>
                           </div>
                         </div>
                       ))}
@@ -1025,6 +1064,20 @@ export default function PlatformAdminPage() {
                               }
                             />
                           </label>
+                          <button
+                            type="button"
+                            className="fd-btn"
+                            onClick={async () => {
+                              try {
+                                await adminApi.deleteBanner(b.id);
+                                setBanners((prev) => prev.filter((x) => x.id !== b.id));
+                              } catch (err: any) {
+                                setBannerError(err?.message ?? "Banner o‘chirishda xatolik");
+                              }
+                            }}
+                          >
+                            O‘chirish
+                          </button>
                         </div>
                       </div>
                     ))}

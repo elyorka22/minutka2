@@ -5,6 +5,7 @@ import {
   Patch,
   Param,
   Post,
+  Delete,
   Req,
   UseGuards,
   UseInterceptors,
@@ -211,6 +212,19 @@ export class AdminController {
     return restaurant;
   }
 
+  @Delete('restaurants/:id')
+  async deleteRestaurant(@Param('id') id: string, @Req() req: RequestWithUser) {
+    if (req.user?.role !== 'PLATFORM_ADMIN') {
+      throw new ForbiddenException('Only platform admin allowed');
+    }
+    // Мягкое удаление: скрываем ресторан, чтобы не ломать связанные заказы
+    const restaurant = await this.prisma.restaurant.update({
+      where: { id },
+      data: { isActive: false },
+    });
+    return restaurant;
+  }
+
   @Get('restaurants/:id/full')
   async getRestaurantFull(@Param('id') id: string, @Req() req: RequestWithUser) {
     if (req.user?.role !== 'PLATFORM_ADMIN') {
@@ -249,6 +263,25 @@ export class AdminController {
     return category;
   }
 
+  @Delete('restaurants/:id/categories/:categoryId')
+  async deleteCategory(
+    @Param('id') restaurantId: string,
+    @Param('categoryId') categoryId: string,
+    @Req() req: RequestWithUser,
+  ) {
+    if (req.user?.role !== 'PLATFORM_ADMIN') {
+      throw new ForbiddenException('Only platform admin allowed');
+    }
+    await this.prisma.dish.updateMany({
+      where: { restaurantId, categoryId },
+      data: { categoryId: null },
+    });
+    await this.prisma.category.delete({
+      where: { id: categoryId },
+    });
+    return { ok: true };
+  }
+
   @Post('restaurants/:id/dishes')
   async createDish(
     @Param('id') id: string,
@@ -282,6 +315,21 @@ export class AdminController {
       },
     });
     return dish;
+  }
+
+  @Delete('restaurants/:id/dishes/:dishId')
+  async deleteDish(
+    @Param('id') restaurantId: string,
+    @Param('dishId') dishId: string,
+    @Req() req: RequestWithUser,
+  ) {
+    if (req.user?.role !== 'PLATFORM_ADMIN') {
+      throw new ForbiddenException('Only platform admin allowed');
+    }
+    await this.prisma.dish.delete({
+      where: { id: dishId },
+    });
+    return { ok: true };
   }
 
   @Post('products')
@@ -372,6 +420,32 @@ export class AdminController {
     return category;
   }
 
+  @Delete('products/:id')
+  async deleteProduct(@Param('id') id: string, @Req() req: RequestWithUser) {
+    if (req.user?.role !== 'PLATFORM_ADMIN') {
+      throw new ForbiddenException('Only platform admin allowed');
+    }
+    await this.prisma.product.delete({
+      where: { id },
+    });
+    return { ok: true };
+  }
+
+  @Delete('product-categories/:id')
+  async deleteProductCategory(@Param('id') id: string, @Req() req: RequestWithUser) {
+    if (req.user?.role !== 'PLATFORM_ADMIN') {
+      throw new ForbiddenException('Only platform admin allowed');
+    }
+    await this.prisma.product.updateMany({
+      where: { categoryId: id },
+      data: { categoryId: null },
+    });
+    await this.prisma.productCategory.delete({
+      where: { id },
+    });
+    return { ok: true };
+  }
+
   @Get('banners')
   async getBanners(@Req() req: RequestWithUser) {
     if (req.user?.role !== 'PLATFORM_ADMIN') {
@@ -447,5 +521,16 @@ export class AdminController {
       },
     });
     return banner;
+  }
+
+  @Delete('banners/:id')
+  async deleteBanner(@Param('id') id: string, @Req() req: RequestWithUser) {
+    if (req.user?.role !== 'PLATFORM_ADMIN') {
+      throw new ForbiddenException('Only platform admin allowed');
+    }
+    await this.prisma.banner.delete({
+      where: { id },
+    });
+    return { ok: true };
   }
 }

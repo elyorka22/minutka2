@@ -64,6 +64,10 @@ export const adminApi = {
     }),
   getRestaurantFull: (id: string) =>
     adminRequest<any>(`/admin/restaurants/${id}/full`),
+  deleteRestaurant: (id: string) =>
+    adminRequest<any>(`/admin/restaurants/${id}`, {
+      method: "DELETE",
+    }),
   uploadImage: async (file: File): Promise<{ url: string }> => {
     const formData = new FormData();
     formData.append("file", file);
@@ -102,6 +106,10 @@ export const adminApi = {
       method: "POST",
       body: JSON.stringify(body),
     }),
+  deleteCategory: (restaurantId: string, categoryId: string) =>
+    adminRequest<any>(`/admin/restaurants/${restaurantId}/categories/${categoryId}`, {
+      method: "DELETE",
+    }),
   createDish: (
     restaurantId: string,
     body: {
@@ -116,6 +124,10 @@ export const adminApi = {
       method: "POST",
       body: JSON.stringify(body),
     }),
+  deleteDish: (restaurantId: string, dishId: string) =>
+    adminRequest<any>(`/admin/restaurants/${restaurantId}/dishes/${dishId}`, {
+      method: "DELETE",
+    }),
   createProduct: (body: {
     name: string;
     description?: string;
@@ -127,6 +139,10 @@ export const adminApi = {
     adminRequest<any>("/admin/products", {
       method: "POST",
       body: JSON.stringify(body),
+    }),
+  deleteProduct: (id: string) =>
+    adminRequest<any>(`/admin/products/${id}`, {
+      method: "DELETE",
     }),
   getProductCategories: () =>
     adminRequest<any>("/admin/product-categories", {
@@ -154,6 +170,10 @@ export const adminApi = {
     adminRequest<any>(`/admin/product-categories/${id}`, {
       method: "PATCH",
       body: JSON.stringify(body),
+    }),
+  deleteProductCategory: (id: string) =>
+    adminRequest<any>(`/admin/product-categories/${id}`, {
+      method: "DELETE",
     }),
   getBanners: () =>
     adminRequest<any>("/admin/banners", {
@@ -187,5 +207,9 @@ export const adminApi = {
     adminRequest<any>(`/admin/banners/${id}`, {
       method: "PATCH",
       body: JSON.stringify(body),
+    }),
+  deleteBanner: (id: string) =>
+    adminRequest<any>(`/admin/banners/${id}`, {
+      method: "DELETE",
     }),
 };

@@ -316,8 +316,25 @@ export default function PlatformAdminRestaurantMenuPage() {
           <ul style={{ listStyle: "none", padding: 0, margin: 0 }}>
             {restaurant.categories.map((c: any) => (
               <li key={c.id} className="fd-checkout-item">
-                <span>{c.name}</span>
-                <span className="fd-checkout-meta">Tartib: {c.sortOrder}</span>
+                <div>
+                  <span>{c.name}</span>
+                  <span className="fd-checkout-meta">Tartib: {c.sortOrder}</span>
+                </div>
+                <button
+                  type="button"
+                  className="fd-btn"
+                  onClick={async () => {
+                    try {
+                      await adminApi.deleteCategory(id, c.id);
+                      const data = await adminApi.getRestaurantFull(id);
+                      setRestaurant(data);
+                    } catch (err: any) {
+                      setCatError(err?.message ?? "Kategoriya o‘chirishda xatolik");
+                    }
+                  }}
+                >
+                  O‘chirish
+                </button>
               </li>
             ))}
           </ul>
@@ -420,6 +437,21 @@ export default function PlatformAdminRestaurantMenuPage() {
                     {d.description || "—"} · {Number(d.price).toLocaleString()} so‘m
                   </div>
                 </div>
+                <button
+                  type="button"
+                  className="fd-btn"
+                  onClick={async () => {
+                    try {
+                      await adminApi.deleteDish(id, d.id);
+                      const data = await adminApi.getRestaurantFull(id);
+                      setRestaurant(data);
+                    } catch (err: any) {
+                      setDishError(err?.message ?? "Taom o‘chirishda xatolik");
+                    }
+                  }}
+                >
+                  O‘chirish
+                </button>
               </li>
             ))}
           </ul>
