@@ -21,6 +21,7 @@ export default function PlatformAdminPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<TabId>("stats");
+  const [tabsOpen, setTabsOpen] = useState(false);
   const [createName, setCreateName] = useState("");
   const [createAddress, setCreateAddress] = useState("");
   const [createDesc, setCreateDesc] = useState("");
@@ -353,17 +354,31 @@ export default function PlatformAdminPage() {
     <div className="fd-shell fd-section">
       <BackLink href="/profile">← Profil</BackLink>
       <h1 className="fd-section-title">Platforma admin paneli</h1>
+      <button
+        type="button"
+        className="fd-btn"
+        style={{ marginTop: 8, marginBottom: 8 }}
+        onClick={() => setTabsOpen((open) => !open)}
+      >
+        {tabsOpen ? "Bo‘limlarni yopish" : "Bo‘limlar menyusi"}
+      </button>
       {loading && <p>Yuklanmoqda...</p>}
       {error && <p className="fd-empty">{error}</p>}
       {data && (
         <div className="fd-admin-layout">
-          <nav className="fd-admin-tabs">
+          <nav
+            className="fd-admin-tabs"
+            style={tabsOpen ? undefined : { display: "none" }}
+          >
             {tabs.map((t) => (
               <button
                 key={t.id}
                 type="button"
                 className={`fd-admin-tab ${activeTab === t.id ? "fd-admin-tab-active" : ""}`}
-                onClick={() => setActiveTab(t.id)}
+                onClick={() => {
+                  setActiveTab(t.id);
+                  setTabsOpen(false);
+                }}
               >
                 {t.label}
               </button>
