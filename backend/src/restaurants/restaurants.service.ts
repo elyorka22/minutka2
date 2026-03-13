@@ -7,7 +7,8 @@ export class RestaurantsService {
 
   async findAll(query?: { search?: string; isActive?: boolean }) {
     const where: { isActive?: boolean; name?: { contains: string; mode: 'insensitive' } } = {};
-    if (query?.isActive !== undefined) where.isActive = query.isActive;
+    // По умолчанию на публичном сайте показываем только активные заведения
+    where.isActive = query?.isActive !== undefined ? query.isActive : true;
     if (query?.search) where.name = { contains: query.search, mode: 'insensitive' };
     return this.prisma.restaurant.findMany({
       where,
