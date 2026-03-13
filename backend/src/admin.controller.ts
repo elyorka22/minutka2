@@ -38,6 +38,7 @@ export class AdminController {
 
     const [restaurants, users, recentOrders, banners, productCategories] = await Promise.all([
       this.prisma.restaurant.findMany({
+        where: { isActive: true },
         orderBy: { createdAt: 'desc' },
         take: 20,
       }),
