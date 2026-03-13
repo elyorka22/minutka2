@@ -220,12 +220,24 @@ export class AdminController {
     if (req.user?.role !== 'PLATFORM_ADMIN') {
       throw new ForbiddenException('Only platform admin allowed');
     }
-    // Мягкое удаление: скрываем ресторан, чтобы не ломать связанные заказы
-    const restaurant = await this.prisma.restaurant.update({
-      where: { id },
-      data: { isActive: false },
-    });
-    return restaurant;
+    try {
+      // Пытаемся полностью удалить ресторан из БД
+      const restaurant = await this.prisma.restaurant.delete({
+        where: { id },
+      });
+      return restaurant;
+    } catch (e: any) {
+      // Если есть связанные заказы и срабатывает ограничение внешнего ключа,
+      // просто помечаем ресторан как неактивный, чтобы скрыть его отовсюду.
+      if (e && e.code === 'P2003') {
+        const restaurant = await this.prisma.restaurant.update({
+          where: { id },
+          data: { isActive: false },
+        });
+        return restaurant;
+      }
+      throw e;
+    }
   }
 
   @Get('restaurants/:id/full')
