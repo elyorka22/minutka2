@@ -71,6 +71,9 @@ export default async function HomePage() {
           <Link href="/restaurants" className="fd-chip fd-chip--active">
             Restoranlar
           </Link>
+          <Link href="/supermarkets" className="fd-chip">
+            Do‘konlar
+          </Link>
           <Link href="/products" className="fd-chip">
             Mahsulotlar
           </Link>
@@ -119,11 +122,19 @@ export default async function HomePage() {
       </section>
 
       <section className="fd-section">
-        <h2 className="fd-section-title">Do‘konlardan mahsulotlar</h2>
+        <h2 className="fd-section-title">
+          <Link href="/supermarkets" style={{ color: "inherit", textDecoration: "none" }}>
+            Do‘konlardan mahsulotlar
+          </Link>
+        </h2>
         {supermarkets.length > 0 && (
           <div className="fd-home-stores">
             {supermarkets.map((s) => (
-              <button key={s.id} type="button" className="fd-card fd-product-cat-card">
+              <Link
+                key={s.id}
+                href={`/restaurants/${s.id}`}
+                className="fd-card fd-product-cat-card"
+              >
                 <div className="fd-product-cat-image-wrap">
                   <SafeImage
                     src={(s.coverUrl || s.logoUrl) ? imageUrl(s.coverUrl || s.logoUrl) : ""}
@@ -132,7 +143,7 @@ export default async function HomePage() {
                     fallbackStyle={{ height: 40 }}
                   />
                 </div>
-              </button>
+              </Link>
             ))}
           </div>
         )}
