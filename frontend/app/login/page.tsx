@@ -26,11 +26,17 @@ export default function LoginPage() {
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
     setError(null);
+    const loginTrimmed = (email ?? "").trim();
+    const passwordTrimmed = (password ?? "").trim();
+    if (!loginTrimmed || !passwordTrimmed) {
+      setError("Login va parolni kiriting.");
+      return;
+    }
     try {
       const res = await fetch(`${API_BASE}/auth/login`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, password }),
+        body: JSON.stringify({ email: loginTrimmed, password: passwordTrimmed }),
       });
       if (!res.ok) {
         throw new Error("Noto‘g‘ri maʼlumotlar");

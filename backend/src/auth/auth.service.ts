@@ -10,7 +10,7 @@ interface JwtPayload {
 
 @Injectable()
 export class AuthService {
-  private accessTokenTtlSeconds = 60 * 15;
+  private accessTokenTtlSeconds = 60 * 60 * 24 * 7; // 7 kun
 
   constructor(private readonly usersService: UsersService) {}
 

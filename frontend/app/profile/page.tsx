@@ -30,6 +30,8 @@ export default function ProfilePage() {
   const [payload, setPayload] = useState<JwtPayload | null>(null);
   const [hasToken, setHasToken] = useState(false);
   const [myRestaurants, setMyRestaurants] = useState<MyRestaurant[]>([]);
+  const [myRestaurantsError, setMyRestaurantsError] = useState(false);
+  const [myRestaurantsLoading, setMyRestaurantsLoading] = useState(false);
   const router = useRouter();
 
   useEffect(() => {
@@ -43,12 +45,20 @@ export default function ProfilePage() {
   useEffect(() => {
     if (!hasToken || payload?.role !== "RESTAURANT_ADMIN") return;
     let active = true;
+    setMyRestaurantsLoading(true);
+    setMyRestaurantsError(false);
     adminApi
       .getMyRestaurants()
       .then((list) => {
         if (active && Array.isArray(list)) setMyRestaurants(list);
+        if (active) setMyRestaurantsError(false);
       })
-      .catch(() => {});
+      .catch(() => {
+        if (active) setMyRestaurantsError(true);
+      })
+      .finally(() => {
+        if (active) setMyRestaurantsLoading(false);
+      });
     return () => {
       active = false;
     };
@@ -119,7 +129,20 @@ export default function ProfilePage() {
 
           {isRestaurantAdmin && (
             <div style={{ marginTop: 12 }}>
-              {myRestaurants.length > 0 ? (
+              {myRestaurantsLoading && (
+                <p className="fd-card-desc">Restoranlar yuklanmoqda…</p>
+              )}
+              {!myRestaurantsLoading && myRestaurantsError && (
+                <p className="fd-card-desc" style={{ color: "var(--color-orange)" }}>
+                  Sessiya tugadi yoki xatolik. <strong>Chiqish</strong> tugmasini bosing va qayta kiring.
+                </p>
+              )}
+              {!myRestaurantsLoading && !myRestaurantsError && myRestaurants.length === 0 && (
+                <p className="fd-card-desc" style={{ color: "var(--color-muted)" }}>
+                  Sizga hozircha restoran yoki do‘kon tayinlanmagan. Platforma adminiga murojaat qiling.
+                </p>
+              )}
+              {!myRestaurantsLoading && !myRestaurantsError && myRestaurants.length > 0 && (
                 <>
                   <p className="fd-card-desc" style={{ marginBottom: 8 }}>
                     Sizning restoran/do‘konlaringiz — admin paneliga o‘ting:
@@ -137,10 +160,6 @@ export default function ProfilePage() {
                     ))}
                   </div>
                 </>
-              ) : (
-                <p className="fd-card-desc">
-                  Sizga tayinlangan restoran yoki do‘kon yo‘q. Platforma admini bilan bog‘laning.
-                </p>
               )}
             </div>
           )}

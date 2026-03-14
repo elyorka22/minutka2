@@ -251,9 +251,14 @@ export class AdminController {
     const existingUser = await this.usersService.findByEmail(adminEmail);
     if (existingUser) {
       adminId = existingUser.id;
+      const updatePayload: { role: UserRole; name: string; password?: string } = { role: UserRole.RESTAURANT_ADMIN, name: adminName };
+      if (adminPassword.length >= 6) {
+        const bcrypt = await import('bcrypt');
+        updatePayload.password = await bcrypt.hash(adminPassword, 10);
+      }
       await this.prisma.user.update({
         where: { id: adminId },
-        data: { role: UserRole.RESTAURANT_ADMIN },
+        data: updatePayload,
       });
     } else {
       const newUser = await this.usersService.create({
