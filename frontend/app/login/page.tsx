@@ -84,9 +84,12 @@ export default function LoginPage() {
         </label>
         {error && <p style={{ color: "#ff6a00" }}>{error}</p>}
         <button className="fd-btn fd-btn-primary" type="submit">
-          Войти
+          Kirish
         </button>
       </form>
+      <p className="fd-checkout-meta" style={{ marginTop: 16, maxWidth: 360, fontSize: "0.875rem" }}>
+        Agar brauzer &quot;parol oshkor bo‘lgan&quot; deb ogohlantirsa — bu Google xabari. Parolni <strong>OK</strong> dan keyin kirish ishlashi mumkin; yoki maxfiy rejimda / boshqa brauzerda kirib ko‘ring. Yangi parol o‘rnatish uchun platforma adminiga murojaat qiling.
+      </p>
     </div>
   );
 }
