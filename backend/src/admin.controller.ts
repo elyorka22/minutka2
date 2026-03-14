@@ -56,39 +56,49 @@ export class AdminController {
       throw new ForbiddenException('Only platform admin allowed');
     }
 
-    const [restaurants, users, recentOrders, banners, productCategories] = await Promise.all([
-      this.prisma.restaurant.findMany({
-        where: { isActive: true },
-        orderBy: { createdAt: 'desc' },
-        take: 20,
-      }),
-      this.prisma.user.findMany({
-        orderBy: { createdAt: 'desc' },
-        take: 20,
-      }),
-      this.prisma.order.findMany({
-        orderBy: { createdAt: 'desc' },
-        take: 20,
-        include: {
-          restaurant: true,
-          customer: { select: { id: true, email: true, name: true } },
-        },
-      }),
-      this.prisma.banner.findMany({
-        orderBy: [{ sortOrder: 'asc' }, { createdAt: 'desc' }],
-      }),
-      this.prisma.productCategory.findMany({
-        orderBy: [{ sortOrder: 'asc' }, { createdAt: 'desc' }],
-      }),
-    ]);
+    try {
+      const [restaurants, users, recentOrders, banners, productCategories] = await Promise.all([
+        this.prisma.restaurant.findMany({
+          where: { isActive: true },
+          orderBy: { createdAt: 'desc' },
+          take: 20,
+        }),
+        this.prisma.user.findMany({
+          orderBy: { createdAt: 'desc' },
+          take: 20,
+        }),
+        this.prisma.order.findMany({
+          orderBy: { createdAt: 'desc' },
+          take: 20,
+          include: {
+            restaurant: true,
+            customer: { select: { id: true, email: true, name: true } },
+          },
+        }),
+        this.prisma.banner.findMany({
+          orderBy: [{ sortOrder: 'asc' }, { createdAt: 'desc' }],
+        }),
+        this.prisma.productCategory.findMany({
+          orderBy: [{ sortOrder: 'asc' }, { createdAt: 'desc' }],
+        }),
+      ]);
 
-    return {
-      restaurants,
-      users,
-      recentOrders,
-      banners,
-      productCategories,
-    };
+      return {
+        restaurants,
+        users,
+        recentOrders,
+        banners,
+        productCategories,
+      };
+    } catch (e: any) {
+      const msg = e?.message ?? String(e);
+      if (msg.includes('column') && msg.includes('does not exist')) {
+        throw new BadRequestException(
+          'Baza sxemasi yangilanmagan. Backend papkasida: npx prisma db push',
+        );
+      }
+      throw e;
+    }
   }
 
   @Patch('users/:id/role')

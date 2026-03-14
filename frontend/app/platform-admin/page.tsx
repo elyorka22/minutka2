@@ -151,8 +151,14 @@ export default function PlatformAdminPage() {
       throw new Error("Unauthorized");
     }
 
-    if (!res.ok) throw new Error("Server xatosi");
-    return (await res.json()) as any;
+    const body = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      const errMsg =
+        (body?.message && (typeof body.message === "string" ? body.message : body.message[0])) ||
+        "Server xatosi";
+      throw new Error(errMsg);
+    }
+    return body as any;
   }
 
   function getStats() {
