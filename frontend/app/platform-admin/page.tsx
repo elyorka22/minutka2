@@ -242,7 +242,7 @@ export default function PlatformAdminPage() {
       return;
     }
     if (!createAdminEmail.trim()) {
-      setCreateError("Admin email kiritilishi shart");
+      setCreateError("Login kiritilishi shart");
       return;
     }
     if (!createAdminPassword || createAdminPassword.length < 6) {
@@ -565,16 +565,33 @@ export default function PlatformAdminPage() {
                         {u.name} · {u.role}
                       </div>
                     </div>
-                    <select
-                      value={u.role}
-                      onChange={(e) => changeUserRole(u.id, e.target.value)}
-                      style={{ marginLeft: "auto" }}
-                    >
-                      <option value="CUSTOMER">CUSTOMER</option>
-                      <option value="RESTAURANT_ADMIN">RESTAURANT_ADMIN</option>
-                      <option value="PLATFORM_ADMIN">PLATFORM_ADMIN</option>
-                      <option value="COURIER">COURIER</option>
-                    </select>
+                    <div style={{ display: "flex", alignItems: "center", gap: 8, marginLeft: "auto" }}>
+                      <select
+                        value={u.role}
+                        onChange={(e) => changeUserRole(u.id, e.target.value)}
+                      >
+                        <option value="CUSTOMER">CUSTOMER</option>
+                        <option value="RESTAURANT_ADMIN">RESTAURANT_ADMIN</option>
+                        <option value="PLATFORM_ADMIN">PLATFORM_ADMIN</option>
+                        <option value="COURIER">COURIER</option>
+                      </select>
+                      <button
+                        type="button"
+                        className="fd-btn fd-btn--secondary"
+                        style={{ padding: "6px 12px", fontSize: "0.875rem" }}
+                        onClick={async () => {
+                          if (!confirm(`"${u.email}" foydalanuvchisini o‘chirishni xohlaysizmi?`)) return;
+                          try {
+                            await adminApi.deleteUser(u.id);
+                            setData((prev: any) => prev ? { ...prev, users: prev.users.filter((x: any) => x.id !== u.id) } : null);
+                          } catch (err: any) {
+                            alert(err?.message ?? "O‘chirishda xatolik");
+                          }
+                        }}
+                      >
+                        O‘chirish
+                      </button>
+                    </div>
                   </div>
                 ))}
                 {(!data.users || data.users.length === 0) && (
@@ -660,12 +677,12 @@ export default function PlatformAdminPage() {
                     />
                   </label>
                   <p className="fd-checkout-meta" style={{ marginTop: 8, marginBottom: 4 }}>
-                    Restoran admini (ushbu email va parol bilan kirib, shu restoran admin paneliga o‘tadi) *
+                    Restoran admini (ushbu login va parol bilan kirib, shu restoran admin paneliga o‘tadi) *
                   </p>
                   <label className="fd-field">
-                    <span>Admin email *</span>
+                    <span>Login *</span>
                     <input
-                      type="email"
+                      type="text"
                       value={createAdminEmail}
                       onChange={(e) => setCreateAdminEmail(e.target.value)}
                       placeholder="admin@restoran.uz"
@@ -950,12 +967,12 @@ export default function PlatformAdminPage() {
                       />
                     </label>
                     <p className="fd-checkout-meta" style={{ marginTop: 8, marginBottom: 4 }}>
-                      Do‘kon admini (ushbu email va parol bilan kirib, shu do‘kon admin paneliga o‘tadi) *
+                      Do‘kon admini (ushbu login va parol bilan kirib, shu do‘kon admin paneliga o‘tadi) *
                     </p>
                     <label className="fd-field">
-                      <span>Admin email *</span>
+                      <span>Login *</span>
                       <input
-                        type="email"
+                        type="text"
                         value={createAdminEmail}
                         onChange={(e) => setCreateAdminEmail(e.target.value)}
                         placeholder="admin@dokon.uz"

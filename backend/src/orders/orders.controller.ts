@@ -1,8 +1,9 @@
-import { Body, Controller, Get, Param, Patch, Post, Req, UseGuards } from '@nestjs/common';
+import { Body, Controller, ForbiddenException, Get, Param, Patch, Post, Req, UseGuards } from '@nestjs/common';
 import { OrdersService } from './orders.service';
 import { CreateOrderDto } from './dto/create-order.dto';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { AuthService } from '../auth/auth.service';
+import { PrismaService } from '../prisma.service';
 
 @Controller('orders')
 export class OrdersController {
@@ -51,25 +52,61 @@ export class OrdersController {
   }
 }
 
+interface RequestWithUser {
+  user?: { id: string; role: string };
+}
+
 @Controller('restaurants/:restaurantId/orders')
 export class RestaurantOrdersController {
-  constructor(private readonly ordersService: OrdersService) {}
+  constructor(
+    private readonly ordersService: OrdersService,
+    private readonly prisma: PrismaService,
+  ) {}
+
+  private async ensureRestaurantAdminAccess(restaurantId: string, userId: string, userRole: string): Promise<void> {
+    if (userRole === 'PLATFORM_ADMIN') return;
+    const restaurant = await this.prisma.restaurant.findFirst({
+      where: { id: restaurantId, isActive: true, admins: { some: { id: userId } } },
+      select: { id: true },
+    });
+    if (!restaurant) {
+      throw new ForbiddenException('Sizga tayinlangan restoran yoki do\'kon yo\'q.');
+    }
+  }
 
   @Get()
   @UseGuards(JwtAuthGuard)
-  findForRestaurant(@Param('restaurantId') restaurantId: string) {
+  async findForRestaurant(
+    @Param('restaurantId') restaurantId: string,
+    @Req() req: RequestWithUser,
+  ) {
+    const userId = req.user?.id;
+    const role = req.user?.role;
+    if (userId && role) await this.ensureRestaurantAdminAccess(restaurantId, userId, role);
     return this.ordersService.findForRestaurant(restaurantId);
   }
 
   @Get('archive')
   @UseGuards(JwtAuthGuard)
-  findArchive(@Param('restaurantId') restaurantId: string) {
+  async findArchive(
+    @Param('restaurantId') restaurantId: string,
+    @Req() req: RequestWithUser,
+  ) {
+    const userId = req.user?.id;
+    const role = req.user?.role;
+    if (userId && role) await this.ensureRestaurantAdminAccess(restaurantId, userId, role);
     return this.ordersService.findArchiveForRestaurant(restaurantId);
   }
 
   @Get('stats')
   @UseGuards(JwtAuthGuard)
-  getStats(@Param('restaurantId') restaurantId: string) {
+  async getStats(
+    @Param('restaurantId') restaurantId: string,
+    @Req() req: RequestWithUser,
+  ) {
+    const userId = req.user?.id;
+    const role = req.user?.role;
+    if (userId && role) await this.ensureRestaurantAdminAccess(restaurantId, userId, role);
     return this.ordersService.getRestaurantStats(restaurantId);
   }
 }

@@ -18,7 +18,14 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
   });
 
   if (!res.ok) {
-    throw new Error(`Request failed: ${res.status}`);
+    let message = `Request failed: ${res.status}`;
+    try {
+      const body = await res.json();
+      if (body && typeof body.message === "string") message = body.message;
+    } catch {
+      // ignore
+    }
+    throw new Error(message);
   }
 
   return (await res.json()) as T;
@@ -54,6 +61,8 @@ export const adminApi = {
       headers: getAuthHeaders(),
       body: JSON.stringify({ role }),
     }),
+  deleteUser: (id: string) =>
+    adminRequest<{ ok: boolean }>(`/admin/users/${id}`, { method: "DELETE" }),
   createRestaurant: (body: {
     name: string;
     description?: string;

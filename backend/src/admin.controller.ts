@@ -133,6 +133,42 @@ export class AdminController {
     return user;
   }
 
+  @Delete('users/:id')
+  async deleteUser(@Param('id') id: string, @Req() req: RequestWithUser) {
+    if (req.user?.role !== 'PLATFORM_ADMIN') {
+      throw new ForbiddenException('Only platform admin allowed');
+    }
+    if (req.user?.id === id) {
+      throw new BadRequestException('O‘zingizni o‘chirib bo‘lmaydi');
+    }
+    const user = await this.prisma.user.findUnique({ where: { id } });
+    if (!user) throw new BadRequestException('Foydalanuvchi topilmadi');
+
+    const orderIds = (await this.prisma.order.findMany({ where: { customerId: id }, select: { id: true } })).map((o) => o.id);
+    for (const orderId of orderIds) {
+      const dt = this.prisma.deliveryTracking;
+      if (dt) await dt.deleteMany({ where: { orderId } }).catch(() => {});
+      await this.prisma.payment.deleteMany({ where: { orderId } }).catch(() => {});
+      await this.prisma.orderItem.deleteMany({ where: { orderId } });
+    }
+    await this.prisma.order.deleteMany({ where: { customerId: id } });
+    await this.prisma.address.deleteMany({ where: { userId: id } });
+    const restaurantsWithAdmin = await this.prisma.restaurant.findMany({
+      where: { admins: { some: { id } } },
+      select: { id: true },
+    });
+    for (const r of restaurantsWithAdmin) {
+      await this.prisma.restaurant.update({
+        where: { id: r.id },
+        data: { admins: { disconnect: { id } } },
+      });
+    }
+    const courier = await this.prisma.courier.findUnique({ where: { userId: id } }).catch(() => null);
+    if (courier) await this.prisma.courier.delete({ where: { id: courier.id } });
+    await this.prisma.user.delete({ where: { id } });
+    return { ok: true };
+  }
+
   private static readonly ALLOWED_MIMES = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
   private static readonly MAX_SIZE = 5 * 1024 * 1024; // 5MB
 
@@ -214,11 +250,11 @@ export class AdminController {
     let adminId: string;
     const existingUser = await this.usersService.findByEmail(adminEmail);
     if (existingUser) {
+      adminId = existingUser.id;
       await this.prisma.user.update({
-        where: { id: existingUser.id },
+        where: { id: adminId },
         data: { role: UserRole.RESTAURANT_ADMIN },
       });
-      adminId = existingUser.id;
     } else {
       const newUser = await this.usersService.create({
         email: adminEmail,
@@ -243,7 +279,7 @@ export class AdminController {
         longitude: body.longitude ?? 0,
         isSupermarket: !!body.isSupermarket,
         platformFeePercent: body.platformFeePercent != null ? Number(body.platformFeePercent) : 10,
-        admins: { connect: [{ id: adminId }] },
+        admins: { connect: { id: adminId } },
       },
     });
     return restaurant;

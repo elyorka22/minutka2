@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import { adminApi } from "../../../lib/adminApi";
 import { BackLink } from "../../../components/BackLink";
 
@@ -220,7 +221,18 @@ export default function RestaurantAdminPage({
       </div>
 
       {loading && <p>Yuklanmoqda...</p>}
-      {error && <p className="fd-empty">{error}</p>}
+      {error && (
+        <div className="fd-empty">
+          <p>{error}</p>
+          {(error.includes("tayinlangan") || error.includes("restoran") || error.includes("do'kon")) && (
+            <p style={{ marginTop: 12 }}>
+              <Link href="/profile" className="fd-btn fd-btn-primary" style={{ textDecoration: "none" }}>
+                Profilga o‘tish
+              </Link>
+            </p>
+          )}
+        </div>
+      )}
 
       {activeTab === "orders" && !loading && (
         <div className="fd-admin-orders">
