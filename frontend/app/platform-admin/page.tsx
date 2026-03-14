@@ -10,6 +10,7 @@ type TabId =
   | "users"
   | "restaurants"
   | "supermarkets"
+  | "restaurant-stats"
   | "settings";
 
 export default function PlatformAdminPage() {
@@ -52,6 +53,15 @@ export default function PlatformAdminPage() {
   const [bannerError, setBannerError] = useState<string | null>(null);
   const [addAdminEmails, setAddAdminEmails] = useState<Record<string, string>>({});
   const [addAdminSubmitting, setAddAdminSubmitting] = useState<Record<string, boolean>>({});
+  const [restaurantStats, setRestaurantStats] = useState<{
+    deliveredLast7Days: { count: number; totalAmount: number };
+    topDishesByAmount: Array<{ dishName: string; restaurantName: string; totalAmount: number; totalQuantity: number }>;
+    topDishesByQuantity: Array<{ dishName: string; restaurantName: string; totalAmount: number; totalQuantity: number }>;
+    restaurantBalances: Array<{ restaurantId: string; restaurantName: string; amountOwed: number }>;
+    ordersByDayOfWeek: Array<{ day: number; count: number }>;
+    ordersByHour: Array<{ hour: number; count: number }>;
+  } | null>(null);
+  const [restaurantStatsLoading, setRestaurantStatsLoading] = useState(false);
   const router = useRouter();
 
   async function handleUploadCreateImage(e: React.ChangeEvent<HTMLInputElement>) {
@@ -105,6 +115,26 @@ export default function PlatformAdminPage() {
       active = false;
     };
   }, []);
+
+  useEffect(() => {
+    if (activeTab !== "restaurant-stats") return;
+    let active = true;
+    setRestaurantStatsLoading(true);
+    adminApi
+      .getRestaurantStatsAdmin()
+      .then((res) => {
+        if (active) setRestaurantStats(res);
+      })
+      .catch(() => {
+        if (active) setRestaurantStats(null);
+      })
+      .finally(() => {
+        if (active) setRestaurantStatsLoading(false);
+      });
+    return () => {
+      active = false;
+    };
+  }, [activeTab]);
 
   async function fetchOverview() {
     const res = await fetch(
@@ -366,6 +396,7 @@ export default function PlatformAdminPage() {
     { id: "users", label: "Foydalanuvchilar" },
     { id: "restaurants", label: "Restoranlar" },
     { id: "supermarkets", label: "Supermarketlar" },
+    { id: "restaurant-stats", label: "Statistika restoranlar" },
     { id: "settings", label: "Sozlamalar" },
   ];
 
@@ -926,6 +957,94 @@ export default function PlatformAdminPage() {
                     </button>
                   </form>
                 </div>
+              </section>
+            </div>
+
+            <div
+              className={`fd-admin-panel ${activeTab === "restaurant-stats" ? "fd-admin-panel-active" : ""}`}
+            >
+              <section>
+                <h2>Statistika restoranlar</h2>
+                {restaurantStatsLoading && <p>Yuklanmoqda…</p>}
+                {!restaurantStatsLoading && restaurantStats && (
+                  <>
+                    <div className="fd-form-block" style={{ marginTop: 16 }}>
+                      <h3>1. Yetkazilgan buyurtmalar (so‘nggi 7 kun)</h3>
+                      <p>
+                        <strong>Son:</strong> {restaurantStats.deliveredLast7Days.count} ta
+                        &nbsp;|&nbsp;
+                        <strong>Jami summa:</strong> {restaurantStats.deliveredLast7Days.totalAmount.toLocaleString("uz")} so‘m
+                      </p>
+                    </div>
+                    <div className="fd-form-block" style={{ marginTop: 16 }}>
+                      <h3>2. Top taomlar</h3>
+                      <p style={{ marginBottom: 8 }}>Jami summa bo‘yicha:</p>
+                      <ul style={{ marginBottom: 16, paddingLeft: 20 }}>
+                        {restaurantStats.topDishesByAmount.slice(0, 10).map((d, i) => (
+                          <li key={i}>
+                            {d.dishName} ({d.restaurantName}) — {d.totalAmount.toLocaleString("uz")} so‘m, {d.totalQuantity} ta
+                          </li>
+                        ))}
+                        {restaurantStats.topDishesByAmount.length === 0 && <li>Ma’lumot yo‘q</li>}
+                      </ul>
+                      <p style={{ marginBottom: 8 }}>Soni bo‘yicha:</p>
+                      <ul style={{ paddingLeft: 20 }}>
+                        {restaurantStats.topDishesByQuantity.slice(0, 10).map((d, i) => (
+                          <li key={i}>
+                            {d.dishName} ({d.restaurantName}) — {d.totalQuantity} ta, {d.totalAmount.toLocaleString("uz")} so‘m
+                          </li>
+                        ))}
+                        {restaurantStats.topDishesByQuantity.length === 0 && <li>Ma’lumot yo‘q</li>}
+                      </ul>
+                    </div>
+                    <div className="fd-form-block" style={{ marginTop: 16 }}>
+                      <h3>3. Restoran qarzi (platforma foizi)</h3>
+                      <ul style={{ paddingLeft: 20, listStyle: "none" }}>
+                        {restaurantStats.restaurantBalances.map((r) => (
+                          <li key={r.restaurantId} style={{ marginBottom: 8, display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+                            <span><strong>{r.restaurantName}</strong>: {r.amountOwed.toLocaleString("uz")} so‘m</span>
+                            <button
+                              type="button"
+                              className="fd-btn fd-btn--secondary"
+                              onClick={async () => {
+                                try {
+                                  await adminApi.clearRestaurantPlatformFee(r.restaurantId);
+                                  const res = await adminApi.getRestaurantStatsAdmin();
+                                  setRestaurantStats(res);
+                                } catch (_) {}
+                              }}
+                            >
+                              Obnulit
+                            </button>
+                          </li>
+                        ))}
+                        {restaurantStats.restaurantBalances.length === 0 && <li>Ma’lumot yo‘q</li>}
+                      </ul>
+                    </div>
+                    <div className="fd-form-block" style={{ marginTop: 16 }}>
+                      <h3>4. Qachon ko‘p buyurtma beriladi</h3>
+                      <p style={{ marginBottom: 8 }}>Kunlar bo‘yicha (yetkazilgan buyurtmalar):</p>
+                      <ul style={{ paddingLeft: 20, marginBottom: 16 }}>
+                        {["Dushanba", "Seshanba", "Chorshanba", "Payshanba", "Juma", "Shanba", "Yakshanba"].map((name, i) => (
+                          <li key={i}>
+                            {name}: {restaurantStats.ordersByDayOfWeek[i]?.count ?? 0} ta
+                          </li>
+                        ))}
+                      </ul>
+                      <p style={{ marginBottom: 8 }}>Soatlar bo‘yicha:</p>
+                      <ul style={{ paddingLeft: 20, display: "flex", flexWrap: "wrap", gap: 8, listStyle: "none" }}>
+                        {restaurantStats.ordersByHour.map((h) => (
+                          <li key={h.hour} style={{ padding: "4px 8px", background: "var(--fd-bg-2)", borderRadius: 4 }}>
+                            {h.hour}:00 — {h.count} ta
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  </>
+                )}
+                {!restaurantStatsLoading && !restaurantStats && activeTab === "restaurant-stats" && (
+                  <p>Statistikani yuklashda xatolik.</p>
+                )}
               </section>
             </div>
 

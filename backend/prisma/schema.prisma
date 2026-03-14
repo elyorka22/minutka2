@@ -73,6 +73,7 @@ model Restaurant {
   isFeatured Boolean @default(false)
   featuredSortOrder Int @default(0)
   platformFeePercent Float @default(10)
+  platformFeeClearedAt DateTime?
 
   admins     User[]     @relation("RestaurantAdmins")
   categories Category[]

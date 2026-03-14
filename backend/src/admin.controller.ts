@@ -355,6 +355,113 @@ export class AdminController {
     return { ok: true, message: 'Admin assigned' };
   }
 
+  @Post('restaurants/:id/clear-platform-fee')
+  async clearRestaurantPlatformFee(@Param('id') id: string, @Req() req: RequestWithUser) {
+    if (req.user?.role !== 'PLATFORM_ADMIN') {
+      throw new ForbiddenException('Only platform admin allowed');
+    }
+    await this.prisma.restaurant.update({
+      where: { id },
+      data: { platformFeeClearedAt: new Date() },
+    });
+    return { ok: true };
+  }
+
+  @Get('stats/restaurants')
+  async getRestaurantStats(@Req() req: RequestWithUser) {
+    if (req.user?.role !== 'PLATFORM_ADMIN') {
+      throw new ForbiddenException('Only platform admin allowed');
+    }
+    const now = new Date();
+    const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+
+    const deliveredOrders = await this.prisma.order.findMany({
+      where: { status: 'DELIVERED', createdAt: { gte: sevenDaysAgo } },
+      select: { id: true, total: true, createdAt: true, restaurantId: true },
+      orderBy: { createdAt: 'asc' },
+    });
+
+    const deliveredLast7Days = {
+      count: deliveredOrders.length,
+      totalAmount: deliveredOrders.reduce((s, o) => s + Number(o.total), 0),
+    };
+
+    const orderIds = deliveredOrders.map((o) => o.id);
+    const items = await this.prisma.orderItem.findMany({
+      where: { orderId: { in: orderIds } },
+      include: { dish: { include: { restaurant: { select: { name: true } } } } },
+    });
+
+    const dishMap = new Map<string, { dishId: string; dishName: string; restaurantName: string; totalAmount: number; totalQuantity: number }>();
+    for (const it of items) {
+      const key = it.dishId;
+      const price = Number(it.price);
+      const qty = it.quantity;
+      const amount = price * qty;
+      const existing = dishMap.get(key);
+      if (existing) {
+        existing.totalAmount += amount;
+        existing.totalQuantity += qty;
+      } else {
+        dishMap.set(key, {
+          dishId: it.dish.id,
+          dishName: it.dish.name,
+          restaurantName: it.dish.restaurant?.name ?? '',
+          totalAmount: amount,
+          totalQuantity: qty,
+        });
+      }
+    }
+    const allDishes = Array.from(dishMap.values());
+    const topDishesByAmount = [...allDishes].sort((a, b) => b.totalAmount - a.totalAmount).slice(0, 15);
+    const topDishesByQuantity = [...allDishes].sort((a, b) => b.totalQuantity - a.totalQuantity).slice(0, 15);
+
+    const restaurants = await this.prisma.restaurant.findMany({
+      where: { isActive: true },
+      select: { id: true, name: true, platformFeePercent: true, platformFeeClearedAt: true },
+    });
+    const restaurantBalances: { restaurantId: string; restaurantName: string; amountOwed: number }[] = [];
+    for (const r of restaurants) {
+      const clearedAt = r.platformFeeClearedAt;
+      const ordersForRestaurant = deliveredOrders.filter(
+        (o) => o.restaurantId === r.id && (!clearedAt || new Date(o.createdAt) > clearedAt),
+      );
+      const amountOwed = ordersForRestaurant.reduce(
+        (s, o) => s + (Number(o.total) * Number(r.platformFeePercent)) / 100,
+        0,
+      );
+      restaurantBalances.push({
+        restaurantId: r.id,
+        restaurantName: r.name,
+        amountOwed: Math.round(amountOwed * 100) / 100,
+      });
+    }
+
+    const allOrdersForTime = await this.prisma.order.findMany({
+      where: { status: 'DELIVERED' },
+      select: { createdAt: true },
+    });
+    const dayCount: Record<number, number> = { 0: 0, 1: 0, 2: 0, 3: 0, 4: 0, 5: 0, 6: 0 };
+    const hourCount: Record<number, number> = {};
+    for (let h = 0; h < 24; h++) hourCount[h] = 0;
+    for (const o of allOrdersForTime) {
+      const d = new Date(o.createdAt);
+      dayCount[d.getDay()] = (dayCount[d.getDay()] ?? 0) + 1;
+      hourCount[d.getHours()] = (hourCount[d.getHours()] ?? 0) + 1;
+    }
+    const ordersByDayOfWeek = [1, 2, 3, 4, 5, 6, 0].map((day) => ({ day, count: dayCount[day] ?? 0 }));
+    const ordersByHour = Array.from({ length: 24 }, (_, h) => ({ hour: h, count: hourCount[h] ?? 0 }));
+
+    return {
+      deliveredLast7Days,
+      topDishesByAmount,
+      topDishesByQuantity,
+      restaurantBalances,
+      ordersByDayOfWeek,
+      ordersByHour,
+    };
+  }
+
   @Post('restaurants/:id/categories')
   async createCategory(
     @Param('id') id: string,

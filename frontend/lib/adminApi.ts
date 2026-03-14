@@ -80,6 +80,19 @@ export const adminApi = {
       method: "POST",
       body: JSON.stringify({ email }),
     }),
+  getRestaurantStatsAdmin: () =>
+    adminRequest<{
+      deliveredLast7Days: { count: number; totalAmount: number };
+      topDishesByAmount: Array<{ dishName: string; restaurantName: string; totalAmount: number; totalQuantity: number }>;
+      topDishesByQuantity: Array<{ dishName: string; restaurantName: string; totalAmount: number; totalQuantity: number }>;
+      restaurantBalances: Array<{ restaurantId: string; restaurantName: string; amountOwed: number }>;
+      ordersByDayOfWeek: Array<{ day: number; count: number }>;
+      ordersByHour: Array<{ hour: number; count: number }>;
+    }>("/admin/stats/restaurants"),
+  clearRestaurantPlatformFee: (restaurantId: string) =>
+    adminRequest<{ ok: boolean }>(`/admin/restaurants/${restaurantId}/clear-platform-fee`, {
+      method: "POST",
+    }),
   deleteRestaurant: (id: string) =>
     adminRequest<any>(`/admin/restaurants/${id}`, {
       method: "DELETE",
