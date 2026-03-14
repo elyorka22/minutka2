@@ -199,7 +199,11 @@ export default async function HomePage() {
       </section>
 
       <section className="fd-section">
-        <h2 className="fd-section-title">Mashhur restoranlar</h2>
+        <h2 className="fd-section-title">
+          <Link href="/restaurants" style={{ color: "inherit", textDecoration: "none" }}>
+            Barcha restoranlar
+          </Link>
+        </h2>
         <div className="fd-grid">
           {normalRestaurants.map((r) => (
             <Link key={r.id} href={`/restaurants/${r.id}`} className="fd-card">
@@ -227,13 +231,6 @@ export default async function HomePage() {
             <p className="fd-empty">Hozircha restoranlar ulanmagan.</p>
           )}
         </div>
-      </section>
-
-      <section className="fd-section">
-        <h2 className="fd-section-title">Siz buyurtma qilgansiz</h2>
-        <p className="fd-empty">
-          Bu yerda siz avval buyurtma qilgan taomlar va mahsulotlar paydo bo‘ladi.
-        </p>
       </section>
     </div>
   );
