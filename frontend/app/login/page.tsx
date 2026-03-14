@@ -58,11 +58,12 @@ export default function LoginPage() {
       )}
       <form onSubmit={handleSubmit} className="fd-form" style={{ maxWidth: 360 }}>
         <label className="fd-field">
-          <span>Email</span>
+          <span>Login</span>
           <input
             value={email}
             onChange={(e) => setEmail(e.target.value)}
-            type="email"
+            type="text"
+            autoComplete="username"
             required
           />
         </label>

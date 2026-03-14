@@ -58,6 +58,10 @@ export default function CheckoutPage() {
       setSubmitError("Manzilni kiriting yoki geolokatsiyani ishlating.");
       return;
     }
+    if (phone.length !== 9) {
+      setSubmitError("Telefon raqami 9 ta raqamdan iborat bo‘lishi kerak (+998 dan keyin).");
+      return;
+    }
     setLoading(true);
     try {
       await api.createOrder({
@@ -65,12 +69,12 @@ export default function CheckoutPage() {
         address: {
           street: streetVal,
           city: "Toshkent",
-          details: phone.trim() ? `Tel: ${phone.trim()}` : undefined,
+          details: phone.length === 9 ? `Tel: +998${phone}` : undefined,
           latitude: lat ? Number(lat) : 0,
           longitude: lng ? Number(lng) : 0,
         },
         items: items.map((i) => ({ dishId: i.dish.id, quantity: i.quantity })),
-        comment: phone.trim() ? `Tel: ${phone.trim()}` : undefined,
+        comment: phone.length === 9 ? `Tel: +998${phone}` : undefined,
         paymentMethod,
       });
       clear();
@@ -229,14 +233,45 @@ export default function CheckoutPage() {
               )}
 
               <label className="fd-field">
-                <span>Telefon raqami *</span>
-                <input
-                  required
-                  placeholder="+998 90 123 45 67"
-                  value={phone}
-                  onChange={(e) => setPhone(e.target.value)}
-                  type="tel"
-                />
+                <span>Telefon raqami * (+998, keyin 9 ta raqam)</span>
+                <div style={{ display: "flex", alignItems: "center", gap: 0 }}>
+                  <span
+                    style={{
+                      padding: "10px 12px",
+                      background: "var(--fd-bg-2)",
+                      border: "1px solid var(--color-border)",
+                      borderRight: "none",
+                      borderRadius: "var(--radius-sm) 0 0 var(--radius-sm)",
+                      fontSize: "1rem",
+                      color: "var(--color-muted)",
+                    }}
+                  >
+                    +998
+                  </span>
+                  <input
+                    required
+                    placeholder="90 123 45 67"
+                    value={phone}
+                    onChange={(e) => {
+                      const digits = e.target.value.replace(/\D/g, "").slice(0, 9);
+                      setPhone(digits);
+                    }}
+                    type="tel"
+                    inputMode="numeric"
+                    maxLength={9}
+                    pattern="[0-9]{9}"
+                    title="9 ta raqam kiriting"
+                    style={{
+                      flex: 1,
+                      borderRadius: "0 var(--radius-sm) var(--radius-sm) 0",
+                    }}
+                  />
+                </div>
+                {phone.length > 0 && phone.length !== 9 && (
+                  <p style={{ fontSize: "0.8125rem", color: "var(--color-muted)", marginTop: 4 }}>
+                    {phone.length} / 9 raqam
+                  </p>
+                )}
               </label>
 
               {submitError && (
