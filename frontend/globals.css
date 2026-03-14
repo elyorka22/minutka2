@@ -835,14 +835,35 @@ body {
 
 .fd-admin-header {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
+  justify-content: space-between;
   flex-wrap: wrap;
-  gap: 8px;
+  gap: 12px;
   margin-bottom: 16px;
 }
 
-.fd-admin-header .fd-section-title {
-  font-size: 1.25rem;
+.fd-admin-header-left {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.fd-admin-header-left a {
+  font-size: 0.9375rem;
+  font-weight: 500;
+  color: var(--color-orange);
+  text-decoration: none;
+}
+
+.fd-admin-header-left a:hover {
+  text-decoration: underline;
+}
+
+.fd-admin-header-caption {
+  font-size: 0.8rem;
+  color: var(--color-text-secondary);
+  margin: 0;
+  font-weight: 600;
 }
 
 .fd-admin-current-tab {

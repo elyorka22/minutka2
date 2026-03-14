@@ -409,10 +409,10 @@ export default function PlatformAdminPage() {
   return (
     <div className="fd-shell fd-section fd-platform-admin-page">
       <header className="fd-admin-header">
-        <BackLink href="/profile">← Profil</BackLink>
-        <h1 className="fd-section-title" style={{ margin: "0 8px 0 0", flex: 1 }}>
-          Platforma admin paneli
-        </h1>
+        <div className="fd-admin-header-left">
+          <BackLink href="/profile">← Profil</BackLink>
+          <p className="fd-admin-header-caption">Admin paneli platformi</p>
+        </div>
         <button
           type="button"
           className="fd-btn fd-btn-primary"
