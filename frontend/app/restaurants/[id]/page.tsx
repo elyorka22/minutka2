@@ -21,19 +21,25 @@ export default async function RestaurantPage({
 
 function RestaurantPageClient({ restaurant, dishes }: { restaurant: any; dishes: any[] }) {
   const { items, addToCart, changeQuantity } = useCart();
+  const isSupermarket = !!restaurant?.isSupermarket;
+  const backHref = isSupermarket ? "/supermarkets" : "/restaurants";
+  const backLabel = isSupermarket ? "← Do‘konlar" : "← Restoranlar";
+  const headerTitle = restaurant?.name ?? (isSupermarket ? "Do‘kon" : "Restoran");
+  const sectionTitle = isSupermarket ? "Mahsulotlar" : "Menyu";
+  const emptyText = isSupermarket ? "Mahsulotlar hozircha bo‘sh." : "Menyu hozircha bo‘sh.";
 
   return (
     <div className="fd-shell fd-restaurant">
-      <BackLink href="/restaurants">← Restoranlar</BackLink>
+      <BackLink href={backHref}>{backLabel}</BackLink>
       <header className="fd-restaurant-header" style={{ textAlign: "center" }}>
-        <h1>{restaurant?.name ?? "Restoran"}</h1>
+        <h1>{headerTitle}</h1>
         {restaurant?.description && (
           <p className="fd-restaurant-desc">{restaurant.description}</p>
         )}
       </header>
 
       <section className="fd-section">
-        <h2 className="fd-section-title">Menyu</h2>
+        <h2 className="fd-section-title">{sectionTitle}</h2>
         <div className="fd-grid fd-grid--2">
           {dishes.map((dish) => {
             const id = String(dish.id);
@@ -101,7 +107,7 @@ function RestaurantPageClient({ restaurant, dishes }: { restaurant: any; dishes:
             );
           })}
           {dishes.length === 0 && (
-            <p className="fd-empty">Menyu hozircha bo‘sh.</p>
+            <p className="fd-empty">{emptyText}</p>
           )}
         </div>
       </section>

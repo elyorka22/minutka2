@@ -77,9 +77,6 @@ export default async function HomePage() {
           <Link href="/products" className="fd-chip">
             Mahsulotlar
           </Link>
-          <Link href="/couriers" className="fd-chip">
-            Kuryer
-          </Link>
         </div>
       </section>
 
@@ -94,7 +91,7 @@ export default async function HomePage() {
           },
           {
             id: "demo-2",
-            title: "Tezkor kuryer",
+            title: "Tezkor yetkazib berish",
             text: "Mahsulotlarni yaqin do‘konlardan tez yetkazib beramiz.",
             ctaLabel: undefined,
             ctaHref: undefined,
