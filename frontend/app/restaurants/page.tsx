@@ -5,7 +5,8 @@ import { BackLink } from "../../components/BackLink";
 
 export default async function RestaurantsPage() {
   const data = await api.getRestaurants();
-  const restaurants = Array.isArray(data) ? data : [];
+  const all = Array.isArray(data) ? data : [];
+  const restaurants = all.filter((r: any) => !r.isSupermarket);
 
   return (
     <div className="fd-shell">
