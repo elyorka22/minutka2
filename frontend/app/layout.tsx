@@ -6,6 +6,8 @@ import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { usePathname } from "next/navigation";
 import { CartProvider, useCart } from "../components/CartContext";
+import { usePWAInstall } from "../hooks/usePWAInstall";
+import { PWAInstallModal } from "../components/PWAInstallModal";
 
 function Header() {
   const [canInstall, setCanInstall] = useState(false);
@@ -153,6 +155,17 @@ function useShowBottomBar() {
   return true;
 }
 
+function PWAInstallGate() {
+  const { shouldShowModal, handleInstall, handleLater } = usePWAInstall();
+  return (
+    <PWAInstallModal
+      open={shouldShowModal}
+      onInstall={handleInstall}
+      onLater={handleLater}
+    />
+  );
+}
+
 export default function RootLayout({ children }: { children: ReactNode }) {
   const showBottomBar = useShowBottomBar();
 
@@ -186,6 +199,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
             {children}
           </main>
           {showBottomBar && <BottomBar />}
+          <PWAInstallGate />
         </CartProvider>
       </body>
     </html>
