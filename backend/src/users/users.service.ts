@@ -34,5 +34,19 @@ export class UsersService {
       where: { id },
     });
   }
+
+  private static readonly GUEST_EMAIL = 'guest@minutka.local';
+
+  async findOrCreateGuestUser(): Promise<string> {
+    let user = await this.findByEmail(UsersService.GUEST_EMAIL);
+    if (user) return user.id;
+    user = await this.create({
+      email: UsersService.GUEST_EMAIL,
+      name: 'Mehmon',
+      password: 'guest-' + Math.random().toString(36).slice(2),
+      role: 'CUSTOMER',
+    });
+    return user.id;
+  }
 }
 

@@ -1,14 +1,11 @@
 "use client";
 
 import { FormEvent, useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
-import Link from "next/link";
 import { useCart } from "../../components/CartContext";
 import { BackLink } from "../../components/BackLink";
 import { api } from "../../lib/api";
 
 export default function CheckoutPage() {
-  const router = useRouter();
   const { items, total, clear, changeQuantity, restaurantId } = useCart();
   const [submitted, setSubmitted] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
@@ -23,8 +20,6 @@ export default function CheckoutPage() {
   const [autoAddressConfirmed, setAutoAddressConfirmed] = useState(false);
   const [geoStatus, setGeoStatus] = useState<"idle" | "success" | "error">("idle");
 
-  const token = typeof window !== "undefined" ? window.localStorage.getItem("token") : null;
-  const needLogin = items.length > 0 && !token;
   const needRestaurant = items.length > 0 && !restaurantId;
 
   useEffect(() => {
@@ -54,10 +49,6 @@ export default function CheckoutPage() {
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
     setSubmitError(null);
-    if (needLogin) {
-      router.push("/login?next=/checkout");
-      return;
-    }
     if (!restaurantId || items.length === 0) {
       setSubmitError("Savat bo‘sh yoki restoran aniqlanmadi. Taomlarni qayta qo‘shing.");
       return;
@@ -151,16 +142,7 @@ export default function CheckoutPage() {
 
         <section className="fd-checkout-form">
           <h2>Manzil, geolokatsiya va to‘lov</h2>
-          {needLogin ? (
-            <div className="fd-card" style={{ padding: 16 }}>
-              <p className="fd-card-desc">
-                Buyurtmani rasmiylashtirish uchun tizimga kiring.
-              </p>
-              <Link href="/login?next=/checkout" className="fd-btn fd-btn-primary" style={{ marginTop: 8, display: "inline-block", textDecoration: "none" }}>
-                Kirish
-              </Link>
-            </div>
-          ) : submitted ? (
+          {submitted ? (
             <p className="fd-success">
               Buyurtma qabul qilindi. Restoran tez orada siz bilan bog‘lanadi.
             </p>

@@ -1,12 +1,17 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma.service';
+import { UsersService } from '../users/users.service';
 import { CreateOrderDto } from './dto/create-order.dto';
 
 @Injectable()
 export class OrdersService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly usersService: UsersService,
+  ) {}
 
-  async create(customerId: string, dto: CreateOrderDto) {
+  async create(customerId: string | null, dto: CreateOrderDto) {
+    const userId = customerId ?? (await this.usersService.findOrCreateGuestUser());
     const restaurant = await this.prisma.restaurant.findUnique({
       where: { id: dto.restaurantId, isActive: true },
     });
@@ -32,7 +37,7 @@ export class OrdersService {
 
     const address = await this.prisma.address.create({
       data: {
-        userId: customerId,
+        userId,
         label: dto.address.label,
         street: dto.address.street,
         city: dto.address.city,
@@ -44,7 +49,7 @@ export class OrdersService {
 
     const order = await this.prisma.order.create({
       data: {
-        customerId,
+        customerId: userId,
         restaurantId: dto.restaurantId,
         addressId: address.id,
         comment: dto.comment,

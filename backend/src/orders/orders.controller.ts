@@ -2,17 +2,28 @@ import { Body, Controller, Get, Param, Patch, Post, Req, UseGuards } from '@nest
 import { OrdersService } from './orders.service';
 import { CreateOrderDto } from './dto/create-order.dto';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
+import { AuthService } from '../auth/auth.service';
 
 @Controller('orders')
 export class OrdersController {
-  constructor(private readonly ordersService: OrdersService) {}
+  constructor(
+    private readonly ordersService: OrdersService,
+    private readonly authService: AuthService,
+  ) {}
 
   @Post()
-  @UseGuards(JwtAuthGuard)
-  create(@Body() dto: CreateOrderDto, @Req() req: { user?: { id: string } }) {
-    const userId = req.user?.id;
-    if (!userId) throw new Error('Unauthorized');
-    return this.ordersService.create(userId, dto);
+  async create(@Body() dto: CreateOrderDto, @Req() req: { headers?: { authorization?: string }; user?: { id: string } }) {
+    let customerId: string | null = null;
+    const authHeader = req.headers?.authorization;
+    if (authHeader?.startsWith('Bearer ')) {
+      try {
+        const payload = this.authService.verifyToken(authHeader.slice(7));
+        customerId = payload.sub;
+      } catch {
+        // invalid token — create as guest
+      }
+    }
+    return this.ordersService.create(customerId, dto);
   }
 
   @Get()
