@@ -23,8 +23,7 @@ export default function PlatformAdminPage() {
   const [createName, setCreateName] = useState("");
   const [createAddress, setCreateAddress] = useState("");
   const [createDesc, setCreateDesc] = useState("");
-  const [createLogoUrl, setCreateLogoUrl] = useState("");
-  const [createCoverUrl, setCreateCoverUrl] = useState("");
+  const [createImageUrl, setCreateImageUrl] = useState("");
   const [createFee, setCreateFee] = useState("");
   const [createPlatformFeePercent, setCreatePlatformFeePercent] = useState("10");
   const [createAdminEmail, setCreateAdminEmail] = useState("");
@@ -32,8 +31,7 @@ export default function PlatformAdminPage() {
   const [createAdminName, setCreateAdminName] = useState("");
   const [createSubmitting, setCreateSubmitting] = useState(false);
   const [createError, setCreateError] = useState<string | null>(null);
-  const [createLogoUploading, setCreateLogoUploading] = useState(false);
-  const [createCoverUploading, setCreateCoverUploading] = useState(false);
+  const [createImageUploading, setCreateImageUploading] = useState(false);
   const [productName, setProductName] = useState("");
   const [productPrice, setProductPrice] = useState("");
   const [productUnit, setProductUnit] = useState("dona");
@@ -59,33 +57,18 @@ export default function PlatformAdminPage() {
   const [addAdminSubmitting, setAddAdminSubmitting] = useState<Record<string, boolean>>({});
   const router = useRouter();
 
-  async function handleUploadLogo(e: React.ChangeEvent<HTMLInputElement>) {
+  async function handleUploadCreateImage(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     if (!file) return;
     e.target.value = "";
-    setCreateLogoUploading(true);
+    setCreateImageUploading(true);
     try {
       const { url } = await adminApi.uploadImage(file);
-      setCreateLogoUrl(url);
+      setCreateImageUrl(url);
     } catch (err: any) {
       setCreateError(err?.message ?? "Yuklashda xatolik");
     } finally {
-      setCreateLogoUploading(false);
-    }
-  }
-
-  async function handleUploadCover(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    e.target.value = "";
-    setCreateCoverUploading(true);
-    try {
-      const { url } = await adminApi.uploadImage(file);
-      setCreateCoverUrl(url);
-    } catch (err: any) {
-      setCreateError(err?.message ?? "Yuklashda xatolik");
-    } finally {
-      setCreateCoverUploading(false);
+      setCreateImageUploading(false);
     }
   }
 
@@ -224,8 +207,8 @@ export default function PlatformAdminPage() {
         description: createDesc.trim() || undefined,
         deliveryFee: createFee ? Number(createFee) : undefined,
         platformFeePercent: createPlatformFeePercent ? Number(createPlatformFeePercent) : 10,
-        logoUrl: createLogoUrl.trim() || undefined,
-        coverUrl: createCoverUrl.trim() || undefined,
+        logoUrl: createImageUrl.trim() || undefined,
+        coverUrl: createImageUrl.trim() || undefined,
         isSupermarket,
         adminEmail: createAdminEmail.trim(),
         adminPassword: createAdminPassword,
@@ -236,8 +219,7 @@ export default function PlatformAdminPage() {
       setCreateDesc("");
       setCreateFee("");
       setCreatePlatformFeePercent("10");
-      setCreateLogoUrl("");
-      setCreateCoverUrl("");
+      setCreateImageUrl("");
       setCreateAdminEmail("");
       setCreateAdminPassword("");
       setCreateAdminName("");
@@ -569,62 +551,31 @@ export default function PlatformAdminPage() {
                     />
                   </label>
                   <label className="fd-field">
-                    <span>Logo rasm</span>
+                    <span>Rasm</span>
                     <input
                       type="url"
-                      value={createLogoUrl}
-                      onChange={(e) => setCreateLogoUrl(e.target.value)}
+                      value={createImageUrl}
+                      onChange={(e) => setCreateImageUrl(e.target.value)}
                       placeholder="URL yoki telefondan yuklang"
                     />
                     <div style={{ marginTop: 8, display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
                       <input
                         type="file"
                         accept="image/*"
-                        id="create-logo-file"
+                        id="create-restaurant-image-file"
                         style={{ display: "none" }}
-                        onChange={handleUploadLogo}
+                        onChange={handleUploadCreateImage}
                       />
-                      <label htmlFor="create-logo-file" style={{ margin: 0 }}>
+                      <label htmlFor="create-restaurant-image-file" style={{ margin: 0 }}>
                         <span className="fd-btn fd-btn-primary" style={{ cursor: "pointer", display: "inline-block" }}>
-                          {createLogoUploading ? "Yuklanmoqda..." : "Telefondan yuklash"}
+                          {createImageUploading ? "Yuklanmoqda..." : "Telefondan yuklash"}
                         </span>
                       </label>
                     </div>
-                    {createLogoUrl.trim() && (
+                    {createImageUrl.trim() && (
                       <img
-                        src={imageUrl(createLogoUrl.trim())}
-                        alt="Logo"
-                        style={{ marginTop: 8, maxWidth: 80, maxHeight: 80, objectFit: "contain", borderRadius: 8 }}
-                        onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }}
-                      />
-                    )}
-                  </label>
-                  <label className="fd-field">
-                    <span>Banner / muqova rasm</span>
-                    <input
-                      type="url"
-                      value={createCoverUrl}
-                      onChange={(e) => setCreateCoverUrl(e.target.value)}
-                      placeholder="URL yoki telefondan yuklang"
-                    />
-                    <div style={{ marginTop: 8, display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
-                      <input
-                        type="file"
-                        accept="image/*"
-                        id="create-cover-file"
-                        style={{ display: "none" }}
-                        onChange={handleUploadCover}
-                      />
-                      <label htmlFor="create-cover-file" style={{ margin: 0 }}>
-                        <span className="fd-btn fd-btn-primary" style={{ cursor: "pointer", display: "inline-block" }}>
-                          {createCoverUploading ? "Yuklanmoqda..." : "Telefondan yuklash"}
-                        </span>
-                      </label>
-                    </div>
-                    {createCoverUrl.trim() && (
-                      <img
-                        src={imageUrl(createCoverUrl.trim())}
-                        alt="Cover"
+                        src={imageUrl(createImageUrl.trim())}
+                        alt="Rasm"
                         style={{ marginTop: 8, maxWidth: "100%", maxHeight: 120, objectFit: "cover", borderRadius: 8 }}
                         onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }}
                       />
@@ -693,7 +644,7 @@ export default function PlatformAdminPage() {
                   <button
                     type="submit"
                     className="fd-btn fd-btn-primary"
-                    disabled={createSubmitting || createLogoUploading || createCoverUploading}
+                    disabled={createSubmitting || createImageUploading}
                   >
                     {createSubmitting ? "Saqlanmoqda..." : "Restoran qo‘shish"}
                   </button>
@@ -908,62 +859,31 @@ export default function PlatformAdminPage() {
                       />
                     </label>
                     <label className="fd-field">
-                      <span>Logo rasm</span>
+                      <span>Rasm</span>
                       <input
                         type="url"
-                        value={createLogoUrl}
-                        onChange={(e) => setCreateLogoUrl(e.target.value)}
+                        value={createImageUrl}
+                        onChange={(e) => setCreateImageUrl(e.target.value)}
                         placeholder="URL yoki telefondan yuklang"
                       />
                       <div style={{ marginTop: 8, display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
                         <input
                           type="file"
                           accept="image/*"
-                          id="create-supermarket-logo-file"
+                          id="create-supermarket-image-file"
                           style={{ display: "none" }}
-                          onChange={handleUploadLogo}
+                          onChange={handleUploadCreateImage}
                         />
-                        <label htmlFor="create-supermarket-logo-file" style={{ margin: 0 }}>
+                        <label htmlFor="create-supermarket-image-file" style={{ margin: 0 }}>
                           <span className="fd-btn fd-btn-primary" style={{ cursor: "pointer", display: "inline-block" }}>
-                            {createLogoUploading ? "Yuklanmoqda..." : "Telefondan yuklash"}
+                            {createImageUploading ? "Yuklanmoqda..." : "Telefondan yuklash"}
                           </span>
                         </label>
                       </div>
-                      {createLogoUrl.trim() && (
+                      {createImageUrl.trim() && (
                         <img
-                          src={imageUrl(createLogoUrl.trim())}
-                          alt="Logo"
-                          style={{ marginTop: 8, maxWidth: 80, maxHeight: 80, objectFit: "contain", borderRadius: 8 }}
-                          onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }}
-                        />
-                      )}
-                    </label>
-                    <label className="fd-field">
-                      <span>Banner / muqova rasm</span>
-                      <input
-                        type="url"
-                        value={createCoverUrl}
-                        onChange={(e) => setCreateCoverUrl(e.target.value)}
-                        placeholder="URL yoki telefondan yuklang"
-                      />
-                      <div style={{ marginTop: 8, display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
-                        <input
-                          type="file"
-                          accept="image/*"
-                          id="create-supermarket-cover-file"
-                          style={{ display: "none" }}
-                          onChange={handleUploadCover}
-                        />
-                        <label htmlFor="create-supermarket-cover-file" style={{ margin: 0 }}>
-                          <span className="fd-btn fd-btn-primary" style={{ cursor: "pointer", display: "inline-block" }}>
-                            {createCoverUploading ? "Yuklanmoqda..." : "Telefondan yuklash"}
-                          </span>
-                        </label>
-                      </div>
-                      {createCoverUrl.trim() && (
-                        <img
-                          src={imageUrl(createCoverUrl.trim())}
-                          alt="Cover"
+                          src={imageUrl(createImageUrl.trim())}
+                          alt="Rasm"
                           style={{ marginTop: 8, maxWidth: "100%", maxHeight: 120, objectFit: "cover", borderRadius: 8 }}
                           onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }}
                         />
@@ -1022,7 +942,7 @@ export default function PlatformAdminPage() {
                     <button
                       type="submit"
                       className="fd-btn fd-btn-primary"
-                      disabled={createSubmitting}
+                      disabled={createSubmitting || createImageUploading}
                     >
                       {createSubmitting ? "Saqlanmoqda..." : "Supermarket qo‘shish"}
                     </button>
