@@ -920,6 +920,17 @@ body {
   background: var(--color-orange-light);
 }
 
+.fd-admin-sidebar-logout {
+  width: 100%;
+  margin-bottom: 8px;
+  font: inherit;
+  background: none;
+  border: none;
+  cursor: pointer;
+  text-align: left;
+  color: var(--color-orange);
+}
+
 @keyframes fd-admin-backdrop-in {
   from { opacity: 0; }
   to { opacity: 1; }

@@ -477,6 +477,17 @@ export default function PlatformAdminPage() {
               </button>
             ))}
             <div className="fd-admin-sidebar-footer">
+              <button
+                type="button"
+                className="fd-admin-sidebar-back-link fd-admin-sidebar-logout"
+                onClick={() => {
+                  if (typeof window !== "undefined") window.localStorage.removeItem("token");
+                  setTabsOpen(false);
+                  router.push("/login?next=/platform-admin");
+                }}
+              >
+                Chiqish
+              </button>
               <Link
                 href="/"
                 className="fd-admin-sidebar-back-link"
