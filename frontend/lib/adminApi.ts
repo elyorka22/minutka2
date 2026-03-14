@@ -96,6 +96,8 @@ export const adminApi = {
       deliveryFee?: number;
       minOrderTotal?: number;
       deliveryRadiusM?: number;
+      isFeatured?: boolean;
+      featuredSortOrder?: number;
     }
   ) =>
     adminRequest<any>(`/admin/restaurants/${id}`, {

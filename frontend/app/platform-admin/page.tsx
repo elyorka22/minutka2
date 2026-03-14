@@ -596,13 +596,77 @@ export default function PlatformAdminPage() {
               </div>
               <section>
                 <h2>Barcha restoranlar</h2>
+                <p className="fd-checkout-meta" style={{ marginBottom: 12 }}>
+                  Bosh sahifadagi «Top restoranlar» karuseli: faqat supermarket bo‘lmagan restoranlarni tanlang va tartib raqamini kiriting.
+                </p>
                 {data.restaurants?.map((r: any) => (
                   <div key={r.id} className="fd-checkout-item">
                     <div>
                       <div>{r.name}</div>
                       <div className="fd-checkout-meta">{r.address || "—"}</div>
                     </div>
-                    <div style={{ display: "flex", gap: 8 }}>
+                    <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
+                      {!r.isSupermarket && (
+                        <>
+                          <label className="fd-checkout-meta" style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                            <input
+                              type="checkbox"
+                              checked={!!r.isFeatured}
+                              onChange={async (e) => {
+                                try {
+                                  const updated = await adminApi.updateRestaurant(r.id, {
+                                    isFeatured: e.target.checked,
+                                  });
+                                  setData((prev: any) =>
+                                    prev
+                                      ? {
+                                          ...prev,
+                                          restaurants: prev.restaurants.map((x: any) =>
+                                            x.id === r.id ? { ...x, isFeatured: updated.isFeatured } : x,
+                                          ),
+                                        }
+                                      : prev,
+                                  );
+                                } catch (err: any) {
+                                  setError(err?.message ?? "Xatolik");
+                                }
+                              }}
+                            />
+                            Top karuselda
+                          </label>
+                          {r.isFeatured && (
+                            <label className="fd-checkout-meta" style={{ display: "flex", alignItems: "center", gap: 4 }}>
+                              Tartib:
+                              <input
+                                type="number"
+                                min={0}
+                                defaultValue={r.featuredSortOrder ?? 0}
+                                style={{ width: 56, padding: "4px 6px", fontSize: "0.875rem" }}
+                                onBlur={async (e) => {
+                                  const val = Number(e.target.value) || 0;
+                                  try {
+                                    const updated = await adminApi.updateRestaurant(r.id, {
+                                      featuredSortOrder: val,
+                                    });
+                                    setData((prev: any) =>
+                                      prev
+                                        ? {
+                                            ...prev,
+                                            restaurants: prev.restaurants.map((x: any) =>
+                                              x.id === r.id ? { ...x, featuredSortOrder: updated.featuredSortOrder } : x,
+                                            ),
+                                          }
+                                        : prev,
+                                    );
+                                  } catch (err: any) {
+                                    setError(err?.message ?? "Xatolik");
+                                  }
+                                }}
+                              />
+                            </label>
+                          )}
+                        </>
+                      )}
                       <Link
                         href={`/platform-admin/restaurants/${r.id}`}
                         className="fd-btn fd-btn-primary"

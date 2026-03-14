@@ -13,6 +13,11 @@ export class RestaurantsController {
     });
   }
 
+  @Get('featured')
+  findFeatured() {
+    return this.restaurantsService.findFeatured();
+  }
+
   @Get(':id')
   findOne(@Param('id') id: string) {
     return this.restaurantsService.findOne(id);

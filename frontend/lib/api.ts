@@ -34,6 +34,14 @@ export const api = {
       return [];
     }
   },
+  async getFeaturedRestaurants() {
+    try {
+      const data = await request<any[]>("/restaurants/featured");
+      return Array.isArray(data) ? data : [];
+    } catch {
+      return [];
+    }
+  },
   async getRestaurant(id: string) {
     try {
       return await request<any>(`/restaurants/${id}`);

@@ -10,6 +10,8 @@ type RestaurantCard = {
   logoUrl?: string | null;
   coverUrl?: string | null;
   isSupermarket?: boolean | null;
+  isFeatured?: boolean | null;
+  featuredSortOrder?: number | null;
 };
 
 type BannerCard = {
@@ -23,6 +25,22 @@ type BannerCard = {
 
 async function getRestaurants(): Promise<RestaurantCard[]> {
   const data = await api.getRestaurants();
+  if (!Array.isArray(data)) return [];
+  return data.map((r: any) => ({
+    id: String(r.id),
+    name: String(r.name),
+    description: r.description ?? null,
+    rating: typeof r.rating === "number" ? r.rating : null,
+    logoUrl: r.logoUrl ?? null,
+    coverUrl: r.coverUrl ?? null,
+    isSupermarket: !!r.isSupermarket,
+    isFeatured: !!r.isFeatured,
+    featuredSortOrder: r.featuredSortOrder ?? null,
+  }));
+}
+
+async function getFeaturedRestaurants(): Promise<RestaurantCard[]> {
+  const data = await api.getFeaturedRestaurants();
   if (!Array.isArray(data)) return [];
   return data.map((r: any) => ({
     id: String(r.id),
@@ -49,9 +67,10 @@ async function getBannersForHome(): Promise<BannerCard[]> {
 }
 
 export default async function HomePage() {
-  const [restaurants, banners] = await Promise.all([
+  const [restaurants, banners, featuredRestaurants] = await Promise.all([
     getRestaurants(),
     getBannersForHome(),
+    getFeaturedRestaurants(),
   ]);
 
   const supermarkets = restaurants.filter((r) => r.isSupermarket);
@@ -114,6 +133,34 @@ export default async function HomePage() {
           );
         })}
       </section>
+
+      {featuredRestaurants.length > 0 && (
+        <section className="fd-section">
+          <h2 className="fd-section-title">
+            <Link href="/restaurants" style={{ color: "inherit", textDecoration: "none" }}>
+              Top restoranlar
+            </Link>
+          </h2>
+          <div className="fd-home-stores">
+            {featuredRestaurants.map((r) => (
+              <Link
+                key={r.id}
+                href={`/restaurants/${r.id}`}
+                className="fd-card fd-product-cat-card"
+              >
+                <div className="fd-product-cat-image-wrap">
+                  <SafeImage
+                    src={(r.coverUrl || r.logoUrl) ? imageUrl(r.coverUrl || r.logoUrl) : ""}
+                    alt=""
+                    className="fd-product-cat-image"
+                    fallbackStyle={{ height: 40 }}
+                  />
+                </div>
+              </Link>
+            ))}
+          </div>
+        </section>
+      )}
 
       <section className="fd-section">
         <h2 className="fd-section-title">

@@ -70,6 +70,8 @@ model Restaurant {
   rating   Float   @default(0)
   isActive Boolean @default(true)
   isSupermarket Boolean @default(false)
+  isFeatured Boolean @default(false)
+  featuredSortOrder Int @default(0)
 
   admins     User[]     @relation("RestaurantAdmins")
   categories Category[]

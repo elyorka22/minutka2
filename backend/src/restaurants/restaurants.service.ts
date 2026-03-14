@@ -29,4 +29,12 @@ export class RestaurantsService {
       },
     });
   }
+
+  async findFeatured() {
+    return this.prisma.restaurant.findMany({
+      where: { isActive: true, isSupermarket: false, isFeatured: true },
+      orderBy: { featuredSortOrder: 'asc' },
+      take: 20,
+    });
+  }
 }

@@ -193,6 +193,8 @@ export class AdminController {
       deliveryFee?: number;
       minOrderTotal?: number;
       deliveryRadiusM?: number;
+      isFeatured?: boolean;
+      featuredSortOrder?: number;
     },
     @Req() req: RequestWithUser,
   ) {
@@ -210,6 +212,8 @@ export class AdminController {
         ...(body.deliveryFee !== undefined && { deliveryFee: body.deliveryFee }),
         ...(body.minOrderTotal !== undefined && { minOrderTotal: body.minOrderTotal }),
         ...(body.deliveryRadiusM !== undefined && { deliveryRadiusM: body.deliveryRadiusM }),
+        ...(body.isFeatured !== undefined && { isFeatured: body.isFeatured }),
+        ...(body.featuredSortOrder !== undefined && { featuredSortOrder: body.featuredSortOrder }),
       },
     });
     return restaurant;
