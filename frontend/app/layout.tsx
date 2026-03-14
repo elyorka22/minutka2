@@ -10,6 +10,18 @@ import { usePWAInstall } from "../hooks/usePWAInstall";
 import { PWAInstallModal } from "../components/PWAInstallModal";
 
 function Header() {
+  const pathname = usePathname() || "";
+  if (pathname.startsWith("/platform-admin")) {
+    return (
+      <header className="fd-header fd-header--admin">
+        <span className="fd-logo" style={{ cursor: "default" }}>Admin paneli profili</span>
+      </header>
+    );
+  }
+  return <HeaderMain />;
+}
+
+function HeaderMain() {
   const [canInstall, setCanInstall] = useState(false);
   const [installEvent, setInstallEvent] = useState<any | null>(null);
 

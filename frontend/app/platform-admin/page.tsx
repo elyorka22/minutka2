@@ -5,8 +5,6 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { adminApi } from "../../lib/adminApi";
 import { imageUrl } from "../../lib/api";
-import { BackLink } from "../../components/BackLink";
-
 type TabId =
   | "stats"
   | "users"
@@ -409,10 +407,6 @@ export default function PlatformAdminPage() {
   return (
     <div className="fd-shell fd-section fd-platform-admin-page">
       <header className="fd-admin-header">
-        <div className="fd-admin-header-left">
-          <BackLink href="/profile">← Profil</BackLink>
-          <p className="fd-admin-header-caption">Admin paneli platformi</p>
-        </div>
         <button
           type="button"
           className="fd-btn fd-btn-primary"
@@ -447,6 +441,15 @@ export default function PlatformAdminPage() {
                 {t.label}
               </button>
             ))}
+            <div className="fd-admin-sidebar-footer">
+              <Link
+                href="/"
+                className="fd-admin-sidebar-back-link"
+                onClick={() => setTabsOpen(false)}
+              >
+                Saytga qaytish
+              </Link>
+            </div>
           </nav>
         </>
       )}

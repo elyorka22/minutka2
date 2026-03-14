@@ -835,35 +835,12 @@ body {
 
 .fd-admin-header {
   display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  flex-wrap: wrap;
-  gap: 12px;
+  align-items: center;
   margin-bottom: 16px;
 }
 
-.fd-admin-header-left {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-
-.fd-admin-header-left a {
-  font-size: 0.9375rem;
-  font-weight: 500;
-  color: var(--color-orange);
-  text-decoration: none;
-}
-
-.fd-admin-header-left a:hover {
-  text-decoration: underline;
-}
-
-.fd-admin-header-caption {
-  font-size: 0.8rem;
-  color: var(--color-text-secondary);
-  margin: 0;
-  font-weight: 600;
+.fd-header--admin .fd-logo {
+  pointer-events: none;
 }
 
 .fd-admin-current-tab {
@@ -895,6 +872,8 @@ body {
   padding: 16px 0;
   overflow-y: auto;
   animation: fd-admin-sidebar-in 0.2s ease-out;
+  display: flex;
+  flex-direction: column;
 }
 
 .fd-admin-sidebar-title {
@@ -918,6 +897,27 @@ body {
 
 .fd-admin-sidebar .fd-admin-tab-active {
   border-left-color: var(--color-orange);
+}
+
+.fd-admin-sidebar-footer {
+  margin-top: auto;
+  padding: 16px;
+  border-top: 1px solid var(--color-border);
+}
+
+.fd-admin-sidebar-back-link {
+  display: block;
+  padding: 10px 16px;
+  font-size: 0.9375rem;
+  font-weight: 500;
+  color: var(--color-orange);
+  text-decoration: none;
+  border-radius: var(--radius-sm);
+  transition: background 0.15s;
+}
+
+.fd-admin-sidebar-back-link:hover {
+  background: var(--color-orange-light);
 }
 
 @keyframes fd-admin-backdrop-in {
