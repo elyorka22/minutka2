@@ -39,7 +39,14 @@ export default function LoginPage() {
         body: JSON.stringify({ email: loginTrimmed, password: passwordTrimmed }),
       });
       if (!res.ok) {
-        throw new Error("Noto‘g‘ri maʼlumotlar");
+        let msg = "Noto‘g‘ri maʼlumotlar";
+        try {
+          const body = await res.json();
+          if (body?.message && typeof body.message === "string") msg = body.message;
+        } catch {
+          // ignore
+        }
+        throw new Error(msg);
       }
       const data = (await res.json()) as { accessToken: string };
       window.localStorage.setItem("token", data.accessToken);

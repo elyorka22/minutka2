@@ -29,6 +29,15 @@ export class UsersService {
     });
   }
 
+  /** Login uchun — registrni hisobga olmasdan (Admin@x.uz = admin@x.uz) */
+  async findByEmailIgnoreCase(email: string): Promise<UserEntity | null> {
+    const list = await this.prisma.user.findMany({
+      where: { email: { equals: email, mode: 'insensitive' } },
+      take: 1,
+    });
+    return list[0] ?? null;
+  }
+
   async findById(id: string): Promise<UserEntity | null> {
     return this.prisma.user.findUnique({
       where: { id },

@@ -248,7 +248,7 @@ export class AdminController {
     }
 
     let adminId: string;
-    const existingUser = await this.usersService.findByEmail(adminEmail);
+    const existingUser = await this.usersService.findByEmailIgnoreCase(adminEmail);
     if (existingUser) {
       adminId = existingUser.id;
       const updatePayload: { role: UserRole; name: string; password?: string } = { role: UserRole.RESTAURANT_ADMIN, name: adminName };
