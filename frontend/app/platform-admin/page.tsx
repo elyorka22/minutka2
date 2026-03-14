@@ -178,12 +178,17 @@ export default function PlatformAdminPage() {
       },
     );
 
-    if (res.status === 401 || res.status === 403) {
+    if (res.status === 401) {
       if (typeof window !== "undefined") {
         window.localStorage.removeItem("token");
       }
-      router.push("/login?next=/platform-admin");
+      router.push("/login?next=/profile");
       throw new Error("Unauthorized");
+    }
+    if (res.status === 403) {
+      // Foydalanuvchi kiritilgan, lekin platform admin emas (masalan restoran admin) — token o‘chirilmaydi, profilga yuboramiz
+      router.push("/profile");
+      throw new Error("Forbidden");
     }
 
     const body = await res.json().catch(() => ({}));
