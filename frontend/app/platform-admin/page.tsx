@@ -28,6 +28,9 @@ export default function PlatformAdminPage() {
   const [createLogoUrl, setCreateLogoUrl] = useState("");
   const [createCoverUrl, setCreateCoverUrl] = useState("");
   const [createFee, setCreateFee] = useState("");
+  const [createAdminEmail, setCreateAdminEmail] = useState("");
+  const [createAdminPassword, setCreateAdminPassword] = useState("");
+  const [createAdminName, setCreateAdminName] = useState("");
   const [createSubmitting, setCreateSubmitting] = useState(false);
   const [createError, setCreateError] = useState<string | null>(null);
   const [createLogoUploading, setCreateLogoUploading] = useState(false);
@@ -194,6 +197,18 @@ export default function PlatformAdminPage() {
       setCreateError("Restoran nomi kiritilishi shart");
       return;
     }
+    if (!createAdminEmail.trim()) {
+      setCreateError("Admin email kiritilishi shart");
+      return;
+    }
+    if (!createAdminPassword || createAdminPassword.length < 6) {
+      setCreateError("Admin paroli kamida 6 belgidan iborat bo‘lishi shart");
+      return;
+    }
+    if (!createAdminName.trim()) {
+      setCreateError("Admin ismi kiritilishi shart");
+      return;
+    }
     setCreateSubmitting(true);
     try {
       await adminApi.createRestaurant({
@@ -204,13 +219,19 @@ export default function PlatformAdminPage() {
         logoUrl: createLogoUrl.trim() || undefined,
         coverUrl: createCoverUrl.trim() || undefined,
         isSupermarket,
+        adminEmail: createAdminEmail.trim(),
+        adminPassword: createAdminPassword,
+        adminName: createAdminName.trim(),
       });
       setCreateName("");
       setCreateAddress("");
       setCreateDesc("");
       setCreateFee("");
-       setCreateLogoUrl("");
-       setCreateCoverUrl("");
+      setCreateLogoUrl("");
+      setCreateCoverUrl("");
+      setCreateAdminEmail("");
+      setCreateAdminPassword("");
+      setCreateAdminName("");
       const overview = await fetchOverview();
       setData(overview);
       setActiveTab(isSupermarket ? "supermarkets" : "restaurants");
@@ -580,6 +601,39 @@ export default function PlatformAdminPage() {
                       placeholder="0"
                     />
                   </label>
+                  <p className="fd-checkout-meta" style={{ marginTop: 8, marginBottom: 4 }}>
+                    Restoran admini (ushbu email va parol bilan kirib, shu restoran admin paneliga o‘tadi) *
+                  </p>
+                  <label className="fd-field">
+                    <span>Admin email *</span>
+                    <input
+                      type="email"
+                      value={createAdminEmail}
+                      onChange={(e) => setCreateAdminEmail(e.target.value)}
+                      placeholder="admin@restoran.uz"
+                      required
+                    />
+                  </label>
+                  <label className="fd-field">
+                    <span>Admin paroli * (kamida 6 belgi)</span>
+                    <input
+                      type="password"
+                      value={createAdminPassword}
+                      onChange={(e) => setCreateAdminPassword(e.target.value)}
+                      placeholder="••••••"
+                      minLength={6}
+                      required
+                    />
+                  </label>
+                  <label className="fd-field">
+                    <span>Admin ismi *</span>
+                    <input
+                      value={createAdminName}
+                      onChange={(e) => setCreateAdminName(e.target.value)}
+                      placeholder="Ism Familiya"
+                      required
+                    />
+                  </label>
                   {createError && (
                     <p style={{ color: "var(--color-orange)", fontSize: "0.875rem" }}>
                       {createError}
@@ -802,6 +856,39 @@ export default function PlatformAdminPage() {
                           onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }}
                         />
                       )}
+                    </label>
+                    <p className="fd-checkout-meta" style={{ marginTop: 8, marginBottom: 4 }}>
+                      Do‘kon admini (ushbu email va parol bilan kirib, shu do‘kon admin paneliga o‘tadi) *
+                    </p>
+                    <label className="fd-field">
+                      <span>Admin email *</span>
+                      <input
+                        type="email"
+                        value={createAdminEmail}
+                        onChange={(e) => setCreateAdminEmail(e.target.value)}
+                        placeholder="admin@dokon.uz"
+                        required
+                      />
+                    </label>
+                    <label className="fd-field">
+                      <span>Admin paroli * (kamida 6 belgi)</span>
+                      <input
+                        type="password"
+                        value={createAdminPassword}
+                        onChange={(e) => setCreateAdminPassword(e.target.value)}
+                        placeholder="••••••"
+                        minLength={6}
+                        required
+                      />
+                    </label>
+                    <label className="fd-field">
+                      <span>Admin ismi *</span>
+                      <input
+                        value={createAdminName}
+                        onChange={(e) => setCreateAdminName(e.target.value)}
+                        placeholder="Ism Familiya"
+                        required
+                      />
                     </label>
                     {createError && (
                       <p style={{ color: "var(--color-orange)", fontSize: "0.875rem" }}>

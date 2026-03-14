@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { BackLink } from "../../components/BackLink";
+import { adminApi } from "../../lib/adminApi";
 
 type JwtPayload = {
   sub?: string;
@@ -23,10 +24,13 @@ function decodeToken(token: string): JwtPayload | null {
   }
 }
 
+type MyRestaurant = { id: string; name: string };
+
 export default function ProfilePage() {
   const [payload, setPayload] = useState<JwtPayload | null>(null);
   const [hasToken, setHasToken] = useState(false);
   const [restaurantId, setRestaurantId] = useState("");
+  const [myRestaurants, setMyRestaurants] = useState<MyRestaurant[]>([]);
   const router = useRouter();
 
   useEffect(() => {
@@ -36,6 +40,20 @@ export default function ProfilePage() {
     setHasToken(true);
     setPayload(decodeToken(token));
   }, []);
+
+  useEffect(() => {
+    if (!hasToken || payload?.role !== "RESTAURANT_ADMIN") return;
+    let active = true;
+    adminApi
+      .getMyRestaurants()
+      .then((list) => {
+        if (active && Array.isArray(list)) setMyRestaurants(list);
+      })
+      .catch(() => {});
+    return () => {
+      active = false;
+    };
+  }, [hasToken, payload?.role]);
 
   const role = payload?.role;
 
@@ -87,26 +105,48 @@ export default function ProfilePage() {
           )}
 
           {isRestaurantAdmin && (
-            <div className="fd-form" style={{ marginTop: 12 }}>
-              <p className="fd-card-desc">
-                Restoran admin paneliga o&apos;tish uchun restoran ID ni kiriting.
-              </p>
-              <label className="fd-field">
-                <span>Restoran ID</span>
-                <input
-                  value={restaurantId}
-                  onChange={(e) => setRestaurantId(e.target.value)}
-                  placeholder="Masalan: abc123"
-                />
-              </label>
-              <button
-                type="button"
-                className="fd-btn fd-btn-primary"
-                onClick={goToRestaurantAdmin}
-                disabled={!restaurantId.trim()}
-              >
-                Restoran admin paneliga o&apos;tish
-              </button>
+            <div style={{ marginTop: 12 }}>
+              {myRestaurants.length > 0 ? (
+                <>
+                  <p className="fd-card-desc" style={{ marginBottom: 8 }}>
+                    Sizning restoran/do‘konlaringiz — admin paneliga o‘ting:
+                  </p>
+                  <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                    {myRestaurants.map((r) => (
+                      <Link
+                        key={r.id}
+                        href={`/restaurant-admin/${r.id}`}
+                        className="fd-btn fd-btn-primary"
+                        style={{ textDecoration: "none", textAlign: "center" }}
+                      >
+                        {r.name} — buyurtmalar
+                      </Link>
+                    ))}
+                  </div>
+                </>
+              ) : (
+                <div className="fd-form">
+                  <p className="fd-card-desc">
+                    Restoran admin paneliga o&apos;tish uchun restoran ID ni kiriting.
+                  </p>
+                  <label className="fd-field">
+                    <span>Restoran ID</span>
+                    <input
+                      value={restaurantId}
+                      onChange={(e) => setRestaurantId(e.target.value)}
+                      placeholder="Masalan: abc123"
+                    />
+                  </label>
+                  <button
+                    type="button"
+                    className="fd-btn fd-btn-primary"
+                    onClick={goToRestaurantAdmin}
+                    disabled={!restaurantId.trim()}
+                  >
+                    Restoran admin paneliga o&apos;tish
+                  </button>
+                </div>
+              )}
             </div>
           )}
 

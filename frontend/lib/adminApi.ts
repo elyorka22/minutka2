@@ -33,6 +33,8 @@ function adminRequest<T>(path: string, init?: RequestInit): Promise<T> {
 
 export const adminApi = {
   getRestaurants: () => request<any>("/restaurants"),
+  getMyRestaurants: () =>
+    request<any[]>("/admin/my-restaurants", { headers: getAuthHeaders() }),
   getRestaurantWithOrders: (id: string) => request<any>(`/restaurants/${id}`),
   getRestaurantOrders: (id: string) =>
     request<any>(`/restaurants/${id}/orders`, { headers: getAuthHeaders() }),
@@ -58,6 +60,9 @@ export const adminApi = {
     minOrderTotal?: number;
     deliveryRadiusM?: number;
     isSupermarket?: boolean;
+    adminEmail: string;
+    adminPassword: string;
+    adminName: string;
   }) =>
     adminRequest<any>("/admin/restaurants", {
       method: "POST",

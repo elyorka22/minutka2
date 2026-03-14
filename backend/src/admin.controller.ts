@@ -16,6 +16,7 @@ import {
 import { FileInterceptor } from '@nestjs/platform-express';
 import { JwtAuthGuard } from './auth/jwt-auth.guard';
 import { PrismaService } from './prisma.service';
+import { UsersService } from './users/users.service';
 import { UserRole } from '../generated/prisma/enums';
 import * as fs from 'fs';
 import * as path from 'path';
@@ -28,7 +29,26 @@ interface RequestWithUser {
 @Controller('admin')
 @UseGuards(JwtAuthGuard)
 export class AdminController {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly usersService: UsersService,
+  ) {}
+
+  @Get('my-restaurants')
+  async myRestaurants(@Req() req: RequestWithUser) {
+    const userId = req.user?.id;
+    if (!userId) {
+      throw new ForbiddenException('Unauthorized');
+    }
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      include: {
+        restaurants: { where: { isActive: true }, orderBy: { name: 'asc' } },
+      },
+    });
+    if (!user) throw new ForbiddenException('User not found');
+    return user.restaurants ?? [];
+  }
 
   @Get('overview')
   async overview(@Req() req: RequestWithUser) {
@@ -153,6 +173,9 @@ export class AdminController {
       latitude?: number;
       longitude?: number;
       isSupermarket?: boolean;
+      adminEmail: string;
+      adminPassword: string;
+      adminName: string;
     },
     @Req() req: RequestWithUser,
   ) {
@@ -162,6 +185,37 @@ export class AdminController {
     if (!body.name || typeof body.name !== 'string') {
       throw new BadRequestException('name is required');
     }
+    const adminEmail = typeof body.adminEmail === 'string' ? body.adminEmail.trim() : '';
+    const adminPassword = typeof body.adminPassword === 'string' ? body.adminPassword : '';
+    const adminName = typeof body.adminName === 'string' ? body.adminName.trim() : '';
+    if (!adminEmail) {
+      throw new BadRequestException('adminEmail is required');
+    }
+    if (!adminPassword || adminPassword.length < 6) {
+      throw new BadRequestException('adminPassword is required (min 6 characters)');
+    }
+    if (!adminName) {
+      throw new BadRequestException('adminName is required');
+    }
+
+    let adminId: string;
+    const existingUser = await this.usersService.findByEmail(adminEmail);
+    if (existingUser) {
+      await this.prisma.user.update({
+        where: { id: existingUser.id },
+        data: { role: UserRole.RESTAURANT_ADMIN },
+      });
+      adminId = existingUser.id;
+    } else {
+      const newUser = await this.usersService.create({
+        email: adminEmail,
+        password: adminPassword,
+        name: adminName,
+        role: 'RESTAURANT_ADMIN',
+      });
+      adminId = newUser.id;
+    }
+
     const restaurant = await this.prisma.restaurant.create({
       data: {
         name: body.name.trim(),
@@ -175,6 +229,7 @@ export class AdminController {
         latitude: body.latitude ?? 0,
         longitude: body.longitude ?? 0,
         isSupermarket: !!body.isSupermarket,
+        admins: { connect: [{ id: adminId }] },
       },
     });
     return restaurant;
