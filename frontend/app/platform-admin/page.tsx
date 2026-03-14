@@ -21,7 +21,6 @@ export default function PlatformAdminPage() {
   const [activeTab, setActiveTab] = useState<TabId>("stats");
   const [tabsOpen, setTabsOpen] = useState(false);
   const [createName, setCreateName] = useState("");
-  const [createAddress, setCreateAddress] = useState("");
   const [createDesc, setCreateDesc] = useState("");
   const [createImageUrl, setCreateImageUrl] = useState("");
   const [createFee, setCreateFee] = useState("");
@@ -203,7 +202,7 @@ export default function PlatformAdminPage() {
     try {
       await adminApi.createRestaurant({
         name: createName.trim(),
-        address: createAddress.trim() || undefined,
+        address: "",
         description: createDesc.trim() || undefined,
         deliveryFee: createFee ? Number(createFee) : undefined,
         platformFeePercent: createPlatformFeePercent ? Number(createPlatformFeePercent) : 10,
@@ -215,7 +214,6 @@ export default function PlatformAdminPage() {
         adminName: createAdminName.trim(),
       });
       setCreateName("");
-      setCreateAddress("");
       setCreateDesc("");
       setCreateFee("");
       setCreatePlatformFeePercent("10");
@@ -535,14 +533,6 @@ export default function PlatformAdminPage() {
                     />
                   </label>
                   <label className="fd-field">
-                    <span>Manzil</span>
-                    <input
-                      value={createAddress}
-                      onChange={(e) => setCreateAddress(e.target.value)}
-                      placeholder="Toshkent, ..."
-                    />
-                  </label>
-                  <label className="fd-field">
                     <span>Tavsif</span>
                     <input
                       value={createDesc}
@@ -840,14 +830,6 @@ export default function PlatformAdminPage() {
                         onChange={(e) => setCreateName(e.target.value)}
                         placeholder="Masalan: Market 24/7"
                         required
-                      />
-                    </label>
-                    <label className="fd-field">
-                      <span>Manzil</span>
-                      <input
-                        value={createAddress}
-                        onChange={(e) => setCreateAddress(e.target.value)}
-                        placeholder="Toshkent, ..."
                       />
                     </label>
                     <label className="fd-field">
