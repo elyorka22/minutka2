@@ -75,6 +75,10 @@ export default async function HomePage() {
 
   const supermarkets = restaurants.filter((r) => r.isSupermarket);
   const normalRestaurants = restaurants.filter((r) => !r.isSupermarket);
+  const topCarouselRestaurants =
+    featuredRestaurants.length > 0
+      ? featuredRestaurants
+      : normalRestaurants.slice(0, 8);
 
   return (
     <div className="fd-shell">
@@ -134,15 +138,15 @@ export default async function HomePage() {
         })}
       </section>
 
-      {featuredRestaurants.length > 0 && (
-        <section className="fd-section">
-          <h2 className="fd-section-title">
-            <Link href="/restaurants" style={{ color: "inherit", textDecoration: "none" }}>
-              Top restoranlar
-            </Link>
-          </h2>
+      <section className="fd-section">
+        <h2 className="fd-section-title">
+          <Link href="/restaurants" style={{ color: "inherit", textDecoration: "none" }}>
+            Top restoranlar
+          </Link>
+        </h2>
+        {topCarouselRestaurants.length > 0 ? (
           <div className="fd-home-stores">
-            {featuredRestaurants.map((r) => (
+            {topCarouselRestaurants.map((r) => (
               <Link
                 key={r.id}
                 href={`/restaurants/${r.id}`}
@@ -159,8 +163,12 @@ export default async function HomePage() {
               </Link>
             ))}
           </div>
-        </section>
-      )}
+        ) : (
+          <p className="fd-empty fd-checkout-meta">
+            Restoranlar yo‘q. Admin panelda restoranlar qo‘shing va «Top karuselda» belgilang.
+          </p>
+        )}
+      </section>
 
       <section className="fd-section">
         <h2 className="fd-section-title">
