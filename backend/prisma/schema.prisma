@@ -317,3 +317,8 @@ enum PromoDiscountType {
   PERCENT
   FIXED
 }
+
+model Visit {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+}

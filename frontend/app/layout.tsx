@@ -8,6 +8,7 @@ import { usePathname } from "next/navigation";
 import { CartProvider, useCart } from "../components/CartContext";
 import { usePWAInstall } from "../hooks/usePWAInstall";
 import { PWAInstallModal } from "../components/PWAInstallModal";
+import { api } from "../lib/api";
 
 function Header() {
   const pathname = usePathname() || "";
@@ -167,6 +168,19 @@ function useShowBottomBar() {
   return true;
 }
 
+function VisitRecorder() {
+  const pathname = usePathname() || "";
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    if (pathname.startsWith("/platform-admin") || pathname.startsWith("/restaurant-admin")) return;
+    const key = "minutka_visit_sent";
+    if (sessionStorage.getItem(key)) return;
+    sessionStorage.setItem(key, "1");
+    api.recordVisit();
+  }, [pathname]);
+  return null;
+}
+
 function PWAInstallGate() {
   const { shouldShowModal, handleInstall, handleLater } = usePWAInstall();
   return (
@@ -206,6 +220,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
       </head>
       <body className="fd-body">
         <CartProvider>
+          <VisitRecorder />
           <Header />
           <main className={showBottomBar ? "fd-main" : "fd-main fd-main--no-bottom-bar"}>
             {children}

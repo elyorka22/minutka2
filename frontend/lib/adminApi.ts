@@ -80,6 +80,12 @@ export const adminApi = {
       method: "POST",
       body: JSON.stringify({ email }),
     }),
+  getVisitStatsAdmin: () =>
+    adminRequest<{
+      byDay: Array<{ date: string; count: number }>;
+      byHour: Array<{ hour: number; count: number }>;
+      total: number;
+    }>("/admin/stats/visits"),
   getRestaurantStatsAdmin: () =>
     adminRequest<{
       deliveredLast7Days: { count: number; totalAmount: number };

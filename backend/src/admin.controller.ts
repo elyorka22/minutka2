@@ -17,6 +17,7 @@ import { FileInterceptor } from '@nestjs/platform-express';
 import { JwtAuthGuard } from './auth/jwt-auth.guard';
 import { PrismaService } from './prisma.service';
 import { UsersService } from './users/users.service';
+import { VisitsService } from './visits.service';
 import { UserRole } from '../generated/prisma/enums';
 import * as fs from 'fs';
 import * as path from 'path';
@@ -32,6 +33,7 @@ export class AdminController {
   constructor(
     private readonly prisma: PrismaService,
     private readonly usersService: UsersService,
+    private readonly visitsService: VisitsService,
   ) {}
 
   @Get('my-restaurants')
@@ -365,6 +367,14 @@ export class AdminController {
       data: { platformFeeClearedAt: new Date() },
     });
     return { ok: true };
+  }
+
+  @Get('stats/visits')
+  async getVisitStats(@Req() req: RequestWithUser) {
+    if (req.user?.role !== 'PLATFORM_ADMIN') {
+      throw new ForbiddenException('Only platform admin allowed');
+    }
+    return this.visitsService.getStats(7);
   }
 
   @Get('stats/restaurants')

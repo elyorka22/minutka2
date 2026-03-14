@@ -74,6 +74,15 @@ export const api = {
     }
   },
 
+  async recordVisit(): Promise<void> {
+    const base = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:4000";
+    try {
+      await fetch(`${base}/visit`, { method: "POST", cache: "no-store" });
+    } catch {
+      // ignore
+    }
+  },
+
   async createOrder(body: {
     restaurantId: string;
     address: { street: string; city: string; label?: string; details?: string; latitude: number; longitude: number };

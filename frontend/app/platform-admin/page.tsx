@@ -11,6 +11,7 @@ type TabId =
   | "restaurants"
   | "supermarkets"
   | "restaurant-stats"
+  | "visits"
   | "settings";
 
 export default function PlatformAdminPage() {
@@ -62,6 +63,12 @@ export default function PlatformAdminPage() {
     ordersByHour: Array<{ hour: number; count: number }>;
   } | null>(null);
   const [restaurantStatsLoading, setRestaurantStatsLoading] = useState(false);
+  const [visitStats, setVisitStats] = useState<{
+    byDay: Array<{ date: string; count: number }>;
+    byHour: Array<{ hour: number; count: number }>;
+    total: number;
+  } | null>(null);
+  const [visitStatsLoading, setVisitStatsLoading] = useState(false);
   const router = useRouter();
 
   async function handleUploadCreateImage(e: React.ChangeEvent<HTMLInputElement>) {
@@ -130,6 +137,26 @@ export default function PlatformAdminPage() {
       })
       .finally(() => {
         if (active) setRestaurantStatsLoading(false);
+      });
+    return () => {
+      active = false;
+    };
+  }, [activeTab]);
+
+  useEffect(() => {
+    if (activeTab !== "visits") return;
+    let active = true;
+    setVisitStatsLoading(true);
+    adminApi
+      .getVisitStatsAdmin()
+      .then((res) => {
+        if (active) setVisitStats(res);
+      })
+      .catch(() => {
+        if (active) setVisitStats(null);
+      })
+      .finally(() => {
+        if (active) setVisitStatsLoading(false);
       });
     return () => {
       active = false;
@@ -397,6 +424,7 @@ export default function PlatformAdminPage() {
     { id: "restaurants", label: "Restoranlar" },
     { id: "supermarkets", label: "Supermarketlar" },
     { id: "restaurant-stats", label: "Statistika restoranlar" },
+    { id: "visits", label: "Tashrifchilar" },
     { id: "settings", label: "Sozlamalar" },
   ];
 
@@ -957,6 +985,46 @@ export default function PlatformAdminPage() {
                     </button>
                   </form>
                 </div>
+              </section>
+            </div>
+
+            <div
+              className={`fd-admin-panel ${activeTab === "visits" ? "fd-admin-panel-active" : ""}`}
+            >
+              <section>
+                <h2>Tashrifchilar (so‘nggi 7 kun)</h2>
+                {visitStatsLoading && <p>Yuklanmoqda…</p>}
+                {!visitStatsLoading && visitStats && (
+                  <>
+                    <div className="fd-form-block" style={{ marginTop: 16 }}>
+                      <h3>Jami tashriflar: {visitStats.total} ta</h3>
+                    </div>
+                    <div className="fd-form-block" style={{ marginTop: 16 }}>
+                      <h3>Kunlar bo‘yicha</h3>
+                      <ul style={{ paddingLeft: 20 }}>
+                        {visitStats.byDay.map((d) => (
+                          <li key={d.date}>
+                            {d.date}: <strong>{d.count}</strong> tashrif
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                    <div className="fd-form-block" style={{ marginTop: 16 }}>
+                      <h3>Soatlar bo‘yicha (qachon faol)</h3>
+                      <p className="fd-checkout-meta">Soatlar UTC bo‘yicha. Eng ko‘p tashriflar qaysi soatda bo‘lgani.</p>
+                      <ul style={{ paddingLeft: 20, display: "flex", flexWrap: "wrap", gap: 8, listStyle: "none", marginTop: 8 }}>
+                        {visitStats.byHour.map((h) => (
+                          <li key={h.hour} style={{ padding: "6px 10px", background: "var(--fd-bg-2)", borderRadius: 6 }}>
+                            {h.hour}:00 — {h.count} ta
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  </>
+                )}
+                {!visitStatsLoading && !visitStats && activeTab === "visits" && (
+                  <p>Statistikani yuklashda xatolik.</p>
+                )}
               </section>
             </div>
 
