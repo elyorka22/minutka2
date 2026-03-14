@@ -57,6 +57,8 @@ export default function PlatformAdminPage() {
   const [bannerSortOrder, setBannerSortOrder] = useState("");
   const [bannerSubmitting, setBannerSubmitting] = useState(false);
   const [bannerError, setBannerError] = useState<string | null>(null);
+  const [addAdminEmails, setAddAdminEmails] = useState<Record<string, string>>({});
+  const [addAdminSubmitting, setAddAdminSubmitting] = useState<Record<string, boolean>>({});
   const router = useRouter();
 
   async function handleUploadLogo(e: React.ChangeEvent<HTMLInputElement>) {
@@ -773,6 +775,37 @@ export default function PlatformAdminPage() {
                       >
                         Menyu
                       </Link>
+                      <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
+                        <input
+                          type="email"
+                          placeholder="Admin email (tayinlash)"
+                          value={addAdminEmails[r.id] ?? ""}
+                          onChange={(e) =>
+                            setAddAdminEmails((prev) => ({ ...prev, [r.id]: e.target.value }))
+                          }
+                          style={{ width: 160, padding: "6px 8px", fontSize: "0.875rem" }}
+                        />
+                        <button
+                          type="button"
+                          className="fd-btn"
+                          disabled={!(addAdminEmails[r.id] ?? "").trim() || addAdminSubmitting[r.id]}
+                          onClick={async () => {
+                            const email = (addAdminEmails[r.id] ?? "").trim();
+                            if (!email) return;
+                            setAddAdminSubmitting((prev) => ({ ...prev, [r.id]: true }));
+                            try {
+                              await adminApi.addRestaurantAdmin(r.id, email);
+                              setAddAdminEmails((prev) => ({ ...prev, [r.id]: "" }));
+                            } catch (err: any) {
+                              setError(err?.message ?? "Xatolik");
+                            } finally {
+                              setAddAdminSubmitting((prev) => ({ ...prev, [r.id]: false }));
+                            }
+                          }}
+                        >
+                          {addAdminSubmitting[r.id] ? "..." : "Adminni tayinlash"}
+                        </button>
+                      </div>
                       <button
                         type="button"
                         className="fd-btn"

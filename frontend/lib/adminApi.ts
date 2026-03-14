@@ -75,6 +75,11 @@ export const adminApi = {
     }),
   getRestaurantFull: (id: string) =>
     adminRequest<any>(`/admin/restaurants/${id}/full`),
+  addRestaurantAdmin: (restaurantId: string, email: string) =>
+    adminRequest<{ ok: boolean }>(`/admin/restaurants/${restaurantId}/admins`, {
+      method: "POST",
+      body: JSON.stringify({ email }),
+    }),
   deleteRestaurant: (id: string) =>
     adminRequest<any>(`/admin/restaurants/${id}`, {
       method: "DELETE",

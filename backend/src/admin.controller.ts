@@ -319,6 +319,32 @@ export class AdminController {
     return restaurant;
   }
 
+  @Post('restaurants/:id/admins')
+  async addRestaurantAdmin(
+    @Param('id') id: string,
+    @Body() body: { email: string },
+    @Req() req: RequestWithUser,
+  ) {
+    if (req.user?.role !== 'PLATFORM_ADMIN') {
+      throw new ForbiddenException('Only platform admin allowed');
+    }
+    const email = typeof body.email === 'string' ? body.email.trim() : '';
+    if (!email) throw new BadRequestException('email is required');
+    const restaurant = await this.prisma.restaurant.findUnique({ where: { id } });
+    if (!restaurant) throw new BadRequestException('Restaurant not found');
+    let user = await this.usersService.findByEmail(email);
+    if (!user) throw new BadRequestException('User with this email not found. Ask them to register first.');
+    await this.prisma.user.update({
+      where: { id: user.id },
+      data: { role: UserRole.RESTAURANT_ADMIN },
+    });
+    await this.prisma.restaurant.update({
+      where: { id },
+      data: { admins: { connect: { id: user.id } } },
+    });
+    return { ok: true, message: 'Admin assigned' };
+  }
+
   @Post('restaurants/:id/categories')
   async createCategory(
     @Param('id') id: string,
