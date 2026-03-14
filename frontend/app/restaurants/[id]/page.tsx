@@ -61,13 +61,16 @@ function RestaurantPageClient({ restaurant, dishes }: { restaurant: any; dishes:
                       type="button"
                       className="fd-card-plus-btn"
                       onClick={() =>
-                        addToCart({
-                          id,
-                          name: String(dish.name),
-                          description: dish.description ?? null,
-                          price: Number(dish.price),
-                          imageUrl: dish.imageUrl ?? null,
-                        })
+                        addToCart(
+                          {
+                            id,
+                            name: String(dish.name),
+                            description: dish.description ?? null,
+                            price: Number(dish.price),
+                            imageUrl: dish.imageUrl ?? null,
+                          },
+                          String(restaurant.id),
+                        )
                       }
                     >
                       <span className="material-symbols-rounded">add</span>

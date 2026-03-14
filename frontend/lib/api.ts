@@ -73,4 +73,28 @@ export const api = {
       return [];
     }
   },
+
+  async createOrder(body: {
+    restaurantId: string;
+    address: { street: string; city: string; label?: string; details?: string; latitude: number; longitude: number };
+    items: { dishId: string; quantity: number }[];
+    comment?: string;
+    paymentMethod: "CARD" | "CASH";
+  }): Promise<any> {
+    const token = typeof window !== "undefined" ? window.localStorage.getItem("token") : null;
+    const res = await fetch(`${API_BASE}/orders`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      },
+      body: JSON.stringify(body),
+      cache: "no-store",
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.message || `Order failed: ${res.status}`);
+    }
+    return res.json();
+  },
 };

@@ -62,6 +62,17 @@ export default function ProfilePage() {
     router.push(`/restaurant-admin/${restaurantId.trim()}`);
   }
 
+  function handleLogout() {
+    if (typeof window !== "undefined") {
+      window.localStorage.removeItem("token");
+    }
+    setHasToken(false);
+    setPayload(null);
+    setMyRestaurants([]);
+    setRestaurantId("");
+    router.push("/");
+  }
+
   const isPlatformAdmin = role === "PLATFORM_ADMIN";
   const isRestaurantAdmin = role === "RESTAURANT_ADMIN";
 
@@ -95,6 +106,15 @@ export default function ProfilePage() {
         <div className="fd-card" style={{ padding: 16, marginTop: 8 }}>
           <p className="fd-card-desc">Email: {payload?.email ?? "nomalum"}</p>
           <p className="fd-card-desc">Rol: {role ?? "CUSTOMER"}</p>
+
+          <button
+            type="button"
+            className="fd-btn"
+            style={{ marginTop: 8 }}
+            onClick={handleLogout}
+          >
+            Chiqish
+          </button>
 
           {isPlatformAdmin && (
             <div style={{ marginTop: 12, display: "flex", gap: 8, flexWrap: "wrap" }}>

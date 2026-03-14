@@ -5,8 +5,9 @@ import type { CartItem, Dish } from "../lib/types";
 
 interface CartContextValue {
   items: CartItem[];
+  restaurantId: string | null;
   total: number;
-  addToCart: (dish: Dish) => void;
+  addToCart: (dish: Dish, restaurantId: string) => void;
   removeFromCart: (dishId: string) => void;
   changeQuantity: (dishId: string, quantity: number) => void;
   clear: () => void;
@@ -16,14 +17,18 @@ const CartContext = createContext<CartContextValue | undefined>(undefined);
 
 export function CartProvider({ children }: { children: ReactNode }) {
   const [items, setItems] = useState<CartItem[]>([]);
+  const [restaurantId, setRestaurantId] = useState<string | null>(null);
 
   const total = useMemo(
     () => items.reduce((sum, item) => sum + item.dish.price * item.quantity, 0),
     [items],
   );
 
-  function addToCart(dish: Dish) {
+  function addToCart(dish: Dish, restId: string) {
     setItems((prev) => {
+      if (restaurantId !== null && restaurantId !== restId) {
+        return [{ dish, quantity: 1 }];
+      }
       const existing = prev.find((i) => i.dish.id === dish.id);
       if (existing) {
         return prev.map((i) =>
@@ -32,6 +37,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
       }
       return [...prev, { dish, quantity: 1 }];
     });
+    setRestaurantId(restId);
   }
 
   function removeFromCart(dishId: string) {
@@ -50,10 +56,12 @@ export function CartProvider({ children }: { children: ReactNode }) {
 
   function clear() {
     setItems([]);
+    setRestaurantId(null);
   }
 
   const value: CartContextValue = {
     items,
+    restaurantId,
     total,
     addToCart,
     removeFromCart,

@@ -1,12 +1,18 @@
 "use client";
 
-import { FormEvent, useState } from "react";
+import { FormEvent, useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { useCart } from "../../components/CartContext";
 import { BackLink } from "../../components/BackLink";
+import { api } from "../../lib/api";
 
 export default function CheckoutPage() {
-  const { items, total, clear, changeQuantity } = useCart();
+  const router = useRouter();
+  const { items, total, clear, changeQuantity, restaurantId } = useCart();
   const [submitted, setSubmitted] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
 
   const [street, setStreet] = useState("");
   const [phone, setPhone] = useState("");
@@ -16,6 +22,16 @@ export default function CheckoutPage() {
   const [addressMode, setAddressMode] = useState<"manual" | "auto">("manual");
   const [autoAddressConfirmed, setAutoAddressConfirmed] = useState(false);
   const [geoStatus, setGeoStatus] = useState<"idle" | "success" | "error">("idle");
+
+  const token = typeof window !== "undefined" ? window.localStorage.getItem("token") : null;
+  const needLogin = items.length > 0 && !token;
+  const needRestaurant = items.length > 0 && !restaurantId;
+
+  useEffect(() => {
+    if (needRestaurant && items.length > 0) {
+      clear();
+    }
+  }, [needRestaurant, items.length, clear]);
 
   function handleGeoClick() {
     if (typeof navigator === "undefined" || !navigator.geolocation) {
@@ -35,12 +51,44 @@ export default function CheckoutPage() {
     );
   }
 
-  function handleSubmit(e: FormEvent) {
+  async function handleSubmit(e: FormEvent) {
     e.preventDefault();
-    // Здесь позже можно вызвать реальный бэкенд с JWT и
-    // передать адрес, координаты и способ оплаты.
-    setSubmitted(true);
-    clear();
+    setSubmitError(null);
+    if (needLogin) {
+      router.push("/login?next=/checkout");
+      return;
+    }
+    if (!restaurantId || items.length === 0) {
+      setSubmitError("Savat bo‘sh yoki restoran aniqlanmadi. Taomlarni qayta qo‘shing.");
+      return;
+    }
+    const streetVal = addressMode === "auto" ? "Geolokatsiya orqali" : street.trim();
+    if (!streetVal) {
+      setSubmitError("Manzilni kiriting yoki geolokatsiyani ishlating.");
+      return;
+    }
+    setLoading(true);
+    try {
+      await api.createOrder({
+        restaurantId,
+        address: {
+          street: streetVal,
+          city: "Toshkent",
+          details: phone.trim() ? `Tel: ${phone.trim()}` : undefined,
+          latitude: lat ? Number(lat) : 0,
+          longitude: lng ? Number(lng) : 0,
+        },
+        items: items.map((i) => ({ dishId: i.dish.id, quantity: i.quantity })),
+        comment: phone.trim() ? `Tel: ${phone.trim()}` : undefined,
+        paymentMethod,
+      });
+      clear();
+      setSubmitted(true);
+    } catch (err: any) {
+      setSubmitError(err?.message ?? "Buyurtma yuborilmadi. Qayta urinib ko‘ring.");
+    } finally {
+      setLoading(false);
+    }
   }
 
   const hasCoords = lat && lng;
@@ -103,9 +151,18 @@ export default function CheckoutPage() {
 
         <section className="fd-checkout-form">
           <h2>Manzil, geolokatsiya va to‘lov</h2>
-          {submitted ? (
+          {needLogin ? (
+            <div className="fd-card" style={{ padding: 16 }}>
+              <p className="fd-card-desc">
+                Buyurtmani rasmiylashtirish uchun tizimga kiring.
+              </p>
+              <Link href="/login?next=/checkout" className="fd-btn fd-btn-primary" style={{ marginTop: 8, display: "inline-block", textDecoration: "none" }}>
+                Kirish
+              </Link>
+            </div>
+          ) : submitted ? (
             <p className="fd-success">
-              Buyurtma yuborildi (demo). Real loyihada bu yerda buyurtma holati bo‘ladi.
+              Buyurtma qabul qilindi. Restoran tez orada siz bilan bog‘lanadi.
             </p>
           ) : (
             <form onSubmit={handleSubmit} className="fd-form">
@@ -200,12 +257,18 @@ export default function CheckoutPage() {
                 />
               </label>
 
+              {submitError && (
+                <p style={{ color: "var(--color-orange)", fontSize: "0.875rem", marginBottom: 8 }}>
+                  {submitError}
+                </p>
+              )}
+
               <button
                 className="fd-btn fd-btn-primary"
                 type="submit"
-                disabled={items.length === 0}
+                disabled={items.length === 0 || loading}
               >
-                Buyurtmani tasdiqlash
+                {loading ? "Yuborilmoqda..." : "Buyurtmani tasdiqlash"}
               </button>
             </form>
           )}
