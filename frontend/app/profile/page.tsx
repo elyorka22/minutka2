@@ -29,7 +29,6 @@ type MyRestaurant = { id: string; name: string };
 export default function ProfilePage() {
   const [payload, setPayload] = useState<JwtPayload | null>(null);
   const [hasToken, setHasToken] = useState(false);
-  const [restaurantId, setRestaurantId] = useState("");
   const [myRestaurants, setMyRestaurants] = useState<MyRestaurant[]>([]);
   const router = useRouter();
 
@@ -57,11 +56,6 @@ export default function ProfilePage() {
 
   const role = payload?.role;
 
-  function goToRestaurantAdmin() {
-    if (!restaurantId.trim()) return;
-    router.push(`/restaurant-admin/${restaurantId.trim()}`);
-  }
-
   function handleLogout() {
     if (typeof window !== "undefined") {
       window.localStorage.removeItem("token");
@@ -69,7 +63,6 @@ export default function ProfilePage() {
     setHasToken(false);
     setPayload(null);
     setMyRestaurants([]);
-    setRestaurantId("");
     router.push("/");
   }
 
@@ -145,27 +138,9 @@ export default function ProfilePage() {
                   </div>
                 </>
               ) : (
-                <div className="fd-form">
-                  <p className="fd-card-desc">
-                    Restoran admin paneliga o&apos;tish uchun restoran ID ni kiriting.
-                  </p>
-                  <label className="fd-field">
-                    <span>Restoran ID</span>
-                    <input
-                      value={restaurantId}
-                      onChange={(e) => setRestaurantId(e.target.value)}
-                      placeholder="Masalan: abc123"
-                    />
-                  </label>
-                  <button
-                    type="button"
-                    className="fd-btn fd-btn-primary"
-                    onClick={goToRestaurantAdmin}
-                    disabled={!restaurantId.trim()}
-                  >
-                    Restoran admin paneliga o&apos;tish
-                  </button>
-                </div>
+                <p className="fd-card-desc">
+                  Sizga tayinlangan restoran yoki do‘kon yo‘q. Platforma admini bilan bog‘laning.
+                </p>
               )}
             </div>
           )}

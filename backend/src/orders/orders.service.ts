@@ -129,7 +129,10 @@ export class OrdersService {
 
   async findForRestaurant(restaurantId: string) {
     return this.prisma.order.findMany({
-      where: { restaurantId },
+      where: {
+        restaurantId,
+        status: { notIn: ['DELIVERED', 'CANCELLED'] },
+      },
       orderBy: { createdAt: 'desc' },
       include: {
         items: { include: { dish: true } },
@@ -137,5 +140,76 @@ export class OrdersService {
         customer: { select: { id: true, name: true, email: true, phone: true } },
       },
     });
+  }
+
+  async deleteOrdersOlderThanDays(days: number): Promise<number> {
+    const cutoff = new Date();
+    cutoff.setDate(cutoff.getDate() - days);
+    const old = await this.prisma.order.findMany({
+      where: { createdAt: { lt: cutoff } },
+      select: { id: true },
+    });
+    for (const o of old) {
+      if (this.prisma.deliveryTracking) {
+        await this.prisma.deliveryTracking.deleteMany({ where: { orderId: o.id } }).catch(() => {});
+      }
+      await this.prisma.orderItem.deleteMany({ where: { orderId: o.id } });
+      await this.prisma.payment.deleteMany({ where: { orderId: o.id } }).catch(() => {});
+      await this.prisma.order.delete({ where: { id: o.id } }).catch(() => {});
+    }
+    return old.length;
+  }
+
+  async findArchiveForRestaurant(restaurantId: string) {
+    await this.deleteOrdersOlderThanDays(3);
+    const since = new Date();
+    since.setDate(since.getDate() - 3);
+    return this.prisma.order.findMany({
+      where: {
+        restaurantId,
+        status: { in: ['DELIVERED', 'CANCELLED'] },
+        createdAt: { gte: since },
+      },
+      orderBy: { createdAt: 'desc' },
+      include: {
+        items: { include: { dish: true } },
+        address: true,
+        customer: { select: { id: true, name: true, email: true, phone: true } },
+      },
+    });
+  }
+
+  async getRestaurantStats(restaurantId: string) {
+    const [restaurant, orders, activeCount] = await Promise.all([
+      this.prisma.restaurant.findUnique({
+        where: { id: restaurantId },
+        select: { platformFeePercent: true },
+      }),
+      this.prisma.order.findMany({
+        where: { restaurantId, status: 'DELIVERED' },
+        select: { total: true, subtotal: true },
+      }),
+      this.prisma.order.count({
+        where: {
+          restaurantId,
+          status: { notIn: ['DELIVERED', 'CANCELLED'] },
+        },
+      }),
+    ]);
+    const percent = restaurant?.platformFeePercent != null ? Number(restaurant.platformFeePercent) : 10;
+    let totalRevenue = 0;
+    let totalPlatformFee = 0;
+    for (const o of orders) {
+      const t = Number(o.total);
+      totalRevenue += t;
+      totalPlatformFee += (t * percent) / 100;
+    }
+    return {
+      activeOrdersCount: activeCount,
+      deliveredOrdersCount: orders.length,
+      totalRevenue: Math.round(totalRevenue * 100) / 100,
+      platformFeePercent: percent,
+      totalPlatformFee: Math.round(totalPlatformFee * 100) / 100,
+    };
   }
 }

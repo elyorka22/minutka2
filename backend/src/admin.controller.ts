@@ -173,6 +173,7 @@ export class AdminController {
       latitude?: number;
       longitude?: number;
       isSupermarket?: boolean;
+      platformFeePercent?: number;
       adminEmail: string;
       adminPassword: string;
       adminName: string;
@@ -229,6 +230,7 @@ export class AdminController {
         latitude: body.latitude ?? 0,
         longitude: body.longitude ?? 0,
         isSupermarket: !!body.isSupermarket,
+        platformFeePercent: body.platformFeePercent != null ? Number(body.platformFeePercent) : 10,
         admins: { connect: [{ id: adminId }] },
       },
     });
@@ -250,6 +252,7 @@ export class AdminController {
       deliveryRadiusM?: number;
       isFeatured?: boolean;
       featuredSortOrder?: number;
+      platformFeePercent?: number;
     },
     @Req() req: RequestWithUser,
   ) {
@@ -269,6 +272,7 @@ export class AdminController {
         ...(body.deliveryRadiusM !== undefined && { deliveryRadiusM: body.deliveryRadiusM }),
         ...(body.isFeatured !== undefined && { isFeatured: body.isFeatured }),
         ...(body.featuredSortOrder !== undefined && { featuredSortOrder: body.featuredSortOrder }),
+        ...(body.platformFeePercent !== undefined && { platformFeePercent: Number(body.platformFeePercent) }),
       },
     });
     return restaurant;

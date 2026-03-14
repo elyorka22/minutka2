@@ -37,7 +37,11 @@ export const adminApi = {
     request<any[]>("/admin/my-restaurants", { headers: getAuthHeaders() }),
   getRestaurantWithOrders: (id: string) => request<any>(`/restaurants/${id}`),
   getRestaurantOrders: (id: string) =>
-    request<any>(`/restaurants/${id}/orders`, { headers: getAuthHeaders() }),
+    adminRequest<any[]>(`/restaurants/${id}/orders`),
+  getRestaurantOrdersArchive: (id: string) =>
+    adminRequest<any[]>(`/restaurants/${id}/orders/archive`),
+  getRestaurantStats: (id: string) =>
+    adminRequest<{ activeOrdersCount: number; deliveredOrdersCount: number; totalRevenue: number; platformFeePercent: number; totalPlatformFee: number }>(`/restaurants/${id}/orders/stats`),
   updateOrderStatus: (id: string, status: string) =>
     request<any>(`/orders/${id}/status`, {
       method: "PATCH",
@@ -60,6 +64,7 @@ export const adminApi = {
     minOrderTotal?: number;
     deliveryRadiusM?: number;
     isSupermarket?: boolean;
+    platformFeePercent?: number;
     adminEmail: string;
     adminPassword: string;
     adminName: string;
@@ -103,6 +108,7 @@ export const adminApi = {
       deliveryRadiusM?: number;
       isFeatured?: boolean;
       featuredSortOrder?: number;
+      platformFeePercent?: number;
     }
   ) =>
     adminRequest<any>(`/admin/restaurants/${id}`, {

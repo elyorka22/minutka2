@@ -28,6 +28,7 @@ export default function PlatformAdminPage() {
   const [createLogoUrl, setCreateLogoUrl] = useState("");
   const [createCoverUrl, setCreateCoverUrl] = useState("");
   const [createFee, setCreateFee] = useState("");
+  const [createPlatformFeePercent, setCreatePlatformFeePercent] = useState("10");
   const [createAdminEmail, setCreateAdminEmail] = useState("");
   const [createAdminPassword, setCreateAdminPassword] = useState("");
   const [createAdminName, setCreateAdminName] = useState("");
@@ -216,6 +217,7 @@ export default function PlatformAdminPage() {
         address: createAddress.trim() || undefined,
         description: createDesc.trim() || undefined,
         deliveryFee: createFee ? Number(createFee) : undefined,
+        platformFeePercent: createPlatformFeePercent ? Number(createPlatformFeePercent) : 10,
         logoUrl: createLogoUrl.trim() || undefined,
         coverUrl: createCoverUrl.trim() || undefined,
         isSupermarket,
@@ -227,6 +229,7 @@ export default function PlatformAdminPage() {
       setCreateAddress("");
       setCreateDesc("");
       setCreateFee("");
+      setCreatePlatformFeePercent("10");
       setCreateLogoUrl("");
       setCreateCoverUrl("");
       setCreateAdminEmail("");
@@ -601,6 +604,18 @@ export default function PlatformAdminPage() {
                       placeholder="0"
                     />
                   </label>
+                  <label className="fd-field">
+                    <span>Platforma ulushi (%) — har bir buyurtma uchun</span>
+                    <input
+                      type="number"
+                      min={0}
+                      max={100}
+                      step={0.5}
+                      value={createPlatformFeePercent}
+                      onChange={(e) => setCreatePlatformFeePercent(e.target.value)}
+                      placeholder="10"
+                    />
+                  </label>
                   <p className="fd-checkout-meta" style={{ marginTop: 8, marginBottom: 4 }}>
                     Restoran admini (ushbu email va parol bilan kirib, shu restoran admin paneliga o‘tadi) *
                   </p>
@@ -660,6 +675,36 @@ export default function PlatformAdminPage() {
                       <div className="fd-checkout-meta">{r.address || "—"}</div>
                     </div>
                     <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
+                      <label className="fd-checkout-meta" style={{ display: "flex", alignItems: "center", gap: 4 }}>
+                        Platforma %:
+                        <input
+                          type="number"
+                          min={0}
+                          max={100}
+                          step={0.5}
+                          defaultValue={r.platformFeePercent ?? 10}
+                          style={{ width: 56, padding: "4px 6px", fontSize: "0.875rem" }}
+                          onBlur={async (e) => {
+                            const val = Number((e.target as HTMLInputElement).value);
+                            if (!Number.isFinite(val) || val < 0 || val > 100) return;
+                            try {
+                              const updated = await adminApi.updateRestaurant(r.id, { platformFeePercent: val });
+                              setData((prev: any) =>
+                                prev
+                                  ? {
+                                      ...prev,
+                                      restaurants: prev.restaurants.map((x: any) =>
+                                        x.id === r.id ? { ...x, platformFeePercent: updated.platformFeePercent } : x,
+                                      ),
+                                    }
+                                  : prev,
+                              );
+                            } catch (err: any) {
+                              setError(err?.message ?? "Xatolik");
+                            }
+                          }}
+                        />
+                      </label>
                       {!r.isSupermarket && (
                         <>
                           <label className="fd-checkout-meta" style={{ display: "flex", alignItems: "center", gap: 6 }}>
@@ -856,6 +901,18 @@ export default function PlatformAdminPage() {
                           onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }}
                         />
                       )}
+                    </label>
+                    <label className="fd-field">
+                      <span>Platforma ulushi (%) — har bir buyurtma uchun</span>
+                      <input
+                        type="number"
+                        min={0}
+                        max={100}
+                        step={0.5}
+                        value={createPlatformFeePercent}
+                        onChange={(e) => setCreatePlatformFeePercent(e.target.value)}
+                        placeholder="10"
+                      />
                     </label>
                     <p className="fd-checkout-meta" style={{ marginTop: 8, marginBottom: 4 }}>
                       Do‘kon admini (ushbu email va parol bilan kirib, shu do‘kon admin paneliga o‘tadi) *

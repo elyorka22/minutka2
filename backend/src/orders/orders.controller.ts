@@ -60,4 +60,16 @@ export class RestaurantOrdersController {
   findForRestaurant(@Param('restaurantId') restaurantId: string) {
     return this.ordersService.findForRestaurant(restaurantId);
   }
+
+  @Get('archive')
+  @UseGuards(JwtAuthGuard)
+  findArchive(@Param('restaurantId') restaurantId: string) {
+    return this.ordersService.findArchiveForRestaurant(restaurantId);
+  }
+
+  @Get('stats')
+  @UseGuards(JwtAuthGuard)
+  getStats(@Param('restaurantId') restaurantId: string) {
+    return this.ordersService.getRestaurantStats(restaurantId);
+  }
 }
