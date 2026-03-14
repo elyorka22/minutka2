@@ -74,9 +74,6 @@ export default async function HomePage() {
           <Link href="/supermarkets" className="fd-chip">
             Do‘konlar
           </Link>
-          <Link href="/products" className="fd-chip">
-            Mahsulotlar
-          </Link>
         </div>
       </section>
 

@@ -1062,7 +1062,7 @@ export default function PlatformAdminPage() {
                       <input
                         value={bannerCtaHref}
                         onChange={(e) => setBannerCtaHref(e.target.value)}
-                        placeholder="Masalan: /products"
+                        placeholder="Masalan: /supermarkets"
                       />
                     </label>
                     <label className="fd-field">

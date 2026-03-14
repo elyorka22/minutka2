@@ -84,8 +84,8 @@ function BottomBar() {
       ? "home"
       : pathname.startsWith("/restaurants")
         ? "restaurants"
-        : pathname.startsWith("/products")
-          ? "products"
+        : pathname.startsWith("/supermarkets")
+          ? "supermarkets"
         : pathname.startsWith("/checkout")
           ? "checkout"
           : pathname.startsWith("/profile") ||
@@ -113,12 +113,12 @@ function BottomBar() {
         <span className="fd-bottom-label">Restoranlar</span>
       </Link>
       <Link
-        href="/products"
-        className={`fd-bottom-item ${activeKey === "products" ? "fd-bottom-item--active" : ""}`}
-        aria-current={activeKey === "products" ? "page" : undefined}
+        href="/supermarkets"
+        className={`fd-bottom-item ${activeKey === "supermarkets" ? "fd-bottom-item--active" : ""}`}
+        aria-current={activeKey === "supermarkets" ? "page" : undefined}
       >
-        <span className="fd-bottom-icon material-symbols-rounded">grocery</span>
-        <span className="fd-bottom-label">Mahsulotlar</span>
+        <span className="fd-bottom-icon material-symbols-rounded">store</span>
+        <span className="fd-bottom-label">Do‘konlar</span>
       </Link>
       <Link
         href="/checkout"
