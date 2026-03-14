@@ -395,26 +395,45 @@ export default function PlatformAdminPage() {
     { id: "settings", label: "Sozlamalar" },
   ];
 
+  const activeTabLabel = tabs.find((t) => t.id === activeTab)?.label ?? activeTab;
+
+  useEffect(() => {
+    if (!tabsOpen) return;
+    const onEscape = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setTabsOpen(false);
+    };
+    window.addEventListener("keydown", onEscape);
+    return () => window.removeEventListener("keydown", onEscape);
+  }, [tabsOpen]);
+
   return (
-    <div className="fd-shell fd-section">
-      <BackLink href="/profile">← Profil</BackLink>
-      <h1 className="fd-section-title">Platforma admin paneli</h1>
-      <button
-        type="button"
-        className="fd-btn"
-        style={{ marginTop: 8, marginBottom: 8 }}
-        onClick={() => setTabsOpen((open) => !open)}
-      >
-        {tabsOpen ? "Bo‘limlarni yopish" : "Bo‘limlar menyusi"}
-      </button>
-      {loading && <p>Yuklanmoqda...</p>}
-      {error && <p className="fd-empty">{error}</p>}
-      {data && (
-        <div className="fd-admin-layout">
-          <nav
-            className="fd-admin-tabs"
-            style={tabsOpen ? undefined : { display: "none" }}
-          >
+    <div className="fd-shell fd-section fd-platform-admin-page">
+      <header className="fd-admin-header">
+        <BackLink href="/profile">← Profil</BackLink>
+        <h1 className="fd-section-title" style={{ margin: "0 8px 0 0", flex: 1 }}>
+          Platforma admin paneli
+        </h1>
+        <button
+          type="button"
+          className="fd-btn fd-btn-primary"
+          aria-label="Menyu"
+          onClick={() => setTabsOpen(true)}
+        >
+          <span className="material-symbols-rounded" style={{ fontSize: 24 }}>menu</span>
+          <span style={{ marginLeft: 6 }}>Menyu</span>
+        </button>
+      </header>
+
+      {tabsOpen && (
+        <>
+          <div
+            className="fd-admin-sidebar-backdrop"
+            role="button"
+            aria-label="Yopish"
+            onClick={() => setTabsOpen(false)}
+          />
+          <nav className="fd-admin-sidebar">
+            <div className="fd-admin-sidebar-title">Bo‘limlar</div>
             {tabs.map((t) => (
               <button
                 key={t.id}
@@ -429,8 +448,14 @@ export default function PlatformAdminPage() {
               </button>
             ))}
           </nav>
+        </>
+      )}
 
-          <div className="fd-admin-main">
+      {loading && <p>Yuklanmoqda...</p>}
+      {error && <p className="fd-empty">{error}</p>}
+      {data && (
+        <div className="fd-admin-main">
+          <p className="fd-admin-current-tab">{activeTabLabel}</p>
             <div
               className={`fd-admin-panel ${activeTab === "stats" ? "fd-admin-panel-active" : ""}`}
             >
@@ -1408,7 +1433,6 @@ export default function PlatformAdminPage() {
               </section>
             </div>
           </div>
-        </div>
       )}
     </div>
   );

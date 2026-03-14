@@ -829,15 +829,88 @@ body {
 }
 
 /* Platform admin */
-.fd-admin-layout {
-  margin-top: 16px;
+.fd-platform-admin-page {
+  padding-bottom: 24px;
+}
+
+.fd-admin-header {
   display: flex;
-  align-items: flex-start;
-  gap: 24px;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.fd-admin-header .fd-section-title {
+  font-size: 1.25rem;
+}
+
+.fd-admin-current-tab {
+  font-size: 0.875rem;
+  color: var(--color-text-secondary);
+  margin: 0 0 12px 0;
+  font-weight: 600;
+}
+
+.fd-admin-sidebar-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.4);
+  z-index: 1000;
+  animation: fd-admin-backdrop-in 0.2s ease-out;
+}
+
+.fd-admin-sidebar {
+  position: fixed;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 260px;
+  max-width: 85vw;
+  background: var(--color-surface);
+  border-right: 1px solid var(--color-border);
+  box-shadow: var(--shadow-lg);
+  z-index: 1001;
+  padding: 16px 0;
+  overflow-y: auto;
+  animation: fd-admin-sidebar-in 0.2s ease-out;
+}
+
+.fd-admin-sidebar-title {
+  padding: 8px 16px 12px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--color-text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+}
+
+.fd-admin-sidebar .fd-admin-tab {
+  display: block;
+  width: 100%;
+  text-align: left;
+  padding: 12px 16px;
+  border-radius: 0;
+  border: none;
+  border-left: 3px solid transparent;
+}
+
+.fd-admin-sidebar .fd-admin-tab-active {
+  border-left-color: var(--color-orange);
+}
+
+@keyframes fd-admin-backdrop-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes fd-admin-sidebar-in {
+  from { transform: translateX(-100%); }
+  to { transform: translateX(0); }
 }
 
 .fd-admin-main {
-  flex: 1;
+  margin-top: 8px;
   min-width: 0;
 }
 
