@@ -1,4 +1,3 @@
-import fetch from "node-fetch";
 import http from "http";
 
 const TOKEN = process.env.TELEGRAM_BOT_TOKEN;
