@@ -8,6 +8,15 @@ if (!TOKEN) {
 
 const API = `https://api.telegram.org/bot${TOKEN}`;
 
+async function telegramRequest(method, body) {
+  const res = await fetch(`${API}/${method}`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  });
+  return res.ok ? res.json() : null;
+}
+
 async function sendOrderNotification(chatId, order) {
   const text =
     `Yangi buyurtma #${order.id}\n` +
@@ -48,6 +57,31 @@ async function sendOrderNotification(chatId, order) {
   }
 }
 
+async function handleTelegramUpdate(update) {
+  const callback = update.callback_query;
+  if (callback) {
+    if (callback.data === "get_chat_id") {
+      const chatId = callback.message?.chat?.id ?? callback.from?.id;
+      await telegramRequest("answerCallbackQuery", { callback_query_id: callback.id });
+      await telegramRequest("sendMessage", {
+        chat_id: chatId,
+        text: `Sizning Chat ID: ${chatId}\n\nBuni restoran admin panelida Sozlamalar → Telegram Chat ID maydoniga kiriting.`,
+      });
+    }
+    return;
+  }
+  const msg = update.message;
+  if (msg && msg.text && (msg.text === "/start" || msg.text.startsWith("/start"))) {
+    await telegramRequest("sendMessage", {
+      chat_id: msg.chat.id,
+      text: "Buyurtmalar haqida xabar olish uchun Chat ID kerak. Quyidagi tugmani bosing:",
+      reply_markup: {
+        inline_keyboard: [[{ text: "Chat ID ni olish", callback_data: "get_chat_id" }]],
+      },
+    });
+  }
+}
+
 const PORT = process.env.PORT || 3001;
 
 const server = http.createServer(async (req, res) => {
@@ -72,12 +106,33 @@ const server = http.createServer(async (req, res) => {
         res.end("error");
       }
     });
-  } else {
-    res.statusCode = 404;
-    res.end("not found");
+    return;
   }
+  if (req.method === "POST" && (req.url === "/" || req.url === "/webhook")) {
+    let body = "";
+    req.on("data", (chunk) => (body += chunk));
+    req.on("end", async () => {
+      res.statusCode = 200;
+      res.end("ok");
+      try {
+        const update = JSON.parse(body || "{}");
+        await handleTelegramUpdate(update);
+      } catch (e) {
+        console.error(e);
+      }
+    });
+    return;
+  }
+  res.statusCode = 404;
+  res.end("not found");
 });
 
-server.listen(PORT, () => {
+server.listen(PORT, async () => {
   console.log("Telegram bot server listening on", PORT);
+  const publicUrl = process.env.PUBLIC_URL || process.env.RAILWAY_STATIC_URL;
+  if (publicUrl) {
+    const url = publicUrl.replace(/\/$/, "") + "/webhook";
+    const r = await fetch(`${API}/setWebhook?url=${encodeURIComponent(url)}`).then((x) => x.json()).catch(() => ({}));
+    if (r.ok) console.log("Webhook set:", url);
+  }
 });
