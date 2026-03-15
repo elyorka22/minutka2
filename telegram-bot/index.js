@@ -71,9 +71,21 @@ async function handleTelegramUpdate(update) {
     return;
   }
   const msg = update.message;
-  if (msg && msg.text && (msg.text === "/start" || msg.text.startsWith("/start"))) {
+  if (!msg || !msg.chat) return;
+  const text = (msg.text || "").trim().toLowerCase();
+  const chatId = msg.chat.id;
+
+  if (text === "/id" || text === "id" || text === "chat id") {
     await telegramRequest("sendMessage", {
-      chat_id: msg.chat.id,
+      chat_id: chatId,
+      text: `Sizning Chat ID: ${chatId}\n\nBuni restoran admin panelida Sozlamalar → Telegram Chat ID maydoniga kiriting.`,
+    });
+    return;
+  }
+
+  if (text === "/start" || text.startsWith("/start") || text) {
+    await telegramRequest("sendMessage", {
+      chat_id: chatId,
       text: "Buyurtmalar haqida xabar olish uchun Chat ID kerak. Quyidagi tugmani bosing:",
       reply_markup: {
         inline_keyboard: [[{ text: "Chat ID ni olish", callback_data: "get_chat_id" }]],

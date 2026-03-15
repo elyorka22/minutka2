@@ -321,7 +321,7 @@ export default function RestaurantAdminPage({
         <div className="fd-card" style={{ padding: 16 }}>
           <h3 className="fd-card-desc" style={{ marginBottom: 8 }}>Telegram — buyurtmalar haqida xabar</h3>
           <p className="fd-card-desc" style={{ marginBottom: 12, fontSize: "0.875rem" }}>
-            Chat ID ni kiriting: yangi buyurtma kelganda shu chatga xabar yuboriladi. Chat ID ni @userinfobot orqali olishingiz mumkin.
+            Chat ID ni kiriting: yangi buyurtma kelganda shu chatga xabar yuboriladi. Minutka Telegram botiga /start yoki /id yuboring — tugma chiqadi yoki Chat ID darhol yuboriladi. Yoki @userinfobot dan olishingiz mumkin.
           </p>
           <form
             onSubmit={async (e) => {
