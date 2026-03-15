@@ -5,7 +5,7 @@ import Link from "next/link";
 import { adminApi } from "../../../lib/adminApi";
 import { BackLink } from "../../../components/BackLink";
 
-type TabId = "orders" | "archive" | "payments" | "stats";
+type TabId = "orders" | "archive" | "payments" | "stats" | "settings";
 
 function OrderCard({
   o,
@@ -132,6 +132,9 @@ export default function RestaurantAdminPage({
   } | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [telegramChatId, setTelegramChatId] = useState("");
+  const [settingsSaving, setSettingsSaving] = useState(false);
+  const [settingsMessage, setSettingsMessage] = useState<string | null>(null);
 
   function loadOrders() {
     setLoading(true);
@@ -167,7 +170,15 @@ export default function RestaurantAdminPage({
     if (activeTab === "orders") loadOrders();
     else if (activeTab === "archive") loadArchive();
     else if (activeTab === "stats") loadStats();
-    else if (activeTab === "payments") {
+    else if (activeTab === "settings") {
+      setLoading(true);
+      setError(null);
+      adminApi
+        .getRestaurantSettings(restaurantId)
+        .then((s) => setTelegramChatId(s.telegramChatId ?? ""))
+        .catch((err: any) => setError(err?.message ?? "Xatolik"))
+        .finally(() => setLoading(false));
+    } else if (activeTab === "payments") {
       setLoading(true);
       setError(null);
       Promise.all([
@@ -197,6 +208,7 @@ export default function RestaurantAdminPage({
     { id: "archive", label: "Arxiv" },
     { id: "payments", label: "Platforma to'lovlari" },
     { id: "stats", label: "Statistika" },
+    { id: "settings", label: "Sozlamalar" },
   ];
 
   const deliveredForPayments = (activeTab === "payments" ? archive : []).filter((o: any) => o.status === "DELIVERED");
@@ -302,6 +314,49 @@ export default function RestaurantAdminPage({
           <p className="fd-card-desc">
             <strong>Platformaga to‘langan:</strong> {Number(stats.totalPlatformFee).toLocaleString()} so&apos;m
           </p>
+        </div>
+      )}
+
+      {activeTab === "settings" && !loading && (
+        <div className="fd-card" style={{ padding: 16 }}>
+          <h3 className="fd-card-desc" style={{ marginBottom: 8 }}>Telegram — buyurtmalar haqida xabar</h3>
+          <p className="fd-card-desc" style={{ marginBottom: 12, fontSize: "0.875rem" }}>
+            Chat ID ni kiriting: yangi buyurtma kelganda shu chatga xabar yuboriladi. Chat ID ni @userinfobot orqali olishingiz mumkin.
+          </p>
+          <form
+            onSubmit={async (e) => {
+              e.preventDefault();
+              setSettingsMessage(null);
+              setSettingsSaving(true);
+              try {
+                await adminApi.updateRestaurantSettings(restaurantId, { telegramChatId: telegramChatId.trim() || undefined });
+                setSettingsMessage("Saqlandi.");
+              } catch (err: any) {
+                setSettingsMessage(err?.message ?? "Xatolik");
+              } finally {
+                setSettingsSaving(false);
+              }
+            }}
+            className="fd-form"
+          >
+            <label className="fd-field">
+              <span>Telegram Chat ID</span>
+              <input
+                type="text"
+                value={telegramChatId}
+                onChange={(e) => setTelegramChatId(e.target.value)}
+                placeholder="-1001234567890 yoki 123456789"
+              />
+            </label>
+            {settingsMessage && (
+              <p style={{ color: settingsMessage === "Saqlandi." ? "var(--color-success, green)" : "var(--color-orange)", marginBottom: 8 }}>
+                {settingsMessage}
+              </p>
+            )}
+            <button type="submit" className="fd-btn fd-btn-primary" disabled={settingsSaving}>
+              {settingsSaving ? "Saqlanmoqda…" : "Saqlash"}
+            </button>
+          </form>
         </div>
       )}
     </div>

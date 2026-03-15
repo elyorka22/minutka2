@@ -110,3 +110,53 @@ export class RestaurantOrdersController {
     return this.ordersService.getRestaurantStats(restaurantId);
   }
 }
+
+@Controller('restaurants/:restaurantId')
+export class RestaurantSettingsController {
+  constructor(private readonly prisma: PrismaService) {}
+
+  private async ensureRestaurantAdminAccess(restaurantId: string, userId: string, userRole: string): Promise<void> {
+    if (userRole === 'PLATFORM_ADMIN') return;
+    const restaurant = await this.prisma.restaurant.findFirst({
+      where: { id: restaurantId, isActive: true, admins: { some: { id: userId } } },
+      select: { id: true },
+    });
+    if (!restaurant) {
+      throw new ForbiddenException('Sizga tayinlangan restoran yoki do\'kon yo\'q.');
+    }
+  }
+
+  @Get('settings')
+  @UseGuards(JwtAuthGuard)
+  async getSettings(
+    @Param('restaurantId') restaurantId: string,
+    @Req() req: RequestWithUser,
+  ) {
+    const userId = req.user?.id;
+    const role = req.user?.role;
+    if (userId && role) await this.ensureRestaurantAdminAccess(restaurantId, userId, role);
+    const restaurant = await this.prisma.restaurant.findUnique({
+      where: { id: restaurantId },
+      select: { telegramChatId: true },
+    });
+    return { telegramChatId: restaurant?.telegramChatId ?? '' };
+  }
+
+  @Patch('settings')
+  @UseGuards(JwtAuthGuard)
+  async patchSettings(
+    @Param('restaurantId') restaurantId: string,
+    @Body() body: { telegramChatId?: string },
+    @Req() req: RequestWithUser,
+  ) {
+    const userId = req.user?.id;
+    const role = req.user?.role;
+    if (userId && role) await this.ensureRestaurantAdminAccess(restaurantId, userId, role);
+    const value = typeof body.telegramChatId === 'string' ? body.telegramChatId.trim() || null : null;
+    await this.prisma.restaurant.update({
+      where: { id: restaurantId },
+      data: { telegramChatId: value },
+    });
+    return { telegramChatId: value ?? '' };
+  }
+}

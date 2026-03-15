@@ -72,8 +72,33 @@ export class OrdersService {
         items: { include: { dish: true } },
         address: true,
         restaurant: true,
+        customer: { select: { name: true } },
       },
     });
+
+    const notifyUrl = process.env.TELEGRAM_BOT_NOTIFY_URL;
+    const chatId = (order.restaurant as any).telegramChatId;
+    if (notifyUrl && chatId) {
+      const base = notifyUrl.replace(/\/$/, '');
+      const phone = order.address?.details?.replace(/^Tel:\s*/i, '') ?? '';
+      const payload = {
+        chatId,
+        order: {
+          id: order.id,
+          restaurantName: order.restaurant.name,
+          total: Number(order.total),
+          customerName: (order as any).customer?.name ?? '',
+          phone,
+          lat: order.address?.latitude,
+          lng: order.address?.longitude,
+        },
+      };
+      fetch(`${base}/notify`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      }).catch(() => {});
+    }
 
     if (dto.paymentMethod === 'CARD') {
       await this.prisma.payment.create({

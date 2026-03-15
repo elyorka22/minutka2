@@ -74,6 +74,7 @@ model Restaurant {
   featuredSortOrder Int @default(0)
   platformFeePercent Float @default(10)
   platformFeeClearedAt DateTime?
+  telegramChatId     String?
 
   admins     User[]     @relation("RestaurantAdmins")
   categories Category[]
