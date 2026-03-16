@@ -66,7 +66,11 @@ async function handleTelegramUpdate(update) {
   if (text === "/id" || text === "id" || text === "chat id") {
     await telegramRequest("sendMessage", {
       chat_id: chatId,
-      text: `Sizning Chat ID: ${chatId}\n\nBuni restoran admin panelida Sozlamalar → Telegram Chat ID maydoniga kiriting.`,
+      text: "Sizning Chat ID (quyidagi raqamni nusxa oling):",
+    });
+    await telegramRequest("sendMessage", {
+      chat_id: chatId,
+      text: String(chatId),
     });
     return;
   }
@@ -76,8 +80,11 @@ async function handleTelegramUpdate(update) {
       chat_id: chatId,
       text:
         "Assalomu alaykum! Bu Minutka boti.\n\n" +
-        `Sizning Chat ID: ${chatId}\n\n` +
-        "Ushbu raqamni restoran admin panelida Sozlamalar → Telegram Chat ID maydoniga kiriting.",
+        "Quyidagi xabarda sizning Chat ID raqamingiz bo‘ladi — uni nusxa olib, restoran admin panelida Sozlamalar → Telegram Chat ID maydoniga kiriting.",
+    });
+    await telegramRequest("sendMessage", {
+      chat_id: chatId,
+      text: String(chatId),
     });
     return;
   }
