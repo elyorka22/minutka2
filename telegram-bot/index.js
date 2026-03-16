@@ -58,7 +58,6 @@ async function sendOrderNotification(chatId, order) {
 }
 
 async function handleTelegramUpdate(update) {
-  // callback_query ishlatmaymiz, soddaroq: faqat matnli javoblar
   const msg = update.message;
   if (!msg || !msg.chat) return;
   const text = (msg.text || "").trim().toLowerCase();
@@ -81,16 +80,6 @@ async function handleTelegramUpdate(update) {
         "Ushbu raqamni restoran admin panelida Sozlamalar → Telegram Chat ID maydoniga kiriting.",
     });
     return;
-  }
-
-  // Har qanday boshqa xabar uchun ham Chat ID qaytaramiz — shunchaki soddaroq bo‘lsin
-  if (text) {
-    await telegramRequest("sendMessage", {
-      chat_id: chatId,
-      text:
-        `Sizning Chat ID: ${chatId}\n\n` +
-        "Ushbu raqamni restoran admin panelida Sozlamalar → Telegram Chat ID maydoniga kiriting.",
-    });
   }
 }
 
