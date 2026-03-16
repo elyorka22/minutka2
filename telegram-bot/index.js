@@ -58,18 +58,7 @@ async function sendOrderNotification(chatId, order) {
 }
 
 async function handleTelegramUpdate(update) {
-  const callback = update.callback_query;
-  if (callback) {
-    if (callback.data === "get_chat_id") {
-      const chatId = callback.message?.chat?.id ?? callback.from?.id;
-      await telegramRequest("answerCallbackQuery", { callback_query_id: callback.id });
-      await telegramRequest("sendMessage", {
-        chat_id: chatId,
-        text: `Sizning Chat ID: ${chatId}\n\nBuni restoran admin panelida Sozlamalar → Telegram Chat ID maydoniga kiriting.`,
-      });
-    }
-    return;
-  }
+  // callback_query ishlatmaymiz, soddaroq: faqat matnli javoblar
   const msg = update.message;
   if (!msg || !msg.chat) return;
   const text = (msg.text || "").trim().toLowerCase();
@@ -83,13 +72,24 @@ async function handleTelegramUpdate(update) {
     return;
   }
 
-  if (text === "/start" || text.startsWith("/start") || text) {
+  if (text === "/start" || text.startsWith("/start")) {
     await telegramRequest("sendMessage", {
       chat_id: chatId,
-      text: "Buyurtmalar haqida xabar olish uchun Chat ID kerak. Quyidagi tugmani bosing:",
-      reply_markup: {
-        inline_keyboard: [[{ text: "Chat ID ni olish", callback_data: "get_chat_id" }]],
-      },
+      text:
+        "Assalomu alaykum! Bu Minutka boti.\n\n" +
+        `Sizning Chat ID: ${chatId}\n\n` +
+        "Ushbu raqamni restoran admin panelida Sozlamalar → Telegram Chat ID maydoniga kiriting.",
+    });
+    return;
+  }
+
+  // Har qanday boshqa xabar uchun ham Chat ID qaytaramiz — shunchaki soddaroq bo‘lsin
+  if (text) {
+    await telegramRequest("sendMessage", {
+      chat_id: chatId,
+      text:
+        `Sizning Chat ID: ${chatId}\n\n` +
+        "Ushbu raqamni restoran admin panelida Sozlamalar → Telegram Chat ID maydoniga kiriting.",
     });
   }
 }
@@ -139,6 +139,23 @@ const server = http.createServer(async (req, res) => {
   res.end("not found");
 });
 
+async function runPolling() {
+  let offset = 0;
+  for (;;) {
+    try {
+      const res = await fetch(`${API}/getUpdates?offset=${offset}&timeout=25`).then((r) => r.json());
+      if (!res.ok || !Array.isArray(res.result)) continue;
+      for (const update of res.result) {
+        offset = update.update_id + 1;
+        await handleTelegramUpdate(update);
+      }
+    } catch (e) {
+      console.error("Polling error:", e.message);
+      await new Promise((r) => setTimeout(r, 2000));
+    }
+  }
+}
+
 server.listen(PORT, async () => {
   console.log("Telegram bot server listening on", PORT);
   const publicUrl = process.env.PUBLIC_URL || process.env.RAILWAY_STATIC_URL;
@@ -146,5 +163,9 @@ server.listen(PORT, async () => {
     const url = publicUrl.replace(/\/$/, "") + "/webhook";
     const r = await fetch(`${API}/setWebhook?url=${encodeURIComponent(url)}`).then((x) => x.json()).catch(() => ({}));
     if (r.ok) console.log("Webhook set:", url);
+  } else {
+    await fetch(`${API}/deleteWebhook`).catch(() => {});
+    console.log("PUBLIC_URL yo'q — long polling ishlatiladi. Botga /start yuboring.");
+    runPolling();
   }
 });
