@@ -25,19 +25,50 @@ function Header() {
 function HeaderMain() {
   const [canInstall, setCanInstall] = useState(false);
   const [installEvent, setInstallEvent] = useState<any | null>(null);
+  const [isStandalone, setIsStandalone] = useState(false);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
+    const standaloneMq = window.matchMedia("(display-mode: standalone)");
+    const computeStandalone = () =>
+      standaloneMq.matches || (window.navigator as any).standalone === true;
+    setIsStandalone(computeStandalone());
+
     const handler = (e: any) => {
       e.preventDefault();
       setInstallEvent(e);
       setCanInstall(true);
     };
     window.addEventListener("beforeinstallprompt", handler);
-    return () => window.removeEventListener("beforeinstallprompt", handler);
+    const onAppInstalled = () => {
+      setIsStandalone(true);
+      setCanInstall(false);
+      setInstallEvent(null);
+    };
+    window.addEventListener("appinstalled", onAppInstalled);
+    const onDisplayModeChange = () => setIsStandalone(computeStandalone());
+    if (typeof (standaloneMq as any).addEventListener === "function") {
+      (standaloneMq as any).addEventListener("change", onDisplayModeChange);
+    } else {
+      // Safari fallback
+      (standaloneMq as any).addListener?.(onDisplayModeChange);
+    }
+    return () => {
+      window.removeEventListener("beforeinstallprompt", handler);
+      window.removeEventListener("appinstalled", onAppInstalled);
+      if (typeof (standaloneMq as any).removeEventListener === "function") {
+        (standaloneMq as any).removeEventListener("change", onDisplayModeChange);
+      } else {
+        (standaloneMq as any).removeListener?.(onDisplayModeChange);
+      }
+    };
   }, []);
 
   async function handleInstallClick() {
+    if (isStandalone) {
+      // Ilova allaqachon o‘rnatilgan — foydalanuvchi allaqachon ilovada.
+      return;
+    }
     if (installEvent) {
       installEvent.prompt?.();
       await installEvent.userChoice?.();
@@ -71,16 +102,19 @@ function HeaderMain() {
           <Link href="/restaurants" className="fd-nav-link">Restoranlar</Link>
         </nav>
       </div>
-      <button
-        type="button"
-        className="fd-install-btn"
-        onClick={handleInstallClick}
-      >
-        <span className="fd-install-icon material-symbols-rounded">
-          download
-        </span>
-        <span className="fd-install-label">Telefonimga o‘rnatish</span>
-      </button>
+      {!isStandalone && (
+        <button
+          type="button"
+          className="fd-install-btn"
+          onClick={handleInstallClick}
+          aria-label={canInstall ? "Ilovani o‘rnatish" : "Ilovani o‘rnatish bo‘yicha ko‘rsatma"}
+        >
+          <span className="fd-install-icon material-symbols-rounded">
+            download
+          </span>
+          <span className="fd-install-label">Telefonimga o‘rnatish</span>
+        </button>
+      )}
     </header>
   );
 }
