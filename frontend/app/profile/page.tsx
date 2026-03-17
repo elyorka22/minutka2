@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { BackLink } from "../../components/BackLink";
 import { adminApi } from "../../lib/adminApi";
+import { API_BASE } from "../../lib/api";
 
 type JwtPayload = {
   sub?: string;
@@ -32,6 +33,7 @@ export default function ProfilePage() {
   const [myRestaurants, setMyRestaurants] = useState<MyRestaurant[]>([]);
   const [myRestaurantsError, setMyRestaurantsError] = useState(false);
   const [myRestaurantsLoading, setMyRestaurantsLoading] = useState(false);
+  const [pushStatus, setPushStatus] = useState<string | null>(null);
   const router = useRouter();
 
   useEffect(() => {
@@ -65,6 +67,60 @@ export default function ProfilePage() {
   }, [hasToken, payload?.role]);
 
   const role = payload?.role;
+
+  async function handleEnablePush() {
+    setPushStatus(null);
+    if (typeof window === "undefined") return;
+    if (!("serviceWorker" in navigator) || !("Notification" in window)) {
+      setPushStatus("Bildirishnomalar brauzeringizda qo‘llab-quvvatlanmaydi.");
+      return;
+    }
+    const publicKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
+    if (!publicKey) {
+      setPushStatus("Push kaliti topilmadi (NEXT_PUBLIC_VAPID_PUBLIC_KEY).");
+      return;
+    }
+    try {
+      let permission = Notification.permission;
+      if (permission === "default") {
+        permission = await Notification.requestPermission();
+      }
+      if (permission !== "granted") {
+        setPushStatus("Bildirishnomalarga ruxsat berilmadi.");
+        return;
+      }
+      const reg =
+        (await navigator.serviceWorker.getRegistration("/sw.js")) ??
+        (await navigator.serviceWorker.ready);
+      const existing = await reg.pushManager.getSubscription();
+      if (existing) {
+        setPushStatus("Bildirishnomalar allaqachon yoqilgan.");
+        return;
+      }
+      const urlBase64ToUint8Array = (base64: string) => {
+        const padding = "=".repeat((4 - (base64.length % 4)) % 4);
+        const base64Safe = (base64 + padding).replace(/-/g, "+").replace(/_/g, "/");
+        const raw = window.atob(base64Safe);
+        const output = new Uint8Array(raw.length);
+        for (let i = 0; i < raw.length; i++) {
+          output[i] = raw.charCodeAt(i);
+        }
+        return output;
+      };
+      const sub = await reg.pushManager.subscribe({
+        userVisibleOnly: true,
+        applicationServerKey: urlBase64ToUint8Array(publicKey),
+      });
+      await fetch(`${API_BASE.replace(/\/$/, "")}/push/subscribe`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(sub),
+      });
+      setPushStatus("Bildirishnomalar muvaffaqiyatli yoqildi.");
+    } catch {
+      setPushStatus("Bildirishnomalarni yoqishda xatolik yuz berdi.");
+    }
+  }
 
   function handleLogout() {
     if (typeof window !== "undefined") {
@@ -112,12 +168,27 @@ export default function ProfilePage() {
 
           <button
             type="button"
+            className="fd-btn fd-btn-primary"
+            style={{ marginTop: 8, marginRight: 8 }}
+            onClick={handleEnablePush}
+          >
+            Bildirishnomalarni yoqish
+          </button>
+
+          <button
+            type="button"
             className="fd-btn"
             style={{ marginTop: 8 }}
             onClick={handleLogout}
           >
             Chiqish
           </button>
+
+          {pushStatus && (
+            <p className="fd-card-desc" style={{ marginTop: 8, fontSize: "0.875rem" }}>
+              {pushStatus}
+            </p>
+          )}
 
           {isPlatformAdmin && (
             <div style={{ marginTop: 12, display: "flex", gap: 8, flexWrap: "wrap" }}>
