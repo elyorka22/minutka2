@@ -22,6 +22,8 @@ import { UserRole } from '../generated/prisma/enums';
 import * as fs from 'fs';
 import * as path from 'path';
 import { randomUUID } from 'crypto';
+// eslint-disable-next-line @typescript-eslint/no-var-requires
+const webpush = require('web-push');
 
 interface RequestWithUser {
   user?: { id: string; role: string };
@@ -34,7 +36,13 @@ export class AdminController {
     private readonly prisma: PrismaService,
     private readonly usersService: UsersService,
     private readonly visitsService: VisitsService,
-  ) {}
+  ) {
+    const publicKey = process.env.PUBLIC_VAPID_KEY;
+    const privateKey = process.env.PRIVATE_VAPID_KEY;
+    if (publicKey && privateKey) {
+      webpush.setVapidDetails('mailto:admin@minut-ka.uz', publicKey, privateKey);
+    }
+  }
 
   @Get('my-restaurants')
   async myRestaurants(@Req() req: RequestWithUser) {
@@ -131,6 +139,49 @@ export class AdminController {
     });
 
     return user;
+  }
+
+  @Post('push/send')
+  async sendPush(
+    @Body() body: { title?: string; message?: string; url?: string },
+    @Req() req: RequestWithUser,
+  ) {
+    if (req.user?.role !== 'PLATFORM_ADMIN') {
+      throw new ForbiddenException('Only platform admin allowed');
+    }
+    const title = (body.title ?? '').trim();
+    const message = (body.message ?? '').trim();
+    const url = (body.url ?? '/').trim() || '/';
+    if (!title || !message) {
+      throw new BadRequestException('title and message are required');
+    }
+    const subs = await this.prisma.pushSubscription.findMany();
+    let success = 0;
+    let failed = 0;
+    await Promise.all(
+      subs.map(async (s) => {
+        try {
+          await webpush.sendNotification(
+            {
+              endpoint: s.endpoint,
+              keys: { p256dh: s.p256dh, auth: s.auth },
+            } as any,
+            JSON.stringify({
+              title,
+              body: message,
+              url,
+            }),
+          );
+          success += 1;
+        } catch (e: any) {
+          failed += 1;
+          if (e?.statusCode === 410 || e?.statusCode === 404) {
+            await this.prisma.pushSubscription.delete({ where: { id: s.id } }).catch(() => {});
+          }
+        }
+      }),
+    );
+    return { ok: true, success, failed };
   }
 
   @Delete('users/:id')

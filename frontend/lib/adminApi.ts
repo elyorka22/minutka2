@@ -115,6 +115,11 @@ export const adminApi = {
     adminRequest<{ ok: boolean }>(`/admin/restaurants/${restaurantId}/clear-platform-fee`, {
       method: "POST",
     }),
+  sendPush: (body: { title: string; message: string; url: string }) =>
+    adminRequest<{ ok: boolean; success: number; failed: number }>("/admin/push/send", {
+      method: "POST",
+      body: JSON.stringify(body),
+    }),
   deleteRestaurant: (id: string) =>
     adminRequest<any>(`/admin/restaurants/${id}`, {
       method: "DELETE",

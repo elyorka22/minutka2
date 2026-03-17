@@ -12,7 +12,8 @@ type TabId =
   | "supermarkets"
   | "restaurant-stats"
   | "visits"
-  | "settings";
+  | "settings"
+  | "push";
 
 export default function PlatformAdminPage() {
   const [data, setData] = useState<any | null>(null);
@@ -69,6 +70,11 @@ export default function PlatformAdminPage() {
     total: number;
   } | null>(null);
   const [visitStatsLoading, setVisitStatsLoading] = useState(false);
+  const [pushTitle, setPushTitle] = useState("");
+  const [pushMessage, setPushMessage] = useState("");
+  const [pushUrl, setPushUrl] = useState("/");
+  const [pushSending, setPushSending] = useState(false);
+  const [pushResult, setPushResult] = useState<string | null>(null);
   const router = useRouter();
 
   async function handleUploadCreateImage(e: React.ChangeEvent<HTMLInputElement>) {
@@ -430,6 +436,7 @@ export default function PlatformAdminPage() {
     { id: "supermarkets", label: "Supermarketlar" },
     { id: "restaurant-stats", label: "Statistika restoranlar" },
     { id: "visits", label: "Tashrifchilar" },
+    { id: "push", label: "Push xabar yuborish" },
     { id: "settings", label: "Sozlamalar" },
   ];
 
@@ -1146,6 +1153,84 @@ export default function PlatformAdminPage() {
                 {!restaurantStatsLoading && !restaurantStats && activeTab === "restaurant-stats" && (
                   <p>Statistikani yuklashda xatolik.</p>
                 )}
+              </section>
+            </div>
+
+            <div
+              className={`fd-admin-panel ${activeTab === "push" ? "fd-admin-panel-active" : ""}`}
+            >
+              <section>
+                <h2>Push xabar yuborish</h2>
+                <p className="fd-checkout-meta">
+                  Brauzerda push bildirishnomalariga yozilgan foydalanuvchilarga umumiy xabar yuborish.
+                </p>
+                <form
+                  className="fd-form"
+                  style={{ marginTop: 16, maxWidth: 520 }}
+                  onSubmit={async (e) => {
+                    e.preventDefault();
+                    setPushResult(null);
+                    setPushSending(true);
+                    try {
+                      const res = await adminApi.sendPush({
+                        title: pushTitle.trim(),
+                        message: pushMessage.trim(),
+                        url: pushUrl.trim() || "/",
+                      });
+                      setPushResult(
+                        `Yuborildi: ${res.success} ta muvaffaqiyatli, ${res.failed} ta xatolik.`,
+                      );
+                    } catch (err: any) {
+                      setPushResult(err?.message ?? "Xabar yuborishda xatolik.");
+                    } finally {
+                      setPushSending(false);
+                    }
+                  }}
+                >
+                  <label className="fd-field">
+                    <span>Sarlavha</span>
+                    <input
+                      value={pushTitle}
+                      onChange={(e) => setPushTitle(e.target.value)}
+                      placeholder="Masalan: 🔥 Yangi aksiya"
+                      required
+                    />
+                  </label>
+                  <label className="fd-field">
+                    <span>Xabar matni</span>
+                    <textarea
+                      value={pushMessage}
+                      onChange={(e) => setPushMessage(e.target.value)}
+                      placeholder="Bugun barcha burgerlarga 30% chegirma"
+                      rows={3}
+                      required
+                    />
+                  </label>
+                  <label className="fd-field">
+                    <span>URL (bosilganda ochiladigan sahifa)</span>
+                    <input
+                      value={pushUrl}
+                      onChange={(e) => setPushUrl(e.target.value)}
+                      placeholder="/"
+                    />
+                  </label>
+                  {pushResult && (
+                    <p
+                      className="fd-checkout-meta"
+                      style={{ marginTop: 8, color: pushResult.includes("xatolik") ? "var(--color-orange)" : "var(--color-success, #16a34a)" }}
+                    >
+                      {pushResult}
+                    </p>
+                  )}
+                  <button
+                    type="submit"
+                    className="fd-btn fd-btn-primary"
+                    disabled={pushSending}
+                    style={{ marginTop: 12 }}
+                  >
+                    {pushSending ? "Yuborilmoqda…" : "Yuborish"}
+                  </button>
+                </form>
               </section>
             </div>
 

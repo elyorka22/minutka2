@@ -248,6 +248,14 @@ model ProductCategory {
   products Product[]
 }
 
+model PushSubscription {
+  id        Int      @id @default(autoincrement())
+  endpoint  String   @unique
+  p256dh    String
+  auth      String
+  createdAt DateTime @default(now())
+}
+
 model PromoCode {
   id        String   @id @default(cuid())
   createdAt DateTime @default(now())

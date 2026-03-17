@@ -8,7 +8,7 @@ import { usePathname } from "next/navigation";
 import { CartProvider, useCart } from "../components/CartContext";
 import { usePWAInstall } from "../hooks/usePWAInstall";
 import { PWAInstallModal } from "../components/PWAInstallModal";
-import { api } from "../lib/api";
+import { api, API_BASE } from "../lib/api";
 
 function Header() {
   const pathname = usePathname() || "";
@@ -234,6 +234,44 @@ export default function RootLayout({ children }: { children: ReactNode }) {
     if ("serviceWorker" in navigator) {
       navigator.serviceWorker
         .register("/sw.js")
+        .then((reg) => {
+          if (!("PushManager" in window) || !("Notification" in window)) return;
+          const key = "minutka_push_registered";
+          if (sessionStorage.getItem(key)) return;
+          if (Notification.permission === "denied") return;
+          const publicKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
+          if (!publicKey) return;
+          const urlBase64ToUint8Array = (base64: string) => {
+            const padding = "=".repeat((4 - (base64.length % 4)) % 4);
+            const base64Safe = (base64 + padding).replace(/-/g, "+").replace(/_/g, "/");
+            const raw = window.atob(base64Safe);
+            const output = new Uint8Array(raw.length);
+            for (let i = 0; i < raw.length; i++) {
+              output[i] = raw.charCodeAt(i);
+            }
+            return output;
+          };
+          const ensureSubscription = async () => {
+            let permission = Notification.permission;
+            if (permission === "default") {
+              permission = await Notification.requestPermission();
+            }
+            if (permission !== "granted") return;
+            const existing = await reg.pushManager.getSubscription();
+            if (existing) return;
+            const sub = await reg.pushManager.subscribe({
+              userVisibleOnly: true,
+              applicationServerKey: urlBase64ToUint8Array(publicKey),
+            });
+            await fetch(`${API_BASE.replace(/\/$/, "")}/push/subscribe`, {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify(sub),
+            }).catch(() => {});
+            sessionStorage.setItem(key, "1");
+          };
+          ensureSubscription().catch(() => {});
+        })
         .catch(() => {});
     }
   }, []);
