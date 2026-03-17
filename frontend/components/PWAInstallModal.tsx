@@ -35,10 +35,10 @@ export function PWAInstallModal({ open, onInstall, onLater }: PWAInstallModalPro
           <span className="material-symbols-rounded">restaurant</span>
         </div>
         <h2 id="fd-pwa-title" className="fd-pwa-title">
-          Установите приложение Minutka
+          Minutka ilovasini o‘rnating
         </h2>
         <p className="fd-pwa-text">
-          Заказывайте еду быстрее и удобнее. Получайте уведомления об акциях и скидках.
+          Taomlarni tez buyurtma qiling va aksiyalar haqida birinchi bo‘lib xabar oling.
         </p>
         <div className="fd-pwa-actions">
           <button
@@ -46,14 +46,14 @@ export function PWAInstallModal({ open, onInstall, onLater }: PWAInstallModalPro
             className="fd-pwa-btn fd-pwa-btn--primary"
             onClick={onInstall}
           >
-            Установить
+            O‘rnatish
           </button>
           <button
             type="button"
             className="fd-pwa-btn fd-pwa-btn--secondary"
             onClick={onLater}
           >
-            Позже
+            Keyin
           </button>
         </div>
       </div>
