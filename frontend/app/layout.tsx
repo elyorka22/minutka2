@@ -211,6 +211,25 @@ export default function RootLayout({ children }: { children: ReactNode }) {
         <meta name="theme-color" content="#ff6b00" />
         <meta name="mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-capable" content="yes" />
+        <title>Minutka — Restoranlar va ovqat yetkazib berish xizmati</title>
+        <meta
+          name="description"
+          content="Minutka orqali shahringizdagi restoranlar va do‘konlardan tez buyurtma qiling. Eng yaxshi aksiyalar va qulay yetkazib berish xizmati."
+        />
+        <meta
+          property="og:title"
+          content="Minutka — Restoranlar va ovqat yetkazib berish xizmati"
+        />
+        <meta
+          property="og:description"
+          content="Restoranlar va do‘konlardan tez buyurtma qiling. Eng yaxshi aksiyalar Minutka’da."
+        />
+        <meta
+          property="og:image"
+          content="https://minut-ka.uz/web-app-manifest-512x512.png"
+        />
+        <meta property="og:url" content="https://minut-ka.uz" />
+        <meta property="og:type" content="website" />
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
         <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet" />
