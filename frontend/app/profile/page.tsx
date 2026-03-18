@@ -117,16 +117,26 @@ export default function ProfilePage() {
       }
 
       setPushStatus("Service worker tekshirilmoqda…");
-      const reg =
-        (await navigator.serviceWorker.getRegistration("/sw.js")) ??
-        (await navigator.serviceWorker.ready);
+      const reg = await withTimeout(
+        (async () => {
+          const direct = await navigator.serviceWorker.getRegistration("/sw.js");
+          if (direct) return direct;
+          return await navigator.serviceWorker.ready;
+        })(),
+        15000,
+        "Service worker tayyor emas. Sahifani yangilab ko‘ring."
+      );
       if (!reg) {
         setPushStatus("Service worker topilmadi. Sahifani yangilab ko‘ring.");
         return;
       }
 
       setPushStatus("Obuna tekshirilmoqda…");
-      const existing = await reg.pushManager.getSubscription();
+      const existing = await withTimeout(
+        reg.pushManager.getSubscription(),
+        10000,
+        "Push obuna tekshiruvi javob bermadi."
+      );
       if (existing) {
         setPushStatus("Bildirishnomalar allaqachon yoqilgan.");
         return;
@@ -172,6 +182,10 @@ export default function ProfilePage() {
 
       setPushStatus("Bildirishnomalar muvaffaqiyatli yoqildi.");
     } catch (e: any) {
+      if (e?.name === "AbortError") {
+        setPushStatus("Server javob bermadi (timeout). API_BASE noto‘g‘ri bo‘lishi mumkin.");
+        return;
+      }
       const msg =
         typeof e?.message === "string" && e.message.trim()
           ? e.message.trim()
