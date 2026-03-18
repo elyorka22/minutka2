@@ -228,6 +228,8 @@ function PWAInstallGate() {
 
 export default function RootLayout({ children }: { children: ReactNode }) {
   const showBottomBar = useShowBottomBar();
+  const [updateReady, setUpdateReady] = useState(false);
+  const [waitingSw, setWaitingSw] = useState<ServiceWorker | null>(null);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -235,6 +237,31 @@ export default function RootLayout({ children }: { children: ReactNode }) {
       navigator.serviceWorker
         .register("/sw.js")
         .then((reg) => {
+          // Update banner: show when a new SW is waiting
+          const captureWaiting = () => {
+            const w = reg.waiting;
+            if (w) {
+              setWaitingSw(w);
+              setUpdateReady(true);
+            }
+          };
+          reg.addEventListener("updatefound", () => {
+            const installing = reg.installing;
+            if (!installing) return;
+            installing.addEventListener("statechange", () => {
+              if (installing.state === "installed" && navigator.serviceWorker.controller) {
+                captureWaiting();
+              }
+            });
+          });
+          captureWaiting();
+
+          const onControllerChange = () => {
+            // new SW has taken control → reload to get fresh assets
+            window.location.reload();
+          };
+          navigator.serviceWorker.addEventListener("controllerchange", onControllerChange, { once: true } as any);
+
           if (!("PushManager" in window) || !("Notification" in window)) return;
           const key = "minutka_push_registered";
           if (sessionStorage.getItem(key)) return;
@@ -315,6 +342,30 @@ export default function RootLayout({ children }: { children: ReactNode }) {
         <CartProvider>
           <VisitRecorder />
           <Header />
+          {updateReady && (
+            <div className="fd-update-banner" role="status" aria-live="polite">
+              <div className="fd-update-banner__text">
+                Yangi versiya mavjud. Yangilaysizmi?
+              </div>
+              <button
+                type="button"
+                className="fd-btn fd-btn-primary fd-update-banner__btn"
+                onClick={() => {
+                  if (!waitingSw) return;
+                  waitingSw.postMessage({ type: "SKIP_WAITING" });
+                }}
+              >
+                Yangilash
+              </button>
+              <button
+                type="button"
+                className="fd-btn fd-update-banner__btn"
+                onClick={() => setUpdateReady(false)}
+              >
+                Keyin
+              </button>
+            </div>
+          )}
           <main className={showBottomBar ? "fd-main" : "fd-main fd-main--no-bottom-bar"}>
             {children}
           </main>
