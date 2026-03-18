@@ -62,11 +62,13 @@ self.addEventListener("push", (event) => {
   const title = data.title || "Minutka";
   const body = data.body || data.message || "";
   const url = data.url || "/";
+  const icon = data.icon || "/icons/file_000000005060720ab78afedfc8a901fa.png";
   event.waitUntil(
     self.registration.showNotification(title, {
       body,
-      icon: "/icons/web-app-manifest-192x192.png",
-      badge: "/icons/web-app-manifest-192x192.png",
+      icon,
+      // Some Android launchers show badge; keep it same as icon for consistency
+      badge: icon,
       data: { url },
     }),
   );
