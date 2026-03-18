@@ -152,6 +152,30 @@ export default function CheckoutPage() {
             </p>
           ) : (
             <form onSubmit={handleSubmit} className="fd-form">
+              <div className="fd-field">
+                <span>Manzilni ko‘rsatish usuli</span>
+                <fieldset>
+                  <div className="fd-radio-group">
+                    <label>
+                      <input
+                        type="radio"
+                        checked={addressMode === "manual"}
+                        onChange={() => setAddressMode("manual")}
+                      />
+                      <span>Manzilni qo‘lda kiritaman</span>
+                    </label>
+                    <label>
+                      <input
+                        type="radio"
+                        checked={addressMode === "auto"}
+                        onChange={() => setAddressMode("auto")}
+                      />
+                      <span>Manzilni geolokatsiya orqali aniqlash</span>
+                    </label>
+                  </div>
+                </fieldset>
+              </div>
+
               {addressMode === "manual" && (
                 <>
                   <label className="fd-field">
