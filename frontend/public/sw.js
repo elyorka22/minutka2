@@ -74,19 +74,16 @@ self.addEventListener("push", (event) => {
 
 self.addEventListener("notificationclick", (event) => {
   event.notification.close();
-  const url = event.notification?.data?.url || "/";
+  const url = (event.notification && event.notification.data && event.notification.data.url) || "/";
   event.waitUntil(
     self.clients
       .matchAll({ type: "window", includeUncontrolled: true })
       .then((clientList) => {
         for (const client of clientList) {
-          if ((client as any).url?.includes(url) && "focus" in client) {
-            return client.focus();
-          }
+          const clientUrl = typeof client.url === "string" ? client.url : "";
+          if (clientUrl.includes(url) && typeof client.focus === "function") return client.focus();
         }
-        if (self.clients.openWindow) {
-          return self.clients.openWindow(url);
-        }
+        if (typeof self.clients.openWindow === "function") return self.clients.openWindow(url);
       }),
   );
 });

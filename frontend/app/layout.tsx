@@ -233,7 +233,9 @@ export default function RootLayout({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     if (typeof window === "undefined") return;
-    if ("serviceWorker" in navigator) {
+    if (!("serviceWorker" in navigator)) return;
+
+    const register = () => {
       navigator.serviceWorker
         .register("/sw.js")
         .then((reg) => {
@@ -266,7 +268,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
             // new SW has taken control → reload to get fresh assets
             window.location.reload();
           };
-          navigator.serviceWorker.addEventListener("controllerchange", onControllerChange, { once: true } as any);
+          navigator.serviceWorker.addEventListener("controllerchange", onControllerChange, { once: true });
 
           if (!("PushManager" in window) || !("Notification" in window)) return;
           const key = "minutka_push_registered";
@@ -320,7 +322,14 @@ export default function RootLayout({ children }: { children: ReactNode }) {
           // eslint-disable-next-line no-console
           console.warn("SW register failed", e);
         });
+    };
+
+    if (document.readyState === "complete") {
+      register();
+      return;
     }
+    window.addEventListener("load", register, { once: true });
+    return () => window.removeEventListener("load", register as any);
   }, []);
 
   return (
