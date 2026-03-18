@@ -158,6 +158,21 @@ export default function ProfilePage() {
               Ro‘yxatdan o‘tish (adminlar uchun)
             </Link>
           </div>
+
+          <div style={{ marginTop: 12 }}>
+            <button
+              type="button"
+              className="fd-btn fd-btn-primary"
+              onClick={handleEnablePush}
+            >
+              Bildirishnomalarni yoqish
+            </button>
+            {pushStatus && (
+              <p className="fd-card-desc" style={{ marginTop: 8, fontSize: "0.875rem" }}>
+                {pushStatus}
+              </p>
+            )}
+          </div>
         </div>
       )}
 
