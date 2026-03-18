@@ -268,6 +268,8 @@ export default function RootLayout({ children }: { children: ReactNode }) {
           if (Notification.permission === "denied") return;
           const publicKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
           if (!publicKey) return;
+          const apiBase = process.env.NEXT_PUBLIC_API_BASE_URL;
+          if (!apiBase) return;
           const urlBase64ToUint8Array = (base64: string) => {
             const padding = "=".repeat((4 - (base64.length % 4)) % 4);
             const base64Safe = (base64 + padding).replace(/-/g, "+").replace(/_/g, "/");
@@ -290,7 +292,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
               userVisibleOnly: true,
               applicationServerKey: urlBase64ToUint8Array(publicKey),
             });
-            await fetch(`${API_BASE.replace(/\/$/, "")}/push/subscribe`, {
+            await fetch(`${apiBase.replace(/\/$/, "")}/push/subscribe`, {
               method: "POST",
               headers: { "Content-Type": "application/json" },
               body: JSON.stringify(sub),
