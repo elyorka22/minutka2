@@ -1,12 +1,15 @@
-const CACHE_NAME = "minutka-static-v1";
-const ASSETS = [
-  "/",
-  "/manifest.json",
-];
+const CACHE_NAME = "minutka-static-v2";
+// Keep this list minimal; failing to cache "/" can break SW install on some hosts.
+const ASSETS = ["/manifest.json"];
 
 self.addEventListener("install", (event) => {
   event.waitUntil(
-    caches.open(CACHE_NAME).then((cache) => cache.addAll(ASSETS)).then(() => self.skipWaiting())
+    (async () => {
+      const cache = await caches.open(CACHE_NAME);
+      // Never fail install because one asset couldn't be fetched.
+      await Promise.allSettled(ASSETS.map((url) => cache.add(url)));
+      await self.skipWaiting();
+    })(),
   );
 });
 

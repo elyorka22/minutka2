@@ -237,6 +237,12 @@ export default function RootLayout({ children }: { children: ReactNode }) {
       navigator.serviceWorker
         .register("/sw.js")
         .then((reg) => {
+          try {
+            sessionStorage.setItem("minutka_sw_registered", "1");
+            sessionStorage.removeItem("minutka_sw_register_error");
+          } catch {
+            // ignore
+          }
           // Update banner: show when a new SW is waiting
           const captureWaiting = () => {
             const w = reg.waiting;
@@ -301,7 +307,19 @@ export default function RootLayout({ children }: { children: ReactNode }) {
           };
           ensureSubscription().catch(() => {});
         })
-        .catch(() => {});
+        .catch((e) => {
+          try {
+            sessionStorage.setItem(
+              "minutka_sw_register_error",
+              typeof e?.message === "string" ? e.message : String(e),
+            );
+          } catch {
+            // ignore
+          }
+          // Keep console signal for debugging production issues
+          // eslint-disable-next-line no-console
+          console.warn("SW register failed", e);
+        });
     }
   }, []);
 
