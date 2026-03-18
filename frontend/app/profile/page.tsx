@@ -90,14 +90,33 @@ export default function ProfilePage() {
     setPushBusy(true);
     setPushStatus("Bildirishnomalar yoqilmoqda…");
     try {
+      const withTimeout = async <T,>(promise: Promise<T>, ms: number, message: string) => {
+        let timeoutId: any;
+        const timeout = new Promise<T>((_, reject) => {
+          timeoutId = setTimeout(() => reject(new Error(message)), ms);
+        });
+        try {
+          return await Promise.race([promise, timeout]);
+        } finally {
+          clearTimeout(timeoutId);
+        }
+      };
+
       let permission = Notification.permission;
       if (permission === "default") {
-        permission = await Notification.requestPermission();
+        setPushStatus("Ruxsat so‘ralmoqda…");
+        permission = await withTimeout(
+          Notification.requestPermission(),
+          15000,
+          "Ruxsat oynasi ochilmadi. Brauzer sozlamalarini tekshiring."
+        );
       }
       if (permission !== "granted") {
         setPushStatus("Bildirishnomalarga ruxsat berilmadi.");
         return;
       }
+
+      setPushStatus("Service worker tekshirilmoqda…");
       const reg =
         (await navigator.serviceWorker.getRegistration("/sw.js")) ??
         (await navigator.serviceWorker.ready);
@@ -105,6 +124,8 @@ export default function ProfilePage() {
         setPushStatus("Service worker topilmadi. Sahifani yangilab ko‘ring.");
         return;
       }
+
+      setPushStatus("Obuna tekshirilmoqda…");
       const existing = await reg.pushManager.getSubscription();
       if (existing) {
         setPushStatus("Bildirishnomalar allaqachon yoqilgan.");
@@ -120,15 +141,35 @@ export default function ProfilePage() {
         }
         return output;
       };
-      const sub = await reg.pushManager.subscribe({
-        userVisibleOnly: true,
-        applicationServerKey: urlBase64ToUint8Array(publicKey),
-      });
-      await fetch(`${API_BASE.replace(/\/$/, "")}/push/subscribe`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(sub),
-      });
+
+      setPushStatus("Push obunasi yaratilmoqda…");
+      const sub = await withTimeout(
+        reg.pushManager.subscribe({
+          userVisibleOnly: true,
+          applicationServerKey: urlBase64ToUint8Array(publicKey),
+        }),
+        20000,
+        "Push obunasi yaratilmayapti. Brauzer push-ni qo‘llamasligi mumkin."
+      );
+
+      setPushStatus("Serverga saqlanmoqda…");
+      const controller = new AbortController();
+      const fetchTimeoutId = setTimeout(() => controller.abort(), 15000);
+      try {
+        const res = await fetch(`${API_BASE.replace(/\/$/, "")}/push/subscribe`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(sub),
+          signal: controller.signal,
+        });
+        if (!res.ok) {
+          const txt = await res.text().catch(() => "");
+          throw new Error(txt || `Server xatosi: ${res.status}`);
+        }
+      } finally {
+        clearTimeout(fetchTimeoutId);
+      }
+
       setPushStatus("Bildirishnomalar muvaffaqiyatli yoqildi.");
     } catch (e: any) {
       const msg =
