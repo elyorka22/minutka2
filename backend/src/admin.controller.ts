@@ -394,9 +394,10 @@ export class AdminController {
       });
       return restaurant;
     } catch (e: any) {
-      // Если есть связанные заказы и срабатывает ограничение внешнего ключа,
+      // Если есть связанные данные и срабатывает ограничение внешнего ключа,
       // просто помечаем ресторан как неактивный, чтобы скрыть его отовсюду.
-      if (e && e.code === 'P2003') {
+      // Prisma может возвращать разные коды в зависимости от типа ограничения.
+      if (e && (e.code === 'P2003' || e.code === 'P2014')) {
         const restaurant = await this.prisma.restaurant.update({
           where: { id },
           data: { isActive: false },
