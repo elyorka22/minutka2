@@ -34,6 +34,7 @@ export default function ProfilePage() {
   const [myRestaurantsError, setMyRestaurantsError] = useState(false);
   const [myRestaurantsLoading, setMyRestaurantsLoading] = useState(false);
   const [pushStatus, setPushStatus] = useState<string | null>(null);
+  const [pushBusy, setPushBusy] = useState(false);
   const router = useRouter();
 
   useEffect(() => {
@@ -69,9 +70,10 @@ export default function ProfilePage() {
   const role = payload?.role;
 
   async function handleEnablePush() {
+    if (pushBusy) return;
     setPushStatus(null);
     if (typeof window === "undefined") return;
-    if (!("serviceWorker" in navigator) || !("Notification" in window)) {
+    if (!("serviceWorker" in navigator) || !("Notification" in window) || !("PushManager" in window)) {
       setPushStatus("Bildirishnomalar brauzeringizda qo‘llab-quvvatlanmaydi.");
       return;
     }
@@ -80,6 +82,13 @@ export default function ProfilePage() {
       setPushStatus("Push kaliti topilmadi (NEXT_PUBLIC_VAPID_PUBLIC_KEY).");
       return;
     }
+    if (window.location.protocol !== "https:" && window.location.hostname !== "localhost") {
+      setPushStatus("Push ishlashi uchun HTTPS kerak.");
+      return;
+    }
+
+    setPushBusy(true);
+    setPushStatus("Bildirishnomalar yoqilmoqda…");
     try {
       let permission = Notification.permission;
       if (permission === "default") {
@@ -92,6 +101,10 @@ export default function ProfilePage() {
       const reg =
         (await navigator.serviceWorker.getRegistration("/sw.js")) ??
         (await navigator.serviceWorker.ready);
+      if (!reg) {
+        setPushStatus("Service worker topilmadi. Sahifani yangilab ko‘ring.");
+        return;
+      }
       const existing = await reg.pushManager.getSubscription();
       if (existing) {
         setPushStatus("Bildirishnomalar allaqachon yoqilgan.");
@@ -117,8 +130,14 @@ export default function ProfilePage() {
         body: JSON.stringify(sub),
       });
       setPushStatus("Bildirishnomalar muvaffaqiyatli yoqildi.");
-    } catch {
-      setPushStatus("Bildirishnomalarni yoqishda xatolik yuz berdi.");
+    } catch (e: any) {
+      const msg =
+        typeof e?.message === "string" && e.message.trim()
+          ? e.message.trim()
+          : "Bildirishnomalarni yoqishda xatolik yuz berdi.";
+      setPushStatus(msg);
+    } finally {
+      setPushBusy(false);
     }
   }
 
@@ -164,8 +183,9 @@ export default function ProfilePage() {
               type="button"
               className="fd-btn fd-btn-primary"
               onClick={handleEnablePush}
+              disabled={pushBusy}
             >
-              Bildirishnomalarni yoqish
+              {pushBusy ? "Yoqilmoqda…" : "Bildirishnomalarni yoqish"}
             </button>
             {pushStatus && (
               <p className="fd-card-desc" style={{ marginTop: 8, fontSize: "0.875rem" }}>
@@ -186,8 +206,9 @@ export default function ProfilePage() {
             className="fd-btn fd-btn-primary"
             style={{ marginTop: 8, marginRight: 8 }}
             onClick={handleEnablePush}
+            disabled={pushBusy}
           >
-            Bildirishnomalarni yoqish
+            {pushBusy ? "Yoqilmoqda…" : "Bildirishnomalarni yoqish"}
           </button>
 
           <button
