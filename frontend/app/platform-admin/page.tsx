@@ -247,6 +247,11 @@ export default function PlatformAdminPage() {
     };
   }
 
+  const editingRestaurant =
+    editingRestaurantId && data?.restaurants
+      ? data.restaurants.find((x: any) => x.id === editingRestaurantId) ?? null
+      : null;
+
   async function changeUserRole(id: string, role: string) {
     try {
       const updated = await adminApi.updateUserRole(id, role);
@@ -578,6 +583,7 @@ export default function PlatformAdminPage() {
       {loading && <p>Yuklanmoqda...</p>}
       {error && <p className="fd-empty">{error}</p>}
       {data && (
+        <>
         <div className="fd-admin-main">
           <p className="fd-admin-current-tab">{activeTabLabel}</p>
             <div
@@ -815,7 +821,7 @@ export default function PlatformAdminPage() {
                         </button>
                       </div>
 
-                      {editingRestaurantId === r.id && (
+                      {false && (
                         <div className="fd-form-block" style={{ marginTop: 12 }}>
                           <h3 style={{ marginTop: 0 }}>Restoranni tahrirlash</h3>
                           <div className="fd-form">
@@ -1095,7 +1101,7 @@ export default function PlatformAdminPage() {
                           </button>
                         </div>
 
-                        {editingRestaurantId === r.id && (
+                        {false && (
                           <div className="fd-form-block" style={{ marginTop: 12 }}>
                             <h3 style={{ marginTop: 0 }}>Supermarketni tahrirlash</h3>
                             <div className="fd-form">
@@ -1544,6 +1550,149 @@ export default function PlatformAdminPage() {
               </section>
             </div>
           </div>
+
+          {editingRestaurant && (
+            <div
+              style={{
+                position: "fixed",
+                inset: 0,
+                background: "rgba(0,0,0,0.45)",
+                zIndex: 1100,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                padding: 12,
+              }}
+              onClick={(e) => {
+                if (e.target === e.currentTarget) setEditingRestaurantId(null);
+              }}
+            >
+              <div
+                className="fd-form-block"
+                style={{
+                  width: "min(720px, 96vw)",
+                  maxHeight: "88vh",
+                  overflowY: "auto",
+                  margin: 0,
+                }}
+              >
+                <h3 style={{ marginTop: 0 }}>
+                  {editingRestaurant.isSupermarket ? "Supermarketni tahrirlash" : "Restoranni tahrirlash"}
+                </h3>
+                <div className="fd-form">
+                  <label className="fd-field">
+                    <span>Nomi</span>
+                    <input
+                      value={editRestaurantForm.name}
+                      onChange={(e) => setEditRestaurantForm((p) => ({ ...p, name: e.target.value }))}
+                    />
+                  </label>
+                  <label className="fd-field">
+                    <span>Tavsif</span>
+                    <input
+                      value={editRestaurantForm.description}
+                      onChange={(e) => setEditRestaurantForm((p) => ({ ...p, description: e.target.value }))}
+                    />
+                  </label>
+                  <label className="fd-field">
+                    <span>Rasm URL</span>
+                    <input
+                      value={editRestaurantForm.imageUrl}
+                      onChange={(e) => setEditRestaurantForm((p) => ({ ...p, imageUrl: e.target.value }))}
+                    />
+                  </label>
+                  <label className="fd-field">
+                    <span>Platforma %</span>
+                    <input
+                      type="number"
+                      min={0}
+                      max={100}
+                      step={0.5}
+                      value={editRestaurantForm.platformFeePercent}
+                      onChange={(e) =>
+                        setEditRestaurantForm((p) => ({ ...p, platformFeePercent: e.target.value }))
+                      }
+                    />
+                  </label>
+                  {!editingRestaurant.isSupermarket && (
+                    <>
+                      <label className="fd-field" style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                        <input
+                          type="checkbox"
+                          checked={editRestaurantForm.isFeatured}
+                          onChange={(e) =>
+                            setEditRestaurantForm((p) => ({ ...p, isFeatured: e.target.checked }))
+                          }
+                        />
+                        <span>Top karuselda</span>
+                      </label>
+                      {editRestaurantForm.isFeatured && (
+                        <label className="fd-field">
+                          <span>Tartib</span>
+                          <input
+                            type="number"
+                            min={0}
+                            value={editRestaurantForm.featuredSortOrder}
+                            onChange={(e) =>
+                              setEditRestaurantForm((p) => ({ ...p, featuredSortOrder: e.target.value }))
+                            }
+                          />
+                        </label>
+                      )}
+                    </>
+                  )}
+                  <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
+                    <input
+                      type="text"
+                      placeholder="Admin login (tayinlash)"
+                      value={addAdminEmails[editingRestaurant.id] ?? ""}
+                      onChange={(e) =>
+                        setAddAdminEmails((prev) => ({ ...prev, [editingRestaurant.id]: e.target.value }))
+                      }
+                      style={{ width: 220, padding: "8px 10px", fontSize: "0.875rem" }}
+                    />
+                    <button
+                      type="button"
+                      className="fd-btn"
+                      disabled={
+                        !(addAdminEmails[editingRestaurant.id] ?? "").trim() ||
+                        addAdminSubmitting[editingRestaurant.id]
+                      }
+                      onClick={async () => {
+                        const email = (addAdminEmails[editingRestaurant.id] ?? "").trim();
+                        if (!email) return;
+                        setAddAdminSubmitting((prev) => ({ ...prev, [editingRestaurant.id]: true }));
+                        try {
+                          await adminApi.addRestaurantAdmin(editingRestaurant.id, email);
+                          setAddAdminEmails((prev) => ({ ...prev, [editingRestaurant.id]: "" }));
+                        } catch (err: any) {
+                          setError(err?.message ?? "Xatolik");
+                        } finally {
+                          setAddAdminSubmitting((prev) => ({ ...prev, [editingRestaurant.id]: false }));
+                        }
+                      }}
+                    >
+                      {addAdminSubmitting[editingRestaurant.id] ? "..." : "Adminni tayinlash"}
+                    </button>
+                  </div>
+                  <div style={{ display: "flex", gap: 8, marginTop: 8 }}>
+                    <button
+                      type="button"
+                      className="fd-btn fd-btn-primary"
+                      disabled={editSubmitting}
+                      onClick={() => saveEditRestaurant(editingRestaurant.id)}
+                    >
+                      {editSubmitting ? "Saqlanmoqda..." : "Saqlash"}
+                    </button>
+                    <button type="button" className="fd-btn" onClick={() => setEditingRestaurantId(null)}>
+                      Bekor qilish
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+        </>
       )}
     </div>
   );
