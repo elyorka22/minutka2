@@ -750,7 +750,7 @@ export default function PlatformAdminPage() {
 
                 <div className="fd-grid fd-grid--2 fd-grid--mobile-2">
                   {data.restaurants?.map((r: any) => (
-                    <div key={r.id} className="fd-card" style={{ padding: 10 }}>
+                    <div key={r.id} className="fd-card" style={{ padding: 8 }}>
                       <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
                         <img
                           src={imageUrl(r.logoUrl || r.coverUrl || "")}
@@ -773,13 +773,18 @@ export default function PlatformAdminPage() {
                         </button>
                       </div>
 
-                      <div style={{ display: "flex", gap: 8, marginTop: 10, flexWrap: "wrap" }}>
-                        <Link href={`/platform-admin/restaurants/${r.id}`} className="fd-btn fd-btn-primary" style={{ textDecoration: "none" }}>
+                      <div style={{ display: "flex", gap: 6, marginTop: 8, flexWrap: "wrap" }}>
+                        <Link
+                          href={`/platform-admin/restaurants/${r.id}`}
+                          className="fd-btn fd-btn-primary"
+                          style={{ textDecoration: "none", padding: "8px 12px", fontSize: "0.875rem" }}
+                        >
                           Menyu
                         </Link>
                         <button
                           type="button"
                           className="fd-btn"
+                          style={{ padding: "8px 12px", fontSize: "0.875rem" }}
                           onClick={async () => {
                             try {
                               await adminApi.deleteRestaurant(r.id);
@@ -998,6 +1003,169 @@ export default function PlatformAdminPage() {
                       {createSubmitting ? "Saqlanmoqda..." : "Supermarket qo‘shish"}
                     </button>
                   </form>
+                </div>
+
+                <h3 style={{ marginTop: 16 }}>Mavjud supermarketlar</h3>
+                <div className="fd-grid fd-grid--2 fd-grid--mobile-2">
+                  {(data.restaurants ?? [])
+                    .filter((x: any) => !!x.isSupermarket)
+                    .map((r: any) => (
+                      <div key={r.id} className="fd-card" style={{ padding: 8 }}>
+                        <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
+                          <img
+                            src={imageUrl(r.logoUrl || r.coverUrl || "")}
+                            alt=""
+                            style={{ width: 48, height: 48, borderRadius: 10, objectFit: "cover", background: "#f2f2f2" }}
+                            onError={(e) => ((e.target as HTMLImageElement).style.display = "none")}
+                          />
+                          <div style={{ flex: 1, minWidth: 0 }}>
+                            <div style={{ fontWeight: 700, fontSize: "0.95rem" }}>{r.name}</div>
+                            <div className="fd-checkout-meta" style={{ fontSize: "0.82rem" }}>
+                              {r.description || "Tavsif yo‘q"}
+                            </div>
+                          </div>
+                          <button
+                            type="button"
+                            className="fd-btn"
+                            style={{ padding: "6px 10px" }}
+                            onClick={() =>
+                              editingRestaurantId === r.id ? setEditingRestaurantId(null) : startEditRestaurant(r)
+                            }
+                            title="Tahrirlash"
+                          >
+                            ✏️
+                          </button>
+                        </div>
+
+                        <div style={{ display: "flex", gap: 6, marginTop: 8, flexWrap: "wrap" }}>
+                          <Link
+                            href={`/platform-admin/restaurants/${r.id}`}
+                            className="fd-btn fd-btn-primary"
+                            style={{ textDecoration: "none", padding: "8px 12px", fontSize: "0.875rem" }}
+                          >
+                            Menyu
+                          </Link>
+                          <button
+                            type="button"
+                            className="fd-btn"
+                            style={{ padding: "8px 12px", fontSize: "0.875rem" }}
+                            onClick={async () => {
+                              try {
+                                await adminApi.deleteRestaurant(r.id);
+                                setData((prev: any) =>
+                                  prev
+                                    ? {
+                                        ...prev,
+                                        restaurants: prev.restaurants.filter((x: any) => x.id !== r.id),
+                                      }
+                                    : prev,
+                                );
+                              } catch (err: any) {
+                                setError(err?.message ?? "Supermarketni o‘chirishda xatolik");
+                              }
+                            }}
+                          >
+                            O‘chirish
+                          </button>
+                        </div>
+
+                        {editingRestaurantId === r.id && (
+                          <div className="fd-form-block" style={{ marginTop: 12 }}>
+                            <h3 style={{ marginTop: 0 }}>Supermarketni tahrirlash</h3>
+                            <div className="fd-form">
+                              <label className="fd-field">
+                                <span>Nomi</span>
+                                <input
+                                  value={editRestaurantForm.name}
+                                  onChange={(e) =>
+                                    setEditRestaurantForm((p) => ({ ...p, name: e.target.value }))
+                                  }
+                                />
+                              </label>
+                              <label className="fd-field">
+                                <span>Tavsif</span>
+                                <input
+                                  value={editRestaurantForm.description}
+                                  onChange={(e) =>
+                                    setEditRestaurantForm((p) => ({ ...p, description: e.target.value }))
+                                  }
+                                />
+                              </label>
+                              <label className="fd-field">
+                                <span>Rasm URL</span>
+                                <input
+                                  value={editRestaurantForm.imageUrl}
+                                  onChange={(e) =>
+                                    setEditRestaurantForm((p) => ({ ...p, imageUrl: e.target.value }))
+                                  }
+                                />
+                              </label>
+                              <label className="fd-field">
+                                <span>Platforma %</span>
+                                <input
+                                  type="number"
+                                  min={0}
+                                  max={100}
+                                  step={0.5}
+                                  value={editRestaurantForm.platformFeePercent}
+                                  onChange={(e) =>
+                                    setEditRestaurantForm((p) => ({ ...p, platformFeePercent: e.target.value }))
+                                  }
+                                />
+                              </label>
+                              <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
+                                <input
+                                  type="text"
+                                  placeholder="Admin login (tayinlash)"
+                                  value={addAdminEmails[r.id] ?? ""}
+                                  onChange={(e) =>
+                                    setAddAdminEmails((prev) => ({ ...prev, [r.id]: e.target.value }))
+                                  }
+                                  style={{ width: 180, padding: "8px 10px", fontSize: "0.875rem" }}
+                                />
+                                <button
+                                  type="button"
+                                  className="fd-btn"
+                                  disabled={!(addAdminEmails[r.id] ?? "").trim() || addAdminSubmitting[r.id]}
+                                  onClick={async () => {
+                                    const email = (addAdminEmails[r.id] ?? "").trim();
+                                    if (!email) return;
+                                    setAddAdminSubmitting((prev) => ({ ...prev, [r.id]: true }));
+                                    try {
+                                      await adminApi.addRestaurantAdmin(r.id, email);
+                                      setAddAdminEmails((prev) => ({ ...prev, [r.id]: "" }));
+                                    } catch (err: any) {
+                                      setError(err?.message ?? "Xatolik");
+                                    } finally {
+                                      setAddAdminSubmitting((prev) => ({ ...prev, [r.id]: false }));
+                                    }
+                                  }}
+                                >
+                                  {addAdminSubmitting[r.id] ? "..." : "Adminni tayinlash"}
+                                </button>
+                              </div>
+                              <div style={{ display: "flex", gap: 8, marginTop: 8 }}>
+                                <button
+                                  type="button"
+                                  className="fd-btn fd-btn-primary"
+                                  disabled={editSubmitting}
+                                  onClick={() => saveEditRestaurant(r.id)}
+                                >
+                                  {editSubmitting ? "Saqlanmoqda..." : "Saqlash"}
+                                </button>
+                                <button
+                                  type="button"
+                                  className="fd-btn"
+                                  onClick={() => setEditingRestaurantId(null)}
+                                >
+                                  Bekor qilish
+                                </button>
+                              </div>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    ))}
                 </div>
               </section>
             </div>
