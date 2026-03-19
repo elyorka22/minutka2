@@ -703,6 +703,26 @@ body {
   margin: 0 0 4px;
 }
 
+/* Restaurants page: compact square cards, 3 in a row */
+.fd-card--restaurant-tile {
+  border-radius: var(--radius-md);
+}
+
+.fd-card--restaurant-tile .fd-card-image {
+  aspect-ratio: 1 / 1;
+  object-fit: cover;
+}
+
+.fd-card--restaurant-tile .fd-card-body {
+  padding: 8px 10px 10px;
+}
+
+.fd-card--restaurant-tile .fd-card-title-row h3 {
+  font-size: 0.82rem;
+  line-height: 1.2;
+  margin: 0;
+}
+
 .fd-dish-footer {
   margin-top: 10px;
   padding-top: 10px;

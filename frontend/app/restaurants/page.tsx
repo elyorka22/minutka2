@@ -13,23 +13,20 @@ export default async function RestaurantsPage() {
       <BackLink href="/" />
       <section className="fd-section">
         <h1 className="fd-section-title">Barcha restoranlar</h1>
-        <div className="fd-grid">
+        <div className="fd-grid fd-grid--2">
           {restaurants.map((r: any) => (
-            <Link key={r.id} href={`/restaurants/${r.id}`} className="fd-card">
+            <Link key={r.id} href={`/restaurants/${r.id}`} className="fd-card fd-card--restaurant-tile">
               <SafeImage
                 src={(r.coverUrl || r.logoUrl) ? imageUrl(r.coverUrl || r.logoUrl) : ""}
                 alt=""
                 className="fd-card-image"
-                style={{ width: "100%", aspectRatio: "16/10", objectFit: "cover" }}
-                fallbackStyle={{ height: 160 }}
+                style={{ width: "100%", aspectRatio: "1/1", objectFit: "cover" }}
+                fallbackStyle={{ aspectRatio: "1/1" }}
               />
               <div className="fd-card-body">
                 <div className="fd-card-title-row">
                   <h3>{r.name}</h3>
                 </div>
-                {r.description && (
-                  <p className="fd-card-desc">{r.description}</p>
-                )}
               </div>
             </Link>
           ))}
