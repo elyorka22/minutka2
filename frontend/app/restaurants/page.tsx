@@ -3,6 +3,17 @@ import { api, imageUrl } from "../../lib/api";
 import { SafeImage } from "../../components/SafeImage";
 import { BackLink } from "../../components/BackLink";
 
+export const metadata = {
+  title: "Restoranlar — Minutka ovqat yetkazib berish",
+  description:
+    "O‘z shahringizdagi mashhur restoranlar bir joyda. Menyudan tanlang, tez ovqat yetkazib berish bilan buyurtma bering va Minutka orqali qulay xizmatdan foydalaning.",
+  openGraph: {
+    title: "Restoranlar — Minutka ovqat yetkazib berish",
+    description:
+      "Restoranlar menyusidan taom tanlab, tez yetkazib berish bilan buyurtma bering. Minutka servisi O‘zbekiston shaharlarida qulay ovqat yetkazib berish taklif qiladi.",
+  },
+};
+
 export default async function RestaurantsPage() {
   const data = await api.getRestaurants();
   const all = Array.isArray(data) ? data : [];

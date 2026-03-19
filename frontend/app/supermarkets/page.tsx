@@ -3,6 +3,17 @@ import { api, imageUrl } from "../../lib/api";
 import { SafeImage } from "../../components/SafeImage";
 import { BackLink } from "../../components/BackLink";
 
+export const metadata = {
+  title: "Do‘konlar va supermarketlar — Minutka tez yetkazib berish",
+  description:
+    "Mahsulotlarni do‘konlar va supermarketlardan onlayn buyurtma qiling. Tez yetkazib berish, qulay tanlov va Minutka bilan ishonchli servis O‘zbekiston bo‘ylab.",
+  openGraph: {
+    title: "Do‘konlar va supermarketlar — Minutka",
+    description:
+      "Shahringizdagi do‘konlar va supermarketlardan mahsulotlarga buyurtma berish. Minutka bilan tez yetkazib berish va qulay onlayn xarid tajribasini sinab ko‘ring.",
+  },
+};
+
 export default async function SupermarketsPage() {
   const data = await api.getRestaurants();
   const all = Array.isArray(data) ? data : [];
