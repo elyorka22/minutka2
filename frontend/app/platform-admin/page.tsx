@@ -750,7 +750,28 @@ export default function PlatformAdminPage() {
 
                 <div className="fd-grid fd-grid--2 fd-grid--mobile-2">
                   {data.restaurants?.map((r: any) => (
-                    <div key={r.id} className="fd-card" style={{ padding: 8 }}>
+                    <div key={r.id} className="fd-card" style={{ padding: 8, position: "relative" }}>
+                      <button
+                        type="button"
+                        className="fd-btn"
+                        style={{
+                          position: "absolute",
+                          top: 6,
+                          right: 6,
+                          width: 30,
+                          height: 30,
+                          padding: 0,
+                          borderRadius: 999,
+                          zIndex: 2,
+                          fontSize: "0.95rem",
+                          lineHeight: 1,
+                        }}
+                        onClick={() => (editingRestaurantId === r.id ? setEditingRestaurantId(null) : startEditRestaurant(r))}
+                        title="Tahrirlash"
+                        aria-label="Tahrirlash"
+                      >
+                        ✏️
+                      </button>
                       <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
                         <img
                           src={imageUrl(r.logoUrl || r.coverUrl || "")}
@@ -762,15 +783,7 @@ export default function PlatformAdminPage() {
                           <div style={{ fontWeight: 700 }}>{r.name}</div>
                           <div className="fd-checkout-meta">{r.description || "Tavsif yo‘q"}</div>
                         </div>
-                        <button
-                          type="button"
-                          className="fd-btn"
-                          style={{ padding: "6px 10px" }}
-                          onClick={() => (editingRestaurantId === r.id ? setEditingRestaurantId(null) : startEditRestaurant(r))}
-                          title="Tahrirlash"
-                        >
-                          ✏️
-                        </button>
+                        <div style={{ width: 30, height: 30, flexShrink: 0 }} />
                       </div>
 
                       <div style={{ display: "flex", gap: 6, marginTop: 8, flexWrap: "wrap" }}>
@@ -1010,7 +1023,30 @@ export default function PlatformAdminPage() {
                   {(data.restaurants ?? [])
                     .filter((x: any) => !!x.isSupermarket)
                     .map((r: any) => (
-                      <div key={r.id} className="fd-card" style={{ padding: 8 }}>
+                      <div key={r.id} className="fd-card" style={{ padding: 8, position: "relative" }}>
+                        <button
+                          type="button"
+                          className="fd-btn"
+                          style={{
+                            position: "absolute",
+                            top: 6,
+                            right: 6,
+                            width: 30,
+                            height: 30,
+                            padding: 0,
+                            borderRadius: 999,
+                            zIndex: 2,
+                            fontSize: "0.95rem",
+                            lineHeight: 1,
+                          }}
+                          onClick={() =>
+                            editingRestaurantId === r.id ? setEditingRestaurantId(null) : startEditRestaurant(r)
+                          }
+                          title="Tahrirlash"
+                          aria-label="Tahrirlash"
+                        >
+                          ✏️
+                        </button>
                         <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
                           <img
                             src={imageUrl(r.logoUrl || r.coverUrl || "")}
@@ -1024,17 +1060,7 @@ export default function PlatformAdminPage() {
                               {r.description || "Tavsif yo‘q"}
                             </div>
                           </div>
-                          <button
-                            type="button"
-                            className="fd-btn"
-                            style={{ padding: "6px 10px" }}
-                            onClick={() =>
-                              editingRestaurantId === r.id ? setEditingRestaurantId(null) : startEditRestaurant(r)
-                            }
-                            title="Tahrirlash"
-                          >
-                            ✏️
-                          </button>
+                          <div style={{ width: 30, height: 30, flexShrink: 0 }} />
                         </div>
 
                         <div style={{ display: "flex", gap: 6, marginTop: 8, flexWrap: "wrap" }}>
