@@ -311,6 +311,18 @@ export default function ProfilePage() {
             </div>
           )}
 
+          {isCourier && (
+            <div style={{ marginTop: 12, display: "flex", gap: 8, flexWrap: "wrap" }}>
+              <Link
+                href="/courier"
+                className="fd-btn fd-btn-primary"
+                style={{ textDecoration: "none" }}
+              >
+                Kuryer paneli — barcha buyurtmalar
+              </Link>
+            </div>
+          )}
+
           {isRestaurantAdmin && (
             <div style={{ marginTop: 12 }}>
               {myRestaurantsLoading && (
