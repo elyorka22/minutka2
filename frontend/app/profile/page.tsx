@@ -33,6 +33,7 @@ export default function ProfilePage() {
   const [myRestaurants, setMyRestaurants] = useState<MyRestaurant[]>([]);
   const [myRestaurantsError, setMyRestaurantsError] = useState(false);
   const [myRestaurantsLoading, setMyRestaurantsLoading] = useState(false);
+  const [courierAccess, setCourierAccess] = useState(false);
   const [pushStatus, setPushStatus] = useState<string | null>(null);
   const [pushBusy, setPushBusy] = useState(false);
   const router = useRouter();
@@ -61,6 +62,26 @@ export default function ProfilePage() {
       })
       .finally(() => {
         if (active) setMyRestaurantsLoading(false);
+      });
+    return () => {
+      active = false;
+    };
+  }, [hasToken, payload?.role]);
+
+  useEffect(() => {
+    if (!hasToken) return;
+    if (payload?.role === "COURIER") {
+      setCourierAccess(true);
+      return;
+    }
+    let active = true;
+    adminApi
+      .getCourierOrders()
+      .then(() => {
+        if (active) setCourierAccess(true);
+      })
+      .catch(() => {
+        if (active) setCourierAccess(false);
       });
     return () => {
       active = false;
@@ -208,7 +229,7 @@ export default function ProfilePage() {
 
   const isPlatformAdmin = role === "PLATFORM_ADMIN";
   const isRestaurantAdmin = role === "RESTAURANT_ADMIN";
-  const isCourier = role === "COURIER";
+  const isCourier = role === "COURIER" || courierAccess;
 
   return (
     <div className="fd-shell fd-section">
