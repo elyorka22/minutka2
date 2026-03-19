@@ -167,6 +167,23 @@ export class OrdersService {
     });
   }
 
+  /** Barcha faol restoranlar buyurtmalari — kuryerlar ro‘yxati uchun */
+  async findAllForCouriers() {
+    return this.prisma.order.findMany({
+      where: {
+        restaurant: { isActive: true },
+      },
+      orderBy: { createdAt: 'desc' },
+      take: 300,
+      include: {
+        items: { include: { dish: true } },
+        address: true,
+        restaurant: true,
+        customer: { select: { id: true, name: true, email: true, phone: true } },
+      },
+    });
+  }
+
   async deleteOrdersOlderThanDays(days: number): Promise<number> {
     const cutoff = new Date();
     cutoff.setDate(cutoff.getDate() - days);

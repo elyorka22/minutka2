@@ -208,6 +208,7 @@ export default function ProfilePage() {
 
   const isPlatformAdmin = role === "PLATFORM_ADMIN";
   const isRestaurantAdmin = role === "RESTAURANT_ADMIN";
+  const isCourier = role === "COURIER";
 
   return (
     <div className="fd-shell fd-section">
@@ -326,7 +327,7 @@ export default function ProfilePage() {
             </div>
           )}
 
-          {!isPlatformAdmin && !isRestaurantAdmin && (
+          {!isPlatformAdmin && !isRestaurantAdmin && !isCourier && (
             <p className="fd-card-desc" style={{ marginTop: 12 }}>
               Siz oddiy mijoz sifatida buyurtma berishingiz mumkin, admin paneli faqat maxsus
               rollar uchun ochiladi.

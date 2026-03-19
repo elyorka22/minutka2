@@ -138,6 +138,20 @@ export class AdminController {
       data: { role },
     });
 
+    if (role === UserRole.COURIER) {
+      await this.prisma.courier.upsert({
+        where: { userId: id },
+        create: { userId: id },
+        update: {},
+      });
+    } else {
+      const courier = await this.prisma.courier.findUnique({ where: { userId: id } });
+      if (courier) {
+        await this.prisma.order.updateMany({ where: { courierId: courier.id }, data: { courierId: null } });
+        await this.prisma.courier.delete({ where: { userId: id } }).catch(() => {});
+      }
+    }
+
     return user;
   }
 

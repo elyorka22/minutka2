@@ -52,6 +52,31 @@ export class OrdersController {
   }
 }
 
+@Controller('courier')
+export class CourierOrdersController {
+  constructor(
+    private readonly ordersService: OrdersService,
+    private readonly prisma: PrismaService,
+  ) {}
+
+  @Get('orders')
+  @UseGuards(JwtAuthGuard)
+  async list(@Req() req: RequestWithUser) {
+    if (req.user?.role !== 'COURIER') {
+      throw new ForbiddenException('Faqat kuryerlar uchun');
+    }
+    const userId = req.user?.id;
+    if (userId) {
+      await this.prisma.courier.upsert({
+        where: { userId },
+        create: { userId },
+        update: {},
+      });
+    }
+    return this.ordersService.findAllForCouriers();
+  }
+}
+
 interface RequestWithUser {
   user?: { id: string; role: string };
 }

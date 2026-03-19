@@ -199,6 +199,7 @@ function useShowBottomBar() {
   if (!pathname) return true;
   if (pathname.startsWith("/platform-admin")) return false;
   if (pathname.startsWith("/restaurant-admin")) return false;
+  if (pathname.startsWith("/courier")) return false;
   return true;
 }
 
@@ -206,7 +207,12 @@ function VisitRecorder() {
   const pathname = usePathname() || "";
   useEffect(() => {
     if (typeof window === "undefined") return;
-    if (pathname.startsWith("/platform-admin") || pathname.startsWith("/restaurant-admin")) return;
+    if (
+      pathname.startsWith("/platform-admin") ||
+      pathname.startsWith("/restaurant-admin") ||
+      pathname.startsWith("/courier")
+    )
+      return;
     const key = "minutka_visit_sent";
     if (sessionStorage.getItem(key)) return;
     sessionStorage.setItem(key, "1");

@@ -49,6 +49,7 @@ export const adminApi = {
     adminRequest<any[]>(`/restaurants/${id}/orders/archive`),
   getRestaurantStats: (id: string) =>
     adminRequest<{ activeOrdersCount: number; deliveredOrdersCount: number; totalRevenue: number; platformFeePercent: number; totalPlatformFee: number }>(`/restaurants/${id}/orders/stats`),
+  getCourierOrders: () => adminRequest<any[]>("/courier/orders", { method: "GET" }),
   getRestaurantSettings: (id: string) =>
     adminRequest<{ telegramChatId: string }>(`/restaurants/${id}/settings`),
   updateRestaurantSettings: (id: string, body: { telegramChatId?: string }) =>

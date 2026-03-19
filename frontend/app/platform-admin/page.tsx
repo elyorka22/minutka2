@@ -216,7 +216,8 @@ export default function PlatformAdminPage() {
     const delivered = orders.filter((o: any) => o.status === "DELIVERED").length;
     const cancelled = orders.filter((o: any) => o.status === "CANCELLED").length;
     const admins = users.filter(
-      (u: any) => u.role === "PLATFORM_ADMIN" || u.role === "RESTAURANT_ADMIN",
+      (u: any) =>
+        u.role === "PLATFORM_ADMIN" || u.role === "RESTAURANT_ADMIN" || u.role === "COURIER",
     ).length;
     return {
       restaurants: restaurants.length,
