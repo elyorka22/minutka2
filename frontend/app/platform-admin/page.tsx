@@ -32,6 +32,24 @@ export default function PlatformAdminPage() {
   const [createSubmitting, setCreateSubmitting] = useState(false);
   const [createError, setCreateError] = useState<string | null>(null);
   const [createImageUploading, setCreateImageUploading] = useState(false);
+  const [showCreateRestaurantForm, setShowCreateRestaurantForm] = useState(false);
+  const [editingRestaurantId, setEditingRestaurantId] = useState<string | null>(null);
+  const [editSubmitting, setEditSubmitting] = useState(false);
+  const [editRestaurantForm, setEditRestaurantForm] = useState<{
+    name: string;
+    description: string;
+    imageUrl: string;
+    platformFeePercent: string;
+    isFeatured: boolean;
+    featuredSortOrder: string;
+  }>({
+    name: "",
+    description: "",
+    imageUrl: "",
+    platformFeePercent: "10",
+    isFeatured: false,
+    featuredSortOrder: "0",
+  });
   const [productName, setProductName] = useState("");
   const [productPrice, setProductPrice] = useState("");
   const [productUnit, setProductUnit] = useState("dona");
@@ -301,6 +319,49 @@ export default function PlatformAdminPage() {
 
   function handleCreateRestaurant(e: React.FormEvent) {
     return createRestaurantCommon(e, false);
+  }
+
+  function startEditRestaurant(r: any) {
+    setEditingRestaurantId(r.id);
+    setEditRestaurantForm({
+      name: String(r.name ?? ""),
+      description: String(r.description ?? ""),
+      imageUrl: String(r.logoUrl || r.coverUrl || ""),
+      platformFeePercent: String(r.platformFeePercent ?? 10),
+      isFeatured: !!r.isFeatured,
+      featuredSortOrder: String(r.featuredSortOrder ?? 0),
+    });
+  }
+
+  async function saveEditRestaurant(restaurantId: string) {
+    setEditSubmitting(true);
+    setError(null);
+    try {
+      const platformFee = Number(editRestaurantForm.platformFeePercent);
+      const featuredOrder = Number(editRestaurantForm.featuredSortOrder);
+      const updated = await adminApi.updateRestaurant(restaurantId, {
+        name: editRestaurantForm.name.trim() || undefined,
+        description: editRestaurantForm.description.trim() || undefined,
+        logoUrl: editRestaurantForm.imageUrl.trim() || undefined,
+        coverUrl: editRestaurantForm.imageUrl.trim() || undefined,
+        platformFeePercent: Number.isFinite(platformFee) ? platformFee : undefined,
+        isFeatured: editRestaurantForm.isFeatured,
+        featuredSortOrder: Number.isFinite(featuredOrder) ? featuredOrder : 0,
+      });
+      setData((prev: any) =>
+        prev
+          ? {
+              ...prev,
+              restaurants: prev.restaurants.map((x: any) => (x.id === restaurantId ? { ...x, ...updated } : x)),
+            }
+          : prev,
+      );
+      setEditingRestaurantId(null);
+    } catch (err: any) {
+      setError(err?.message ?? "Restoranni yangilashda xatolik");
+    } finally {
+      setEditSubmitting(false);
+    }
   }
 
   function handleCreateSupermarket(e: React.FormEvent) {
@@ -617,291 +678,202 @@ export default function PlatformAdminPage() {
             <div
               className={`fd-admin-panel ${activeTab === "restaurants" ? "fd-admin-panel-active" : ""}`}
             >
-              <div className="fd-form-block">
-                <h3>Yangi restoran qo‘shish</h3>
-                <form onSubmit={handleCreateRestaurant} className="fd-form">
-                  <label className="fd-field">
-                    <span>Restoran nomi *</span>
-                    <input
-                      value={createName}
-                      onChange={(e) => setCreateName(e.target.value)}
-                      placeholder="Masalan: Osh markazi"
-                      required
-                    />
-                  </label>
-                  <label className="fd-field">
-                    <span>Tavsif</span>
-                    <input
-                      value={createDesc}
-                      onChange={(e) => setCreateDesc(e.target.value)}
-                      placeholder="Qisqacha tavsif"
-                    />
-                  </label>
-                  <label className="fd-field">
-                    <span>Rasm</span>
-                    <input
-                      type="url"
-                      value={createImageUrl}
-                      onChange={(e) => setCreateImageUrl(e.target.value)}
-                      placeholder="URL yoki telefondan yuklang"
-                    />
-                    <div style={{ marginTop: 8, display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
-                      <input
-                        type="file"
-                        accept="image/*"
-                        id="create-restaurant-image-file"
-                        style={{ display: "none" }}
-                        onChange={handleUploadCreateImage}
-                      />
-                      <label htmlFor="create-restaurant-image-file" style={{ margin: 0 }}>
-                        <span className="fd-btn fd-btn-primary" style={{ cursor: "pointer", display: "inline-block" }}>
-                          {createImageUploading ? "Yuklanmoqda..." : "Telefondan yuklash"}
-                        </span>
-                      </label>
-                    </div>
-                    {createImageUrl.trim() && (
-                      <img
-                        src={imageUrl(createImageUrl.trim())}
-                        alt="Rasm"
-                        style={{ marginTop: 8, maxWidth: "100%", maxHeight: 120, objectFit: "cover", borderRadius: 8 }}
-                        onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }}
-                      />
-                    )}
-                  </label>
-                  <label className="fd-field">
-                    <span>Yetkazib berish narxi (so‘m)</span>
-                    <input
-                      type="number"
-                      min={0}
-                      value={createFee}
-                      onChange={(e) => setCreateFee(e.target.value)}
-                      placeholder="0"
-                    />
-                  </label>
-                  <label className="fd-field">
-                    <span>Platforma ulushi (%) — har bir buyurtma uchun</span>
-                    <input
-                      type="number"
-                      min={0}
-                      max={100}
-                      step={0.5}
-                      value={createPlatformFeePercent}
-                      onChange={(e) => setCreatePlatformFeePercent(e.target.value)}
-                      placeholder="10"
-                    />
-                  </label>
-                  <p className="fd-checkout-meta" style={{ marginTop: 8, marginBottom: 4 }}>
-                    Restoran admini (ushbu login va parol bilan kirib, shu restoran admin paneliga o‘tadi) *
-                  </p>
-                  <label className="fd-field">
-                    <span>Login *</span>
-                    <input
-                      type="text"
-                      value={createAdminEmail}
-                      onChange={(e) => setCreateAdminEmail(e.target.value)}
-                      placeholder="admin@restoran.uz"
-                      required
-                    />
-                  </label>
-                  <label className="fd-field">
-                    <span>Admin paroli * (kamida 6 belgi)</span>
-                    <input
-                      type="password"
-                      value={createAdminPassword}
-                      onChange={(e) => setCreateAdminPassword(e.target.value)}
-                      placeholder="••••••"
-                      minLength={6}
-                      required
-                    />
-                  </label>
-                  <label className="fd-field">
-                    <span>Admin ismi *</span>
-                    <input
-                      value={createAdminName}
-                      onChange={(e) => setCreateAdminName(e.target.value)}
-                      placeholder="Ism Familiya"
-                      required
-                    />
-                  </label>
-                  {createError && (
-                    <p style={{ color: "var(--color-orange)", fontSize: "0.875rem" }}>
-                      {createError}
-                    </p>
-                  )}
-                  <button
-                    type="submit"
-                    className="fd-btn fd-btn-primary"
-                    disabled={createSubmitting || createImageUploading}
-                  >
-                    {createSubmitting ? "Saqlanmoqda..." : "Restoran qo‘shish"}
-                  </button>
-                </form>
-              </div>
               <section>
-                <h2>Barcha restoranlar</h2>
-                <p className="fd-checkout-meta" style={{ marginBottom: 12 }}>
-                  Bosh sahifadagi «Top restoranlar» karuseli: faqat supermarket bo‘lmagan restoranlarni tanlang va tartib raqamini kiriting.
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+                  <h2 style={{ margin: 0 }}>Barcha restoranlar</h2>
+                  <button
+                    type="button"
+                    className="fd-btn fd-btn-primary"
+                    onClick={() => setShowCreateRestaurantForm((v) => !v)}
+                  >
+                    {showCreateRestaurantForm ? "Formani yopish" : "Yangi restoran qo‘shish"}
+                  </button>
+                </div>
+                <p className="fd-checkout-meta" style={{ marginTop: 8, marginBottom: 12 }}>
+                  Tahrirlash uchun ✏️ tugmasini bosing.
                 </p>
-                {data.restaurants?.map((r: any) => (
-                  <div key={r.id} className="fd-checkout-item">
-                    <div>
-                      <div>{r.name}</div>
-                      <div className="fd-checkout-meta">{r.address || "—"}</div>
-                    </div>
-                    <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
-                      <label className="fd-checkout-meta" style={{ display: "flex", alignItems: "center", gap: 4 }}>
-                        Platforma %:
-                        <input
-                          type="number"
-                          min={0}
-                          max={100}
-                          step={0.5}
-                          defaultValue={r.platformFeePercent ?? 10}
-                          style={{ width: 56, padding: "4px 6px", fontSize: "0.875rem" }}
-                          onBlur={async (e) => {
-                            const val = Number((e.target as HTMLInputElement).value);
-                            if (!Number.isFinite(val) || val < 0 || val > 100) return;
-                            try {
-                              const updated = await adminApi.updateRestaurant(r.id, { platformFeePercent: val });
-                              setData((prev: any) =>
-                                prev
-                                  ? {
-                                      ...prev,
-                                      restaurants: prev.restaurants.map((x: any) =>
-                                        x.id === r.id ? { ...x, platformFeePercent: updated.platformFeePercent } : x,
-                                      ),
-                                    }
-                                  : prev,
-                              );
-                            } catch (err: any) {
-                              setError(err?.message ?? "Xatolik");
-                            }
-                          }}
-                        />
+
+                {showCreateRestaurantForm && (
+                  <div className="fd-form-block" style={{ marginBottom: 16 }}>
+                    <h3>Yangi restoran qo‘shish</h3>
+                    <form onSubmit={handleCreateRestaurant} className="fd-form">
+                      <label className="fd-field">
+                        <span>Restoran nomi *</span>
+                        <input value={createName} onChange={(e) => setCreateName(e.target.value)} placeholder="Masalan: Osh markazi" required />
                       </label>
-                      {!r.isSupermarket && (
-                        <>
-                          <label className="fd-checkout-meta" style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                            <input
-                              type="checkbox"
-                              checked={!!r.isFeatured}
-                              onChange={async (e) => {
-                                try {
-                                  const updated = await adminApi.updateRestaurant(r.id, {
-                                    isFeatured: e.target.checked,
-                                  });
-                                  setData((prev: any) =>
-                                    prev
-                                      ? {
-                                          ...prev,
-                                          restaurants: prev.restaurants.map((x: any) =>
-                                            x.id === r.id ? { ...x, isFeatured: updated.isFeatured } : x,
-                                          ),
-                                        }
-                                      : prev,
-                                  );
-                                } catch (err: any) {
-                                  setError(err?.message ?? "Xatolik");
-                                }
-                              }}
-                            />
-                            Top karuselda
+                      <label className="fd-field">
+                        <span>Tavsif</span>
+                        <input value={createDesc} onChange={(e) => setCreateDesc(e.target.value)} placeholder="Qisqacha tavsif" />
+                      </label>
+                      <label className="fd-field">
+                        <span>Rasm</span>
+                        <input type="url" value={createImageUrl} onChange={(e) => setCreateImageUrl(e.target.value)} placeholder="URL yoki telefondan yuklang" />
+                        <div style={{ marginTop: 8, display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
+                          <input type="file" accept="image/*" id="create-restaurant-image-file" style={{ display: "none" }} onChange={handleUploadCreateImage} />
+                          <label htmlFor="create-restaurant-image-file" style={{ margin: 0 }}>
+                            <span className="fd-btn fd-btn-primary" style={{ cursor: "pointer", display: "inline-block" }}>
+                              {createImageUploading ? "Yuklanmoqda..." : "Telefondan yuklash"}
+                            </span>
                           </label>
-                          {r.isFeatured && (
-                            <label className="fd-checkout-meta" style={{ display: "flex", alignItems: "center", gap: 4 }}>
-                              Tartib:
-                              <input
-                                type="number"
-                                min={0}
-                                defaultValue={r.featuredSortOrder ?? 0}
-                                style={{ width: 56, padding: "4px 6px", fontSize: "0.875rem" }}
-                                onBlur={async (e) => {
-                                  const val = Number(e.target.value) || 0;
-                                  try {
-                                    const updated = await adminApi.updateRestaurant(r.id, {
-                                      featuredSortOrder: val,
-                                    });
-                                    setData((prev: any) =>
-                                      prev
-                                        ? {
-                                            ...prev,
-                                            restaurants: prev.restaurants.map((x: any) =>
-                                              x.id === r.id ? { ...x, featuredSortOrder: updated.featuredSortOrder } : x,
-                                            ),
-                                          }
-                                        : prev,
-                                    );
-                                  } catch (err: any) {
-                                    setError(err?.message ?? "Xatolik");
-                                  }
-                                }}
-                              />
-                            </label>
-                          )}
-                        </>
-                      )}
-                      <Link
-                        href={`/platform-admin/restaurants/${r.id}`}
-                        className="fd-btn fd-btn-primary"
-                        style={{ textDecoration: "none", flexShrink: 0 }}
-                      >
-                        Menyu
-                      </Link>
-                      <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
-                        <input
-                          type="email"
-                          placeholder="Admin email (tayinlash)"
-                          value={addAdminEmails[r.id] ?? ""}
-                          onChange={(e) =>
-                            setAddAdminEmails((prev) => ({ ...prev, [r.id]: e.target.value }))
-                          }
-                          style={{ width: 160, padding: "6px 8px", fontSize: "0.875rem" }}
+                        </div>
+                      </label>
+                      <label className="fd-field">
+                        <span>Yetkazib berish narxi (so‘m)</span>
+                        <input type="number" min={0} value={createFee} onChange={(e) => setCreateFee(e.target.value)} placeholder="0" />
+                      </label>
+                      <label className="fd-field">
+                        <span>Platforma ulushi (%)</span>
+                        <input type="number" min={0} max={100} step={0.5} value={createPlatformFeePercent} onChange={(e) => setCreatePlatformFeePercent(e.target.value)} placeholder="10" />
+                      </label>
+                      <p className="fd-checkout-meta" style={{ marginTop: 8, marginBottom: 4 }}>
+                        Restoran admini (ushbu login va parol bilan kiradi) *
+                      </p>
+                      <label className="fd-field">
+                        <span>Login *</span>
+                        <input type="text" value={createAdminEmail} onChange={(e) => setCreateAdminEmail(e.target.value)} placeholder="admin@restoran.uz" required />
+                      </label>
+                      <label className="fd-field">
+                        <span>Admin paroli * (kamida 6 belgi)</span>
+                        <input type="password" value={createAdminPassword} onChange={(e) => setCreateAdminPassword(e.target.value)} placeholder="••••••" minLength={6} required />
+                      </label>
+                      <label className="fd-field">
+                        <span>Admin ismi *</span>
+                        <input value={createAdminName} onChange={(e) => setCreateAdminName(e.target.value)} placeholder="Ism Familiya" required />
+                      </label>
+                      {createError && <p style={{ color: "var(--color-orange)", fontSize: "0.875rem" }}>{createError}</p>}
+                      <button type="submit" className="fd-btn fd-btn-primary" disabled={createSubmitting || createImageUploading}>
+                        {createSubmitting ? "Saqlanmoqda..." : "Restoran qo‘shish"}
+                      </button>
+                    </form>
+                  </div>
+                )}
+
+                <div className="fd-grid fd-grid--2 fd-grid--mobile-2">
+                  {data.restaurants?.map((r: any) => (
+                    <div key={r.id} className="fd-card" style={{ padding: 10 }}>
+                      <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
+                        <img
+                          src={imageUrl(r.logoUrl || r.coverUrl || "")}
+                          alt=""
+                          style={{ width: 56, height: 56, borderRadius: 10, objectFit: "cover", background: "#f2f2f2" }}
+                          onError={(e) => ((e.target as HTMLImageElement).style.display = "none")}
                         />
+                        <div style={{ flex: 1 }}>
+                          <div style={{ fontWeight: 700 }}>{r.name}</div>
+                          <div className="fd-checkout-meta">{r.description || "Tavsif yo‘q"}</div>
+                        </div>
                         <button
                           type="button"
                           className="fd-btn"
-                          disabled={!(addAdminEmails[r.id] ?? "").trim() || addAdminSubmitting[r.id]}
+                          style={{ padding: "6px 10px" }}
+                          onClick={() => (editingRestaurantId === r.id ? setEditingRestaurantId(null) : startEditRestaurant(r))}
+                          title="Tahrirlash"
+                        >
+                          ✏️
+                        </button>
+                      </div>
+
+                      <div style={{ display: "flex", gap: 8, marginTop: 10, flexWrap: "wrap" }}>
+                        <Link href={`/platform-admin/restaurants/${r.id}`} className="fd-btn fd-btn-primary" style={{ textDecoration: "none" }}>
+                          Menyu
+                        </Link>
+                        <button
+                          type="button"
+                          className="fd-btn"
                           onClick={async () => {
-                            const email = (addAdminEmails[r.id] ?? "").trim();
-                            if (!email) return;
-                            setAddAdminSubmitting((prev) => ({ ...prev, [r.id]: true }));
                             try {
-                              await adminApi.addRestaurantAdmin(r.id, email);
-                              setAddAdminEmails((prev) => ({ ...prev, [r.id]: "" }));
+                              await adminApi.deleteRestaurant(r.id);
+                              setData((prev: any) =>
+                                prev
+                                  ? { ...prev, restaurants: prev.restaurants.filter((x: any) => x.id !== r.id) }
+                                  : prev,
+                              );
                             } catch (err: any) {
-                              setError(err?.message ?? "Xatolik");
-                            } finally {
-                              setAddAdminSubmitting((prev) => ({ ...prev, [r.id]: false }));
+                              setError(err?.message ?? "Restoranni o‘chirishda xatolik");
                             }
                           }}
                         >
-                          {addAdminSubmitting[r.id] ? "..." : "Adminni tayinlash"}
+                          O‘chirish
                         </button>
                       </div>
-                      <button
-                        type="button"
-                        className="fd-btn"
-                        onClick={async () => {
-                          try {
-                            await adminApi.deleteRestaurant(r.id);
-                            setData((prev: any) =>
-                              prev
-                                ? {
-                                    ...prev,
-                                    restaurants: prev.restaurants.filter((x: any) => x.id !== r.id),
+
+                      {editingRestaurantId === r.id && (
+                        <div className="fd-form-block" style={{ marginTop: 12 }}>
+                          <h3 style={{ marginTop: 0 }}>Restoranni tahrirlash</h3>
+                          <div className="fd-form">
+                            <label className="fd-field">
+                              <span>Nomi</span>
+                              <input value={editRestaurantForm.name} onChange={(e) => setEditRestaurantForm((p) => ({ ...p, name: e.target.value }))} />
+                            </label>
+                            <label className="fd-field">
+                              <span>Tavsif</span>
+                              <input value={editRestaurantForm.description} onChange={(e) => setEditRestaurantForm((p) => ({ ...p, description: e.target.value }))} />
+                            </label>
+                            <label className="fd-field">
+                              <span>Rasm URL</span>
+                              <input value={editRestaurantForm.imageUrl} onChange={(e) => setEditRestaurantForm((p) => ({ ...p, imageUrl: e.target.value }))} />
+                            </label>
+                            <label className="fd-field">
+                              <span>Platforma %</span>
+                              <input type="number" min={0} max={100} step={0.5} value={editRestaurantForm.platformFeePercent} onChange={(e) => setEditRestaurantForm((p) => ({ ...p, platformFeePercent: e.target.value }))} />
+                            </label>
+                            {!r.isSupermarket && (
+                              <>
+                                <label className="fd-field" style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                                  <input type="checkbox" checked={editRestaurantForm.isFeatured} onChange={(e) => setEditRestaurantForm((p) => ({ ...p, isFeatured: e.target.checked }))} />
+                                  <span>Top karuselda</span>
+                                </label>
+                                {editRestaurantForm.isFeatured && (
+                                  <label className="fd-field">
+                                    <span>Tartib</span>
+                                    <input type="number" min={0} value={editRestaurantForm.featuredSortOrder} onChange={(e) => setEditRestaurantForm((p) => ({ ...p, featuredSortOrder: e.target.value }))} />
+                                  </label>
+                                )}
+                              </>
+                            )}
+                            <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
+                              <input
+                                type="text"
+                                placeholder="Admin login (tayinlash)"
+                                value={addAdminEmails[r.id] ?? ""}
+                                onChange={(e) => setAddAdminEmails((prev) => ({ ...prev, [r.id]: e.target.value }))}
+                                style={{ width: 180, padding: "8px 10px", fontSize: "0.875rem" }}
+                              />
+                              <button
+                                type="button"
+                                className="fd-btn"
+                                disabled={!(addAdminEmails[r.id] ?? "").trim() || addAdminSubmitting[r.id]}
+                                onClick={async () => {
+                                  const email = (addAdminEmails[r.id] ?? "").trim();
+                                  if (!email) return;
+                                  setAddAdminSubmitting((prev) => ({ ...prev, [r.id]: true }));
+                                  try {
+                                    await adminApi.addRestaurantAdmin(r.id, email);
+                                    setAddAdminEmails((prev) => ({ ...prev, [r.id]: "" }));
+                                  } catch (err: any) {
+                                    setError(err?.message ?? "Xatolik");
+                                  } finally {
+                                    setAddAdminSubmitting((prev) => ({ ...prev, [r.id]: false }));
                                   }
-                                : prev,
-                            );
-                          } catch (err: any) {
-                            setError(err?.message ?? "Restoranni o‘chirishda xatolik");
-                          }
-                        }}
-                      >
-                        O‘chirish
-                      </button>
+                                }}
+                              >
+                                {addAdminSubmitting[r.id] ? "..." : "Adminni tayinlash"}
+                              </button>
+                            </div>
+                            <div style={{ display: "flex", gap: 8, marginTop: 8 }}>
+                              <button type="button" className="fd-btn fd-btn-primary" disabled={editSubmitting} onClick={() => saveEditRestaurant(r.id)}>
+                                {editSubmitting ? "Saqlanmoqda..." : "Saqlash"}
+                              </button>
+                              <button type="button" className="fd-btn" onClick={() => setEditingRestaurantId(null)}>
+                                Bekor qilish
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      )}
                     </div>
-                  </div>
-                ))}
+                  ))}
+                </div>
                 {(!data.restaurants || data.restaurants.length === 0) && (
                   <p className="fd-empty">Restoranlar yo‘q. Yuqoridagi formadan qo‘shing.</p>
                 )}
