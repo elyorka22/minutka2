@@ -313,6 +313,20 @@ body {
   color: var(--color-text);
 }
 
+/* Restaurants/Supermarkets pages: compact top spacing */
+.fd-page-listing .fd-back-link {
+  padding: 4px 0;
+  margin-bottom: 6px;
+}
+
+.fd-page-listing .fd-section {
+  margin-top: 6px;
+}
+
+.fd-page-listing .fd-section-title {
+  margin-bottom: 12px;
+}
+
 /* Home screen layout */
 .fd-home-top {
   padding-top: 8px;

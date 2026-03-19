@@ -9,7 +9,7 @@ export default async function RestaurantsPage() {
   const restaurants = all.filter((r: any) => !r.isSupermarket);
 
   return (
-    <div className="fd-shell">
+    <div className="fd-shell fd-page-listing">
       <BackLink href="/" />
       <section className="fd-section">
         <h1 className="fd-section-title">Barcha restoranlar</h1>
