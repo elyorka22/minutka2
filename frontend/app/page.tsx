@@ -3,11 +3,11 @@ import { api, imageUrl } from "../lib/api";
 import { SafeImage } from "../components/SafeImage";
 
 export const metadata = {
-  title: "Minutka — ovqat yetkazib berish O‘zbekiston bo‘ylab",
+  title: "Minutka — ovqat va oziq-ovqat mahsulotlarini yetkazib berish platformasi",
   description:
     "Tez ovqat yetkazib berish servis. Restoranlar va do‘konlardan qulay buyurtma berish, shahar bo‘ylab tez yetkazib berish. Minutka bilan hoziroq sinab ko‘ring.",
   openGraph: {
-    title: "Minutka — ovqat yetkazib berish O‘zbekiston bo‘ylab",
+    title: "Minutka — ovqat va oziq-ovqat mahsulotlarini yetkazib berish platformasi",
     description:
       "O‘z shahringizdagi restoranlar va do‘konlardan ovqat buyurtma qiling. Minutka bilan tez yetkazib berish, qulay to‘lov va bir necha daqiqada buyurtma berish.",
   },
