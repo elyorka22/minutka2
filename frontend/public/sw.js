@@ -35,6 +35,19 @@ self.addEventListener("fetch", (event) => {
   const { request } = event;
   if (request.method !== "GET") return;
 
+  const url = new URL(request.url);
+  const pathname = url.pathname;
+
+  // IMPORTANT:
+  // Do not cache admin/API responses. Otherwise /admin/overview becomes stale
+  // and new restaurants won't appear until you clear SW/browser cache.
+  const isCacheableStatic =
+    pathname === "/manifest.json" ||
+    pathname.startsWith("/_next/") ||
+    pathname.startsWith("/icons/");
+
+  if (!isCacheableStatic) return;
+
   event.respondWith(
     caches.match(request).then((cached) => {
       if (cached) return cached;

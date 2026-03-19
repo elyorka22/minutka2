@@ -174,6 +174,7 @@ export default function PlatformAdminPage() {
       (process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:4000") +
         "/admin/overview",
       {
+        cache: "no-store",
         headers:
           typeof window === "undefined"
             ? {}
