@@ -451,11 +451,20 @@ export class OrdersService {
     restaurantId: string,
     opts?: { limit?: number; offset?: number; status?: string },
   ) {
-    const statusFilter = this.mapStatusFilter(opts?.status);
     const take = opts?.limit;
     const skip = opts?.offset;
-
-    const whereStatus = statusFilter ? statusFilter : { notIn: ['DONE', 'CANCELLED'] };
+    // Restaurant "Yangi" view should include both NEW and ACCEPTED.
+    // Otherwise orders disappear right after "Qabul qilish".
+    let whereStatus: any;
+    if (opts?.status) {
+      const s = opts.status.toUpperCase();
+      if (s === 'NEW') whereStatus = { in: ['NEW', 'ACCEPTED'] };
+      else if (s === 'READY') whereStatus = 'READY';
+      else if (s === 'IN_PATH') whereStatus = 'ON_THE_WAY';
+      else whereStatus = this.mapStatusFilter(opts.status);
+    } else {
+      whereStatus = { notIn: ['DONE', 'CANCELLED'] };
+    }
 
     return this.prisma.order.findMany({
       where: { restaurantId, status: whereStatus as any },
