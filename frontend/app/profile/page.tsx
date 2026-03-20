@@ -159,8 +159,38 @@ export default function ProfilePage() {
         "Push obuna tekshiruvi javob bermadi."
       );
       if (existing) {
-        setPushStatus("Bildirishnomalar allaqachon yoqilgan.");
-        return;
+        // Push allaqachon brauzerda yoqilgan bo'lishi mumkin,
+        // lekin u hali serverdagi userId bilan bog'lanmagan bo'lishi mumkin.
+        // Shuning uchun /push/subscribe ni yana chaqiramiz — endpoint bo'yicha upsert bo'ladi.
+        setPushStatus("Bildirishnomalar allaqachon yoqilgan. Profilda bog'lanmoqda…");
+        const controller = new AbortController();
+        const fetchTimeoutId = setTimeout(() => controller.abort(), 15000);
+        try {
+          const token = window.localStorage.getItem("token");
+          const headers: Record<string, string> = { "Content-Type": "application/json" };
+          if (token) headers.Authorization = `Bearer ${token}`;
+          const res = await fetch(`${API_BASE.replace(/\/$/, "")}/push/subscribe`, {
+            method: "POST",
+            headers,
+            body: JSON.stringify(existing),
+            signal: controller.signal,
+          });
+          if (!res.ok) {
+            const txt = await res.text().catch(() => "");
+            throw new Error(txt || `Server xatosi: ${res.status}`);
+          }
+          setPushStatus("Bildirishnomalar profilda bog'landi.");
+          return;
+        } catch (e: any) {
+          const msg =
+            typeof e?.message === "string" && e.message.trim()
+              ? e.message.trim()
+              : "Bildirishnomalarni profilda bog'lashda xatolik yuz berdi.";
+          setPushStatus(msg);
+          return;
+        } finally {
+          clearTimeout(fetchTimeoutId);
+        }
       }
       const urlBase64ToUint8Array = (base64: string) => {
         const padding = "=".repeat((4 - (base64.length % 4)) % 4);
