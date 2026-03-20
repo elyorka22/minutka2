@@ -43,13 +43,29 @@ export const adminApi = {
   getMyRestaurants: () =>
     request<any[]>("/admin/my-restaurants", { headers: getAuthHeaders() }),
   getRestaurantWithOrders: (id: string) => request<any>(`/restaurants/${id}`),
-  getRestaurantOrders: (id: string) =>
-    adminRequest<any[]>(`/restaurants/${id}/orders`),
+  getRestaurantOrders: (
+    id: string,
+    opts?: { limit?: number; offset?: number; status?: string },
+  ) => {
+    const qs = new URLSearchParams();
+    if (typeof opts?.limit === "number") qs.set("limit", String(opts.limit));
+    if (typeof opts?.offset === "number") qs.set("offset", String(opts.offset));
+    if (opts?.status) qs.set("status", opts.status);
+    const query = qs.toString();
+    return adminRequest<any[]>(`/restaurants/${id}/orders${query ? `?${query}` : ""}`);
+  },
   getRestaurantOrdersArchive: (id: string) =>
     adminRequest<any[]>(`/restaurants/${id}/orders/archive`),
   getRestaurantStats: (id: string) =>
     adminRequest<{ activeOrdersCount: number; deliveredOrdersCount: number; totalRevenue: number; platformFeePercent: number; totalPlatformFee: number }>(`/restaurants/${id}/orders/stats`),
-  getCourierOrders: () => adminRequest<any[]>("/courier/orders", { method: "GET" }),
+  getCourierOrders: (opts?: { limit?: number; offset?: number; status?: string }) => {
+    const qs = new URLSearchParams();
+    if (typeof opts?.limit === "number") qs.set("limit", String(opts.limit));
+    if (typeof opts?.offset === "number") qs.set("offset", String(opts.offset));
+    if (opts?.status) qs.set("status", opts.status);
+    const query = qs.toString();
+    return adminRequest<any[]>(`/courier/orders${query ? `?${query}` : ""}`, { method: "GET" });
+  },
   getRestaurantSettings: (id: string) =>
     adminRequest<{ telegramChatId: string }>(`/restaurants/${id}/settings`),
   updateRestaurantSettings: (id: string, body: { telegramChatId?: string }) =>

@@ -1,4 +1,4 @@
-import { BadRequestException, Body, Controller, ForbiddenException, Get, Param, Patch, Post, Req, UseGuards } from '@nestjs/common';
+import { BadRequestException, Body, Controller, ForbiddenException, Get, Param, Patch, Post, Query, Req, UseGuards } from '@nestjs/common';
 import { OrdersService } from './orders.service';
 import { CreateOrderDto } from './dto/create-order.dto';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
@@ -76,7 +76,12 @@ export class CourierOrdersController {
 
   @Get('orders')
   @UseGuards(JwtAuthGuard)
-  async list(@Req() req: RequestWithUser) {
+  async list(
+    @Req() req: RequestWithUser,
+    @Query('limit') limit?: string,
+    @Query('offset') offset?: string,
+    @Query('status') status?: string,
+  ) {
     if (req.user?.role !== 'COURIER') {
       throw new ForbiddenException('Faqat kuryerlar uchun');
     }
@@ -88,7 +93,11 @@ export class CourierOrdersController {
         update: {},
       });
     }
-    return this.ordersService.findForCourier(userId);
+    return this.ordersService.findForCourier(userId, {
+      limit: limit ? Number(limit) : undefined,
+      offset: offset ? Number(offset) : undefined,
+      status,
+    });
   }
 }
 
@@ -119,11 +128,18 @@ export class RestaurantOrdersController {
   async findForRestaurant(
     @Param('restaurantId') restaurantId: string,
     @Req() req: RequestWithUser,
+    @Query('limit') limit?: string,
+    @Query('offset') offset?: string,
+    @Query('status') status?: string,
   ) {
     const userId = req.user?.id;
     const role = req.user?.role;
     if (userId && role) await this.ensureRestaurantAdminAccess(restaurantId, userId, role);
-    return this.ordersService.findForRestaurant(restaurantId);
+    return this.ordersService.findForRestaurant(restaurantId, {
+      limit: limit ? Number(limit) : undefined,
+      offset: offset ? Number(offset) : undefined,
+      status,
+    });
   }
 
   @Get('archive')

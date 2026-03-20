@@ -170,7 +170,11 @@ export default function RestaurantAdminPage({
     setLoading(true);
     setError(null);
     adminApi
-      .getRestaurantOrders(restaurantId)
+      .getRestaurantOrders(restaurantId, {
+        limit: 50,
+        offset: 0,
+        status: orderFilter,
+      })
       .then((data) => setOrders(Array.isArray(data) ? data : []))
       .catch((err: any) => setError(err?.message ?? "Xatolik"))
       .finally(() => setLoading(false));
@@ -222,7 +226,16 @@ export default function RestaurantAdminPage({
         .catch((err: any) => setError(err?.message ?? "Xatolik"))
         .finally(() => setLoading(false));
     }
-  }, [restaurantId, activeTab]);
+  }, [restaurantId, activeTab, orderFilter]);
+
+  useEffect(() => {
+    if (activeTab !== "orders") return;
+    const interval = setInterval(() => {
+      if (loading) return;
+      loadOrders();
+    }, 8000);
+    return () => clearInterval(interval);
+  }, [activeTab, loading, orderFilter, restaurantId]);
 
   async function changeStatus(id: string, status: string, cancelReason?: string) {
     try {

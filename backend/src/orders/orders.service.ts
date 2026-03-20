@@ -3,6 +3,9 @@ import { PrismaService } from '../prisma.service';
 import { UsersService } from '../users/users.service';
 import { CreateOrderDto } from './dto/create-order.dto';
 
+// eslint-disable-next-line @typescript-eslint/no-var-requires
+const webpush = require('web-push');
+
 type OrderStatus =
   | 'NEW'
   | 'ACCEPTED'
@@ -16,7 +19,13 @@ export class OrdersService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly usersService: UsersService,
-  ) {}
+  ) {
+    const publicKey = process.env.PUBLIC_VAPID_KEY;
+    const privateKey = process.env.PRIVATE_VAPID_KEY;
+    if (publicKey && privateKey) {
+      webpush.setVapidDetails('mailto:admin@minut-ka.uz', publicKey, privateKey);
+    }
+  }
 
   async create(customerId: string | null, dto: CreateOrderDto) {
     const userId = customerId ?? (await this.usersService.findOrCreateGuestUser());
@@ -172,7 +181,102 @@ export class OrdersService {
     return (allowed as any)[oldStatus]?.includes(newStatus);
   }
 
+  private mapStatusFilter(status?: string): OrderStatus | null {
+    if (!status) return null;
+    const s = status.toUpperCase();
+    if (s === 'IN_PATH') return 'ON_THE_WAY';
+    if (s === 'ON_THE_WAY') return 'ON_THE_WAY';
+    if (s === 'READY') return 'READY';
+    if (s === 'NEW') return 'NEW';
+    if (s === 'ACCEPTED') return 'ACCEPTED';
+    if (s === 'DONE') return 'DONE';
+    if (s === 'CANCELLED') return 'CANCELLED';
+    return null;
+  }
+
+  private async sendPushToUserIds(
+    userIds: string[],
+    payload: { title: string; message: string; url: string },
+  ): Promise<void> {
+    const unique = Array.from(new Set(userIds.filter(Boolean)));
+    if (unique.length === 0) return;
+
+    const subs = await this.prisma.pushSubscription.findMany({
+      where: { userId: { in: unique } },
+      select: { id: true, endpoint: true, p256dh: true, auth: true },
+    });
+
+    if (!subs.length) return;
+
+    await Promise.allSettled(
+      subs.map(async (s: any) => {
+        try {
+          await webpush.sendNotification(
+            {
+              endpoint: s.endpoint,
+              keys: { p256dh: s.p256dh, auth: s.auth },
+            } as any,
+            JSON.stringify({ title: payload.title, body: payload.message, url: payload.url }),
+          );
+        } catch (e: any) {
+          if (e?.statusCode === 410 || e?.statusCode === 404) {
+            await this.prisma.pushSubscription.delete({ where: { id: s.id } }).catch(() => {});
+          }
+        }
+      }),
+    );
+  }
+
+  private async notifyAllCouriersReady(orderId: string, restaurantName?: string) {
+    const couriers = await this.prisma.courier.findMany({ select: { userId: true } });
+    const courierUserIds = couriers.map((c: any) => c.userId);
+    await this.sendPushToUserIds(courierUserIds, {
+      title: 'Minutka',
+      message: `${restaurantName ? restaurantName + ': ' : ''}yangi READY buyurtma #${orderId.slice(0, 8)}`,
+      url: '/courier',
+    });
+  }
+
+  private async notifyOtherCouriersOrderTaken(
+    orderId: string,
+    takenByCourierUserId: string,
+    restaurantName?: string,
+  ) {
+    const couriers = await this.prisma.courier.findMany({ select: { userId: true } });
+    const courierUserIds = couriers
+      .map((c: any) => c.userId)
+      .filter((id: string) => id && id !== takenByCourierUserId);
+    await this.sendPushToUserIds(courierUserIds, {
+      title: 'Minutka',
+      message: `${restaurantName ? restaurantName + ': ' : ''}buyurtma allaqachon olindi #${orderId.slice(0, 8)}`,
+      url: '/courier',
+    });
+  }
+
+  private async notifyCustomerOnTheWay(customerId: string, orderId: string) {
+    await this.sendPushToUserIds([customerId], {
+      title: 'Minutka',
+      message: `Buyurtmangiz yo‘lda (#${orderId.slice(0, 8)})`,
+      url: '/profile',
+    });
+  }
+
   async takeOrder(orderId: string, courierUserId: string) {
+    const existing = await this.prisma.order.findUnique({
+      where: { id: orderId },
+      select: { status: true, courierId: true },
+    });
+
+    if (!existing) {
+      throw new BadRequestException('Order not found');
+    }
+    if (existing.courierId) {
+      throw new BadRequestException('Order already taken');
+    }
+    if (existing.status !== 'READY') {
+      throw new BadRequestException('Order not READY');
+    }
+
     const courier = await this.prisma.courier.upsert({
       where: { userId: courierUserId },
       create: { userId: courierUserId },
@@ -190,19 +294,40 @@ export class OrdersService {
     });
 
     if (updated.count === 0) {
-      throw new BadRequestException('Order not found, already taken, or not READY');
+      const after = await this.prisma.order.findUnique({
+        where: { id: orderId },
+        select: { courierId: true },
+      });
+      if (after?.courierId) {
+        throw new BadRequestException('Order already taken');
+      }
+      throw new BadRequestException('Order not available');
     }
 
-    return this.prisma.order.findUnique({
+    const takenOrder = await this.prisma.order.findUnique({
       where: { id: orderId },
       include: {
-        items: { include: { dish: true } },
+        items: {
+          select: {
+            id: true,
+            quantity: true,
+            price: true,
+            dish: { select: { name: true } },
+          },
+        },
         address: true,
-        restaurant: true,
-        courier: true,
+        restaurant: { select: { id: true, name: true } },
         customer: { select: { id: true, name: true, email: true, phone: true } },
       },
     });
+
+    await this.notifyOtherCouriersOrderTaken(
+      orderId,
+      courierUserId,
+      (takenOrder as any)?.restaurant?.name,
+    );
+
+    return takenOrder;
   }
 
   async updateStatus(
@@ -214,7 +339,7 @@ export class OrdersService {
   ) {
     const order = await this.prisma.order.findUnique({
       where: { id },
-      select: { id: true, status: true, restaurantId: true, courierId: true },
+      select: { id: true, status: true, restaurantId: true, courierId: true, customerId: true },
     });
 
     if (!order) throw new BadRequestException('Order not found');
@@ -261,7 +386,7 @@ export class OrdersService {
       }
     }
 
-    const updatedOrder = await this.prisma.transaction(async (tx) => {
+    await this.prisma.transaction(async (tx) => {
       const result = await tx.order.update({
         where: { id },
         data:
@@ -289,6 +414,18 @@ export class OrdersService {
       return result;
     });
 
+    if (status === 'READY') {
+      const restaurant = await this.prisma.restaurant.findUnique({
+        where: { id: order!.restaurantId },
+        select: { name: true },
+      });
+      await this.notifyAllCouriersReady(id, restaurant?.name);
+    }
+
+    if (status === 'ON_THE_WAY' && order?.customerId) {
+      await this.notifyCustomerOnTheWay(order.customerId, id);
+    }
+
     return this.prisma.order.findUnique({
       where: { id },
       include: {
@@ -300,15 +437,30 @@ export class OrdersService {
     });
   }
 
-  async findForRestaurant(restaurantId: string) {
+  async findForRestaurant(
+    restaurantId: string,
+    opts?: { limit?: number; offset?: number; status?: string },
+  ) {
+    const statusFilter = this.mapStatusFilter(opts?.status);
+    const take = opts?.limit;
+    const skip = opts?.offset;
+
+    const whereStatus = statusFilter ? statusFilter : { notIn: ['DONE', 'CANCELLED'] };
+
     return this.prisma.order.findMany({
-      where: {
-        restaurantId,
-        status: { notIn: ['DONE', 'CANCELLED'] },
-      },
+      where: { restaurantId, status: whereStatus as any },
       orderBy: { createdAt: 'desc' },
+      ...(typeof take === 'number' ? { take } : {}),
+      ...(typeof skip === 'number' ? { skip } : {}),
       include: {
-        items: { include: { dish: true } },
+        items: {
+          select: {
+            id: true,
+            quantity: true,
+            price: true,
+            dish: { select: { name: true } },
+          },
+        },
         address: true,
         customer: { select: { id: true, name: true, email: true, phone: true } },
       },
@@ -316,28 +468,42 @@ export class OrdersService {
   }
 
   /** Barcha faol restoranlar buyurtmalari — kuryerlar ro‘yxati uchun */
-  async findForCourier(courierUserId: string) {
+  async findForCourier(
+    courierUserId: string,
+    opts?: { limit?: number; offset?: number; status?: string },
+  ) {
     const courier = await this.prisma.courier.upsert({
       where: { userId: courierUserId },
       create: { userId: courierUserId },
       update: {},
     });
 
+    const statusFilter = this.mapStatusFilter(opts?.status);
+    const take = typeof opts?.limit === 'number' ? opts.limit : 300;
+    const skip = typeof opts?.offset === 'number' ? opts.offset : 0;
+
+    const where: any = {
+      restaurant: { isActive: true },
+      OR: [{ status: 'READY', courierId: null }, { courierId: courier.id }],
+    };
+    if (statusFilter) where.status = statusFilter;
+
     return this.prisma.order.findMany({
-      where: {
-        restaurant: { isActive: true },
-        OR: [
-          { status: 'READY', courierId: null },
-          { courierId: courier.id },
-        ],
-      },
+      where,
       orderBy: { createdAt: 'desc' },
-      take: 300,
+      take,
+      skip,
       include: {
-        items: { include: { dish: true } },
+        items: {
+          select: {
+            id: true,
+            quantity: true,
+            price: true,
+            dish: { select: { name: true } },
+          },
+        },
         address: true,
-        restaurant: true,
-        courier: true,
+        restaurant: { select: { name: true } },
         customer: { select: { id: true, name: true, email: true, phone: true } },
       },
     });

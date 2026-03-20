@@ -17,11 +17,17 @@ export default function CourierPage() {
   const [error, setError] = useState<string | null>(null);
   const [filter, setFilter] = useState<"NEW" | "READY" | "IN_PATH">("READY");
   const [actionBusy, setActionBusy] = useState(false);
+  const listLimit = 50;
+  const listOffset = 0;
 
   const load = useCallback(async () => {
     setError(null);
     try {
-      const list = await adminApi.getCourierOrders();
+      const list = await adminApi.getCourierOrders({
+        limit: listLimit,
+        offset: listOffset,
+        status: filter,
+      });
       setOrders(Array.isArray(list) ? list : []);
     } catch (e: any) {
       const msg = String(e?.message ?? "Xatolik");
@@ -36,7 +42,7 @@ export default function CourierPage() {
     } finally {
       setLoading(false);
     }
-  }, [router]);
+  }, [router, filter]);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -48,6 +54,15 @@ export default function CourierPage() {
     }
     load();
   }, [load, router]);
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      if (actionBusy) return;
+      if (loading) return;
+      load();
+    }, 8000);
+    return () => clearInterval(interval);
+  }, [load, actionBusy, loading]);
 
   return (
     <div className="fd-shell fd-section">

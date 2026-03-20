@@ -187,9 +187,12 @@ export default function ProfilePage() {
       const controller = new AbortController();
       const fetchTimeoutId = setTimeout(() => controller.abort(), 15000);
       try {
+        const token = window.localStorage.getItem("token");
+        const headers: Record<string, string> = { "Content-Type": "application/json" };
+        if (token) headers.Authorization = `Bearer ${token}`;
         const res = await fetch(`${API_BASE.replace(/\/$/, "")}/push/subscribe`, {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers,
           body: JSON.stringify(sub),
           signal: controller.signal,
         });

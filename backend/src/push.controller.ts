@@ -1,11 +1,17 @@
 import { BadRequestException, Body, Controller, ForbiddenException, Post, Req } from '@nestjs/common';
+import { AuthService } from './auth/auth.service';
 import { PrismaService } from './prisma.service';
+import { UsersService } from './users/users.service';
 // eslint-disable-next-line @typescript-eslint/no-var-requires
 const webpush = require('web-push');
 
 @Controller('push')
 export class PushController {
-  constructor(private readonly prisma: PrismaService) {
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly authService: AuthService,
+    private readonly usersService: UsersService,
+  ) {
     const publicKey = process.env.PUBLIC_VAPID_KEY;
     const privateKey = process.env.PRIVATE_VAPID_KEY;
     if (publicKey && privateKey) {
@@ -14,7 +20,7 @@ export class PushController {
   }
 
   @Post('subscribe')
-  async subscribe(@Body() body: any) {
+  async subscribe(@Body() body: any, @Req() req: any) {
     const sub = body?.subscription ?? body;
     const endpoint = sub?.endpoint;
     const p256dh = sub?.keys?.p256dh;
@@ -22,10 +28,29 @@ export class PushController {
     if (!endpoint || !p256dh || !auth) {
       throw new BadRequestException('Invalid subscription payload');
     }
+
+    let userId: string | null = null;
+    const authHeader = req?.headers?.authorization;
+    if (typeof authHeader === 'string' && authHeader.startsWith('Bearer ')) {
+      try {
+        const token = authHeader.slice(7);
+        const payload = this.authService.verifyToken(token);
+        userId = payload.sub ?? null;
+      } catch {
+        userId = null;
+      }
+    }
+
+    // Если пользователь не авторизован — привязываем подписку к guest-пользователю,
+    // чтобы push при заказах гостя тоже доставлялся.
+    if (!userId) {
+      userId = await this.usersService.findOrCreateGuestUser();
+    }
+
     await this.prisma.pushSubscription.upsert({
       where: { endpoint },
-      update: { p256dh, auth },
-      create: { endpoint, p256dh, auth },
+      update: { p256dh, auth, userId },
+      create: { endpoint, p256dh, auth, userId },
     });
     return { ok: true };
   }

@@ -306,9 +306,13 @@ export default function RootLayout({ children }: { children: ReactNode }) {
               userVisibleOnly: true,
               applicationServerKey: urlBase64ToUint8Array(publicKey),
             });
+            const token = window.localStorage.getItem("token");
             await fetch(`${apiBase.replace(/\/$/, "")}/push/subscribe`, {
               method: "POST",
-              headers: { "Content-Type": "application/json" },
+              headers: {
+                "Content-Type": "application/json",
+                ...(token ? { Authorization: `Bearer ${token}` } : {}),
+              },
               body: JSON.stringify(sub),
             }).catch(() => {});
             sessionStorage.setItem(key, "1");
