@@ -93,9 +93,6 @@ export default async function HomePage() {
 
   return (
     <div className="fd-shell">
-      <h1 style={{ textAlign: "center", margin: "10px 0 8px" }}>
-        Eng yaxshi restoranlardan yetkazib berish
-      </h1>
       <section className="fd-home-top">
         <div className="fd-home-search">
           <input

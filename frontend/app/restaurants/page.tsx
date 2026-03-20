@@ -4,11 +4,11 @@ import { SafeImage } from "../../components/SafeImage";
 import { BackLink } from "../../components/BackLink";
 
 export const metadata = {
-  title: "Restoranlar — Minutka ovqat yetkazib berish",
+  title: "Minutka — Restoranlar va kafelardan ovqat yetkazib berish xizmati",
   description:
     "O‘z shahringizdagi mashhur restoranlar bir joyda. Menyudan tanlang, tez ovqat yetkazib berish bilan buyurtma bering va Minutka orqali qulay xizmatdan foydalaning.",
   openGraph: {
-    title: "Restoranlar — Minutka ovqat yetkazib berish",
+    title: "Minutka — Restoranlar va kafelardan ovqat yetkazib berish xizmati",
     description:
       "Restoranlar menyusidan taom tanlab, tez yetkazib berish bilan buyurtma bering. Minutka servisi O‘zbekiston shaharlarida qulay ovqat yetkazib berish taklif qiladi.",
   },
