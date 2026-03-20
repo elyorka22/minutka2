@@ -24,6 +24,10 @@ export class OrdersService {
     const privateKey = process.env.PRIVATE_VAPID_KEY;
     if (publicKey && privateKey) {
       webpush.setVapidDetails('mailto:admin@minut-ka.uz', publicKey, privateKey);
+    } else {
+      // Helps debug "no push" issues in production logs.
+      // eslint-disable-next-line no-console
+      console.warn('[push] VAPID keys are missing in env (PUBLIC_VAPID_KEY/PRIVATE_VAPID_KEY)');
     }
   }
 
@@ -128,22 +132,35 @@ export class OrdersService {
     }
 
     // Web-push to restaurant admins about a new order.
-    // This should never break order creation.
+    // Never block order creation; but do not swallow errors silently.
     try {
       const restaurantWithAdmins = await this.prisma.restaurant.findUnique({
         where: { id: dto.restaurantId },
-        select: { admins: { select: { id: true } } },
+        select: { admins: { select: { id: true, role: true } } },
       });
       const adminUserIds =
         restaurantWithAdmins?.admins?.map((u) => u.id).filter(Boolean) ?? [];
 
-      await this.sendPushToUserIds(adminUserIds, {
+      const result = await this.sendPushToUserIds(adminUserIds, {
         title: "Minutka",
         message: `Yangi buyurtma #${order.id.slice(0, 8)}`,
         url: `/restaurant-admin/${dto.restaurantId}`,
       });
-    } catch {
-      // ignore push errors
+
+      // eslint-disable-next-line no-console
+      console.log('[push] restaurant-admins NEW order', {
+        restaurantId: dto.restaurantId,
+        adminsFound: adminUserIds.length,
+        pushSubscriptionsFound: result.subscriptionsFound,
+        success: result.success,
+        failed: result.failed,
+      });
+    } catch (e: any) {
+      // eslint-disable-next-line no-console
+      console.error('[push] restaurant-admins NEW order failed', {
+        restaurantId: dto.restaurantId,
+        error: e?.message ?? String(e),
+      });
     }
 
     if (dto.paymentMethod === 'CARD') {
@@ -226,16 +243,23 @@ export class OrdersService {
   private async sendPushToUserIds(
     userIds: string[],
     payload: { title: string; message: string; url: string },
-  ): Promise<void> {
+  ): Promise<{ subscriptionsFound: number; success: number; failed: number }> {
     const unique = Array.from(new Set(userIds.filter(Boolean)));
-    if (unique.length === 0) return;
+    if (unique.length === 0) {
+      return { subscriptionsFound: 0, success: 0, failed: 0 };
+    }
 
     const subs = await this.prisma.pushSubscription.findMany({
       where: { userId: { in: unique } },
       select: { id: true, endpoint: true, p256dh: true, auth: true },
     });
 
-    if (!subs.length) return;
+    if (!subs.length) {
+      return { subscriptionsFound: 0, success: 0, failed: 0 };
+    }
+
+    let success = 0;
+    let failed = 0;
 
     await Promise.allSettled(
       subs.map(async (s: any) => {
@@ -245,15 +269,23 @@ export class OrdersService {
               endpoint: s.endpoint,
               keys: { p256dh: s.p256dh, auth: s.auth },
             } as any,
-            JSON.stringify({ title: payload.title, body: payload.message, url: payload.url }),
+            JSON.stringify({
+              title: payload.title,
+              body: payload.message,
+              url: payload.url,
+            }),
           );
+          success += 1;
         } catch (e: any) {
+          failed += 1;
           if (e?.statusCode === 410 || e?.statusCode === 404) {
             await this.prisma.pushSubscription.delete({ where: { id: s.id } }).catch(() => {});
           }
         }
       }),
     );
+
+    return { subscriptionsFound: subs.length, success, failed };
   }
 
   private async notifyAllCouriersReady(orderId: string, restaurantName?: string) {
