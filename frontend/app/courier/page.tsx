@@ -17,6 +17,7 @@ export default function CourierPage() {
   const [error, setError] = useState<string | null>(null);
   const [filter, setFilter] = useState<"NEW" | "READY" | "IN_PATH">("READY");
   const [actionBusy, setActionBusy] = useState(false);
+  const [pushEnabled, setPushEnabled] = useState<boolean | null>(null);
   const listLimit = 50;
   const listOffset = 0;
 
@@ -52,6 +53,11 @@ export default function CourierPage() {
       router.push("/login?next=/courier");
       return;
     }
+    // Check whether this courier has enabled push notifications.
+    adminApi
+      .getMyPushStatus()
+      .then((s) => setPushEnabled(!!s.subscribed))
+      .catch(() => setPushEnabled(null));
     load();
   }, [load, router]);
 
@@ -68,6 +74,18 @@ export default function CourierPage() {
     <div className="fd-shell fd-section">
       <BackLink href="/profile" />
       <h1 className="fd-section-title">Kuryer paneli</h1>
+      {pushEnabled === false && (
+        <div className="fd-card" style={{ padding: 16, marginTop: 12 }}>
+          <p className="fd-card-desc" style={{ margin: 0 }}>
+            Bildirishnomalar yoqilmagan. Buyurtmalarni qabul qilish uchun profilda pushni yoqing.
+          </p>
+          <div style={{ marginTop: 12, display: "flex" }}>
+            <Link href="/profile" className="fd-btn fd-btn-primary" style={{ textDecoration: "none" }}>
+              Bildirishnomani yoqish
+            </Link>
+          </div>
+        </div>
+      )}
       <p className="fd-card-desc" style={{ marginBottom: 16 }}>
         READY holatidagi buyurtmalar (oxirgi 300 ta).
       </p>

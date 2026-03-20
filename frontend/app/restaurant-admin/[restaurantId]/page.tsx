@@ -165,6 +165,14 @@ export default function RestaurantAdminPage({
   const [telegramChatId, setTelegramChatId] = useState("");
   const [settingsSaving, setSettingsSaving] = useState(false);
   const [settingsMessage, setSettingsMessage] = useState<string | null>(null);
+  const [pushEnabled, setPushEnabled] = useState<boolean | null>(null);
+
+  useEffect(() => {
+    adminApi
+      .getMyPushStatus()
+      .then((s) => setPushEnabled(!!s.subscribed))
+      .catch(() => setPushEnabled(null));
+  }, [restaurantId]);
 
   function loadOrders() {
     setLoading(true);
@@ -268,6 +276,19 @@ export default function RestaurantAdminPage({
     <div className="fd-shell fd-section">
       <BackLink href="/profile">← Profil</BackLink>
       <h1 className="fd-section-title">Restoran boshqaruvi</h1>
+
+      {pushEnabled === false && (
+        <div className="fd-card" style={{ padding: 16, marginTop: 12 }}>
+          <p className="fd-card-desc" style={{ margin: 0 }}>
+            Bildirishnomalar yoqilmagan. Buyurtmalarni qabul qilish uchun profilda pushni yoqing.
+          </p>
+          <div style={{ marginTop: 12, display: "flex" }}>
+            <Link href="/profile" className="fd-btn fd-btn-primary" style={{ textDecoration: "none" }}>
+              Bildirishnomani yoqish
+            </Link>
+          </div>
+        </div>
+      )}
 
       <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 16 }}>
         {tabs.map((t) => (

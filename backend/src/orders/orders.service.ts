@@ -127,6 +127,25 @@ export class OrdersService {
       }).catch(() => {});
     }
 
+    // Web-push to restaurant admins about a new order.
+    // This should never break order creation.
+    try {
+      const restaurantWithAdmins = await this.prisma.restaurant.findUnique({
+        where: { id: dto.restaurantId },
+        select: { admins: { select: { id: true } } },
+      });
+      const adminUserIds =
+        restaurantWithAdmins?.admins?.map((u) => u.id).filter(Boolean) ?? [];
+
+      await this.sendPushToUserIds(adminUserIds, {
+        title: "Minutka",
+        message: `Yangi buyurtma #${order.id.slice(0, 8)}`,
+        url: `/restaurant-admin/${dto.restaurantId}`,
+      });
+    } catch {
+      // ignore push errors
+    }
+
     if (dto.paymentMethod === 'CARD') {
       await this.prisma.payment.create({
         data: {
@@ -238,8 +257,13 @@ export class OrdersService {
   }
 
   private async notifyAllCouriersReady(orderId: string, restaurantName?: string) {
-    const couriers = await this.prisma.courier.findMany({ select: { userId: true } });
-    const courierUserIds = couriers.map((c: any) => c.userId);
+    // Use users with role COURIER instead of Courier table,
+    // otherwise couriers won't receive notifications until they open their panel.
+    const courierUsers = await this.prisma.user.findMany({
+      where: { role: 'COURIER', status: 'ACTIVE' },
+      select: { id: true },
+    });
+    const courierUserIds = courierUsers.map((u) => u.id);
     await this.sendPushToUserIds(courierUserIds, {
       title: 'Minutka',
       message: `${restaurantName ? restaurantName + ': ' : ''}yangi READY buyurtma #${orderId.slice(0, 8)}`,
@@ -252,9 +276,12 @@ export class OrdersService {
     takenByCourierUserId: string,
     restaurantName?: string,
   ) {
-    const couriers = await this.prisma.courier.findMany({ select: { userId: true } });
-    const courierUserIds = couriers
-      .map((c: any) => c.userId)
+    const courierUsers = await this.prisma.user.findMany({
+      where: { role: 'COURIER', status: 'ACTIVE' },
+      select: { id: true },
+    });
+    const courierUserIds = courierUsers
+      .map((u) => u.id)
       .filter((id: string) => id && id !== takenByCourierUserId);
     await this.sendPushToUserIds(courierUserIds, {
       title: 'Minutka',

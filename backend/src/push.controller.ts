@@ -1,7 +1,8 @@
-import { BadRequestException, Body, Controller, ForbiddenException, Post, Req } from '@nestjs/common';
+import { BadRequestException, Body, Controller, ForbiddenException, Get, Post, Req, UseGuards } from '@nestjs/common';
 import { AuthService } from './auth/auth.service';
 import { PrismaService } from './prisma.service';
 import { UsersService } from './users/users.service';
+import { JwtAuthGuard } from './auth/jwt-auth.guard';
 // eslint-disable-next-line @typescript-eslint/no-var-requires
 const webpush = require('web-push');
 
@@ -103,6 +104,17 @@ export class PushController {
     );
 
     return { ok: true, total: subs.length, success, failed };
+  }
+
+  @Get('me')
+  @UseGuards(JwtAuthGuard)
+  async me(@Req() req: any) {
+    const userId = req?.user?.id as string | undefined;
+    if (!userId) {
+      throw new BadRequestException('Unauthorized');
+    }
+    const count = await this.prisma.pushSubscription.count({ where: { userId } });
+    return { subscribed: count > 0, count };
   }
 }
 

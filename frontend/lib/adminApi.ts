@@ -145,6 +145,8 @@ export const adminApi = {
       method: "POST",
       body: JSON.stringify(body),
     }),
+  getMyPushStatus: () =>
+    adminRequest<{ subscribed: boolean; count: number }>("/push/me"),
   deleteRestaurant: (id: string) =>
     adminRequest<any>(`/admin/restaurants/${id}`, {
       method: "DELETE",
