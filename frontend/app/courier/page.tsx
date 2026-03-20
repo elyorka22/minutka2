@@ -15,6 +15,8 @@ export default function CourierPage() {
   const [orders, setOrders] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [filter, setFilter] = useState<"NEW" | "READY" | "IN_PATH">("READY");
+  const [actionBusy, setActionBusy] = useState(false);
 
   const load = useCallback(async () => {
     setError(null);
@@ -52,7 +54,7 @@ export default function CourierPage() {
       <BackLink href="/profile" />
       <h1 className="fd-section-title">Kuryer paneli</h1>
       <p className="fd-card-desc" style={{ marginBottom: 16 }}>
-        Barcha faol restoranlar buyurtmalari ro‘yxati (oxirgi 300 ta).
+        READY holatidagi buyurtmalar (oxirgi 300 ta).
       </p>
       <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 16 }}>
         <button type="button" className="fd-btn fd-btn-primary" onClick={() => load()} disabled={loading}>
@@ -62,10 +64,39 @@ export default function CourierPage() {
           Profil
         </Link>
       </div>
+      <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 16 }}>
+        <button
+          type="button"
+          className={filter === "NEW" ? "fd-btn fd-btn-primary" : "fd-btn"}
+          onClick={() => setFilter("NEW")}
+        >
+          Yangi
+        </button>
+        <button
+          type="button"
+          className={filter === "READY" ? "fd-btn fd-btn-primary" : "fd-btn"}
+          onClick={() => setFilter("READY")}
+        >
+          Tayyor
+        </button>
+        <button
+          type="button"
+          className={filter === "IN_PATH" ? "fd-btn fd-btn-primary" : "fd-btn"}
+          onClick={() => setFilter("IN_PATH")}
+        >
+          Yo‘lda
+        </button>
+      </div>
       {error && <p className="fd-empty">{error}</p>}
       {!loading && !error && orders.length === 0 && <p className="fd-empty">Buyurtmalar yo‘q.</p>}
       <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-        {orders.map((o) => {
+        {orders
+          .filter((o) => {
+            if (filter === "READY") return o.status === "READY";
+            if (filter === "IN_PATH") return o.status === "ON_THE_WAY";
+            return o.status === "NEW" || o.status === "ACCEPTED";
+          })
+          .map((o) => {
           const lat = o.address?.latitude;
           const lng = o.address?.longitude;
           const mapUrl =
@@ -83,6 +114,72 @@ export default function CourierPage() {
                 </div>
                 <div style={{ fontWeight: 700 }}>{formatSum(Number(o.total))}</div>
               </div>
+              {o.status === "READY" && !o.courierId && (
+                <div style={{ marginTop: 10 }}>
+                  <button
+                    type="button"
+                    className="fd-btn fd-btn-primary"
+                    disabled={actionBusy || loading}
+                    onClick={async () => {
+                      try {
+                        setActionBusy(true);
+                        await adminApi.takeOrder(o.id);
+                        await load();
+                      } catch (e: any) {
+                        setError(e?.message ?? "Xatolik");
+                      } finally {
+                        setActionBusy(false);
+                      }
+                    }}
+                  >
+                    Buyurtmani olish
+                  </button>
+                </div>
+              )}
+              {o.status === "READY" && !!o.courierId && (
+                <div style={{ marginTop: 10, display: "flex", gap: 8, flexWrap: "wrap" }}>
+                  <button
+                    type="button"
+                    className="fd-btn fd-btn-primary"
+                    disabled={actionBusy || loading}
+                    onClick={async () => {
+                      try {
+                        setActionBusy(true);
+                        await adminApi.updateOrderStatus(o.id, "ON_THE_WAY");
+                        await load();
+                      } catch (e: any) {
+                        setError(e?.message ?? "Xatolik");
+                      } finally {
+                        setActionBusy(false);
+                      }
+                    }}
+                  >
+                    Yo‘lda
+                  </button>
+                </div>
+              )}
+              {o.status === "ON_THE_WAY" && !!o.courierId && (
+                <div style={{ marginTop: 10 }}>
+                  <button
+                    type="button"
+                    className="fd-btn fd-btn-primary"
+                    disabled={actionBusy || loading}
+                    onClick={async () => {
+                      try {
+                        setActionBusy(true);
+                        await adminApi.updateOrderStatus(o.id, "DONE");
+                        await load();
+                      } catch (e: any) {
+                        setError(e?.message ?? "Xatolik");
+                      } finally {
+                        setActionBusy(false);
+                      }
+                    }}
+                  >
+                    Tugatildi
+                  </button>
+                </div>
+              )}
               <p className="fd-checkout-meta" style={{ margin: "8px 0 4px" }}>
                 {o.restaurant?.name ?? "Restoran"}
               </p>

@@ -1,7 +1,15 @@
-import { Injectable } from '@nestjs/common';
+import { BadRequestException, ForbiddenException, Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma.service';
 import { UsersService } from '../users/users.service';
 import { CreateOrderDto } from './dto/create-order.dto';
+
+type OrderStatus =
+  | 'NEW'
+  | 'ACCEPTED'
+  | 'READY'
+  | 'ON_THE_WAY'
+  | 'DONE'
+  | 'CANCELLED';
 
 @Injectable()
 export class OrdersService {
@@ -140,14 +148,154 @@ export class OrdersService {
     });
   }
 
-  async updateStatus(id: string, status: 'NEW' | 'ACCEPTED' | 'COOKING' | 'DELIVERING' | 'DELIVERED' | 'CANCELLED') {
-    return this.prisma.order.update({
+  private getAllowedTransitions() {
+    const transitions: Record<
+      Exclude<
+        OrderStatus,
+        'CANCELLED'
+      >,
+      Exclude<OrderStatus, 'CANCELLED'>[]
+    > = {
+      NEW: ['ACCEPTED'],
+      ACCEPTED: ['READY'],
+      READY: ['ON_THE_WAY'],
+      ON_THE_WAY: ['DONE'],
+      // DONE transitions are only via CANCELLED (handled separately)
+    } as any;
+    return transitions;
+  }
+
+  private isValidTransition(oldStatus: OrderStatus, newStatus: OrderStatus): boolean {
+    if (oldStatus === newStatus) return false;
+    if (newStatus === 'CANCELLED') return true; // any -> CANCELLED
+    const allowed = this.getAllowedTransitions();
+    return (allowed as any)[oldStatus]?.includes(newStatus);
+  }
+
+  async takeOrder(orderId: string, courierUserId: string) {
+    const courier = await this.prisma.courier.upsert({
+      where: { userId: courierUserId },
+      create: { userId: courierUserId },
+      update: {},
+    });
+
+    // Atomic update prevents 2 couriers from taking the same order.
+    const updated = await this.prisma.order.updateMany({
+      where: {
+        id: orderId,
+        status: 'READY',
+        courierId: null,
+      },
+      data: { courierId: courier.id },
+    });
+
+    if (updated.count === 0) {
+      throw new BadRequestException('Order not found, already taken, or not READY');
+    }
+
+    return this.prisma.order.findUnique({
+      where: { id: orderId },
+      include: {
+        items: { include: { dish: true } },
+        address: true,
+        restaurant: true,
+        courier: true,
+        customer: { select: { id: true, name: true, email: true, phone: true } },
+      },
+    });
+  }
+
+  async updateStatus(
+    id: string,
+    status: OrderStatus,
+    actorRole: string,
+    actorUserId: string,
+    cancelReason?: string,
+  ) {
+    const order = await this.prisma.order.findUnique({
       where: { id },
-      data: { status },
+      select: { id: true, status: true, restaurantId: true, courierId: true },
+    });
+
+    if (!order) throw new BadRequestException('Order not found');
+    if (!this.isValidTransition(order.status, status)) throw new BadRequestException('Invalid status transition');
+
+    const isCourier = actorRole === 'COURIER';
+    const isAdmin = actorRole === 'PLATFORM_ADMIN' || actorRole === 'RESTAURANT_ADMIN';
+
+    if (!isCourier && !isAdmin) throw new ForbiddenException('Forbidden');
+
+    if (isCourier && status === 'CANCELLED') {
+      throw new BadRequestException('Couriers can not cancel orders');
+    }
+
+    // Authorization + actor constraints
+    if (isCourier) {
+      const courier = await this.prisma.courier.upsert({
+        where: { userId: actorUserId },
+        create: { userId: actorUserId },
+        update: {},
+      });
+
+      if (order.courierId !== courier.id) throw new ForbiddenException('This order is not yours');
+
+      // Courier allowed transitions:
+      if (order.status === 'READY' && status !== 'ON_THE_WAY') throw new BadRequestException('Invalid transition for courier');
+      if (order.status === 'ON_THE_WAY' && status !== 'DONE') throw new BadRequestException('Invalid transition for courier');
+      if (order.status === 'DONE') throw new BadRequestException('Invalid transition for courier');
+    } else if (isAdmin && actorRole === 'RESTAURANT_ADMIN') {
+      // Restaurant admin can only operate on their own restaurant orders.
+      const restaurant = await this.prisma.restaurant.findFirst({
+        where: { id: order.restaurantId, isActive: true, admins: { some: { id: actorUserId } } },
+        select: { id: true },
+      });
+      if (!restaurant) throw new ForbiddenException("Sizga tayinlangan restoran yoki do'kon yo'q.");
+    }
+
+    const changedBy: 'ADMIN' | 'COURIER' = isCourier ? 'COURIER' : 'ADMIN';
+
+    const oldStatus = order.status;
+    if (status === 'CANCELLED') {
+      if (!cancelReason || !cancelReason.trim()) {
+        throw new BadRequestException('cancelReason is required');
+      }
+    }
+
+    const updatedOrder = await this.prisma.transaction(async (tx) => {
+      const result = await tx.order.update({
+        where: { id },
+        data:
+          status === 'CANCELLED'
+            ? {
+                status,
+                cancelReason: cancelReason ?? null,
+                cancelledBy: changedBy,
+                cancelledAt: new Date(),
+              }
+            : {
+                status,
+              },
+      });
+
+      await tx.orderStatusHistory.create({
+        data: {
+          orderId: id,
+          oldStatus,
+          newStatus: status,
+          changedBy,
+        },
+      });
+
+      return result;
+    });
+
+    return this.prisma.order.findUnique({
+      where: { id },
       include: {
         items: { include: { dish: true } },
         restaurant: true,
         address: true,
+        customer: { select: { id: true, name: true, email: true, phone: true } },
       },
     });
   }
@@ -156,7 +304,7 @@ export class OrdersService {
     return this.prisma.order.findMany({
       where: {
         restaurantId,
-        status: { notIn: ['DELIVERED', 'CANCELLED'] },
+        status: { notIn: ['DONE', 'CANCELLED'] },
       },
       orderBy: { createdAt: 'desc' },
       include: {
@@ -168,10 +316,20 @@ export class OrdersService {
   }
 
   /** Barcha faol restoranlar buyurtmalari — kuryerlar ro‘yxati uchun */
-  async findAllForCouriers() {
+  async findForCourier(courierUserId: string) {
+    const courier = await this.prisma.courier.upsert({
+      where: { userId: courierUserId },
+      create: { userId: courierUserId },
+      update: {},
+    });
+
     return this.prisma.order.findMany({
       where: {
         restaurant: { isActive: true },
+        OR: [
+          { status: 'READY', courierId: null },
+          { courierId: courier.id },
+        ],
       },
       orderBy: { createdAt: 'desc' },
       take: 300,
@@ -179,6 +337,7 @@ export class OrdersService {
         items: { include: { dish: true } },
         address: true,
         restaurant: true,
+        courier: true,
         customer: { select: { id: true, name: true, email: true, phone: true } },
       },
     });
@@ -209,7 +368,7 @@ export class OrdersService {
     return this.prisma.order.findMany({
       where: {
         restaurantId,
-        status: { in: ['DELIVERED', 'CANCELLED'] },
+        status: { in: ['DONE', 'CANCELLED'] },
         createdAt: { gte: since },
       },
       orderBy: { createdAt: 'desc' },
@@ -228,13 +387,13 @@ export class OrdersService {
         select: { platformFeePercent: true },
       }),
       this.prisma.order.findMany({
-        where: { restaurantId, status: 'DELIVERED' },
+        where: { restaurantId, status: 'DONE' },
         select: { total: true, subtotal: true },
       }),
       this.prisma.order.count({
         where: {
           restaurantId,
-          status: { notIn: ['DELIVERED', 'CANCELLED'] },
+          status: { notIn: ['DONE', 'CANCELLED'] },
         },
       }),
     ]);

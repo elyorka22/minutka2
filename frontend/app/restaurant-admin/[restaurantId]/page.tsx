@@ -13,7 +13,7 @@ function OrderCard({
   showStatusButtons = true,
 }: {
   o: any;
-  onStatusChange?: (id: string, status: string) => void;
+  onStatusChange?: (id: string, status: string, cancelReason?: string) => void;
   showStatusButtons?: boolean;
 }) {
   const addr = o.address;
@@ -44,17 +44,46 @@ function OrderCard({
           <span style={{ marginLeft: 8, fontSize: "0.875rem", color: "var(--color-muted)" }}>{o.status}</span>
         </div>
         {showStatusButtons && onStatusChange && (
-          <div style={{ display: "flex", gap: 8 }}>
-            <button
-              className="fd-btn fd-btn-primary"
-              type="button"
-              onClick={() => onStatusChange(o.id, "ACCEPTED")}
-            >
-              Qabul qilish
-            </button>
-            <button className="fd-btn" type="button" onClick={() => onStatusChange(o.id, "DELIVERED")}>
-              Yetkazildi
-            </button>
+          <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+            {o.status === "NEW" && (
+              <button
+                className="fd-btn fd-btn-primary"
+                type="button"
+                onClick={() => onStatusChange(o.id, "ACCEPTED")}
+              >
+                Qabul qilish
+              </button>
+            )}
+            {o.status === "ACCEPTED" && (
+              <button
+                className="fd-btn fd-btn-primary"
+                type="button"
+                onClick={() => onStatusChange(o.id, "READY")}
+              >
+                Tayyor
+              </button>
+            )}
+
+            {o.status === "READY" && (
+              <span className="fd-checkout-meta">Kuryer kutyapti</span>
+            )}
+            {o.status === "ON_THE_WAY" && (
+              <span className="fd-checkout-meta">Yo‘lda</span>
+            )}
+
+            {o.status !== "CANCELLED" && o.status !== "DONE" && (
+              <button
+                className="fd-btn fd-btn--secondary"
+                type="button"
+                onClick={() => {
+                  const reason = prompt("Bekor qilish sababi?");
+                  if (!reason) return;
+                  onStatusChange(o.id, "CANCELLED", reason);
+                }}
+              >
+                Bekor qilish
+              </button>
+            )}
           </div>
         )}
       </div>
@@ -122,6 +151,7 @@ export default function RestaurantAdminPage({
   const restaurantId = params.restaurantId;
   const [activeTab, setActiveTab] = useState<TabId>("orders");
   const [orders, setOrders] = useState<any[]>([]);
+  const [orderFilter, setOrderFilter] = useState<"NEW" | "READY" | "IN_PATH">("NEW");
   const [archive, setArchive] = useState<any[]>([]);
   const [stats, setStats] = useState<{
     activeOrdersCount: number;
@@ -194,10 +224,12 @@ export default function RestaurantAdminPage({
     }
   }, [restaurantId, activeTab]);
 
-  async function changeStatus(id: string, status: string) {
+  async function changeStatus(id: string, status: string, cancelReason?: string) {
     try {
-      await adminApi.updateOrderStatus(id, status);
-      setOrders((prev) => prev.map((o) => (o.id === id ? { ...o, status } : o)));
+      await adminApi.updateOrderStatus(id, status as any, cancelReason);
+      setOrders((prev) =>
+        status === "CANCELLED" ? prev.filter((o) => o.id !== id) : prev.map((o) => (o.id === id ? { ...o, status } : o)),
+      );
     } catch (err) {
       console.error(err);
     }
@@ -211,8 +243,13 @@ export default function RestaurantAdminPage({
     { id: "settings", label: "Sozlamalar" },
   ];
 
-  const deliveredForPayments = (activeTab === "payments" ? archive : []).filter((o: any) => o.status === "DELIVERED");
+  const deliveredForPayments = (activeTab === "payments" ? archive : []).filter((o: any) => o.status === "DONE");
   const percent = stats?.platformFeePercent ?? 10;
+  const visibleOrders = orders.filter((o) => {
+    if (orderFilter === "READY") return o.status === "READY";
+    if (orderFilter === "IN_PATH") return o.status === "ON_THE_WAY";
+    return o.status === "NEW" || o.status === "ACCEPTED";
+  });
 
   return (
     <div className="fd-shell fd-section">
@@ -248,10 +285,33 @@ export default function RestaurantAdminPage({
 
       {activeTab === "orders" && !loading && (
         <div className="fd-admin-orders">
-          {orders.map((o) => (
-            <OrderCard key={o.id} o={o} onStatusChange={changeStatus} showStatusButtons />
+          <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 16 }}>
+            <button
+              type="button"
+              className={orderFilter === "NEW" ? "fd-btn fd-btn-primary" : "fd-btn"}
+              onClick={() => setOrderFilter("NEW")}
+            >
+              Yangi
+            </button>
+            <button
+              type="button"
+              className={orderFilter === "READY" ? "fd-btn fd-btn-primary" : "fd-btn"}
+              onClick={() => setOrderFilter("READY")}
+            >
+              Tayyor
+            </button>
+            <button
+              type="button"
+              className={orderFilter === "IN_PATH" ? "fd-btn fd-btn-primary" : "fd-btn"}
+              onClick={() => setOrderFilter("IN_PATH")}
+            >
+              Yo‘lda
+            </button>
+          </div>
+          {visibleOrders.map((o) => (
+              <OrderCard key={o.id} o={o} onStatusChange={changeStatus} showStatusButtons />
           ))}
-          {orders.length === 0 && !error && <p className="fd-empty">Aktiv buyurtmalar yo‘q.</p>}
+          {visibleOrders.length === 0 && !error && <p className="fd-empty">Aktiv buyurtmalar yo‘q.</p>}
         </div>
       )}
 

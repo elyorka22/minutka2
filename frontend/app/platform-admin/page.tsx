@@ -231,7 +231,7 @@ export default function PlatformAdminPage() {
     const users = data?.users ?? [];
     const orders = data?.recentOrders ?? [];
     const totalOrders = orders.length;
-    const delivered = orders.filter((o: any) => o.status === "DELIVERED").length;
+    const delivered = orders.filter((o: any) => o.status === "DONE").length;
     const cancelled = orders.filter((o: any) => o.status === "CANCELLED").length;
     const admins = users.filter(
       (u: any) =>

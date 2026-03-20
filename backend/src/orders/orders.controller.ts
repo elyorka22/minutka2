@@ -1,4 +1,4 @@
-import { Body, Controller, ForbiddenException, Get, Param, Patch, Post, Req, UseGuards } from '@nestjs/common';
+import { BadRequestException, Body, Controller, ForbiddenException, Get, Param, Patch, Post, Req, UseGuards } from '@nestjs/common';
 import { OrdersService } from './orders.service';
 import { CreateOrderDto } from './dto/create-order.dto';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
@@ -46,9 +46,24 @@ export class OrdersController {
   @UseGuards(JwtAuthGuard)
   updateStatus(
     @Param('id') id: string,
-    @Body('status') status: 'NEW' | 'ACCEPTED' | 'COOKING' | 'DELIVERING' | 'DELIVERED' | 'CANCELLED',
+    @Body() body: { status: 'NEW' | 'ACCEPTED' | 'READY' | 'ON_THE_WAY' | 'DONE' | 'CANCELLED'; cancelReason?: string },
+    @Req() req: RequestWithUser,
   ) {
-    return this.ordersService.updateStatus(id, status);
+    const userId = req.user?.id;
+    const role = req.user?.role;
+    if (!userId || !role) throw new BadRequestException('Unauthorized');
+    return this.ordersService.updateStatus(id, body.status, role, userId, body.cancelReason);
+  }
+
+  @Post(':id/take')
+  @UseGuards(JwtAuthGuard)
+  async takeOrder(@Param('id') id: string, @Req() req: RequestWithUser) {
+    if (req.user?.role !== 'COURIER') {
+      throw new ForbiddenException('Faqat kuryerlar uchun');
+    }
+    const userId = req.user?.id;
+    if (!userId) throw new BadRequestException('Unauthorized');
+    return this.ordersService.takeOrder(id, userId);
   }
 }
 
@@ -73,7 +88,7 @@ export class CourierOrdersController {
         update: {},
       });
     }
-    return this.ordersService.findAllForCouriers();
+    return this.ordersService.findForCourier(userId);
   }
 }
 

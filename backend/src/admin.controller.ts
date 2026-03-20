@@ -493,7 +493,7 @@ export class AdminController {
     const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
 
     const deliveredOrders = await this.prisma.order.findMany({
-      where: { status: 'DELIVERED', createdAt: { gte: sevenDaysAgo } },
+      where: { status: 'DONE', createdAt: { gte: sevenDaysAgo } },
       select: { id: true, total: true, createdAt: true, restaurantId: true },
       orderBy: { createdAt: 'asc' },
     });
@@ -555,7 +555,7 @@ export class AdminController {
     }
 
     const allOrdersForTime = await this.prisma.order.findMany({
-      where: { status: 'DELIVERED' },
+      where: { status: 'DONE' },
       select: { createdAt: true },
     });
     const dayCount: Record<number, number> = { 0: 0, 1: 0, 2: 0, 3: 0, 4: 0, 5: 0, 6: 0 };

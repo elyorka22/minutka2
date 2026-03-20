@@ -126,6 +126,10 @@ model Order {
   status  OrderStatus @default(NEW)
   comment String?
 
+  cancelReason String?
+  cancelledBy  OrderStatusActor?
+  cancelledAt  DateTime?
+
   customer   User   @relation(fields: [customerId], references: [id])
   customerId String
 
@@ -148,6 +152,21 @@ model Order {
   courierId String?
 
   deliveryTrackings DeliveryTracking[]
+
+  statusHistory OrderStatusHistory[]
+}
+
+model OrderStatusHistory {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+
+  order    Order  @relation(fields: [orderId], references: [id])
+  orderId  String
+
+  oldStatus OrderStatus
+  newStatus OrderStatus
+
+  changedBy OrderStatusActor
 }
 
 model OrderItem {
@@ -291,10 +310,15 @@ enum UserStatus {
 enum OrderStatus {
   NEW
   ACCEPTED
-  COOKING
-  DELIVERING
-  DELIVERED
+  READY
+  ON_THE_WAY
+  DONE
   CANCELLED
+}
+
+enum OrderStatusActor {
+  ADMIN
+  COURIER
 }
 
 enum CourierStatus {

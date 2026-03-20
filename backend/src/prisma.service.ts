@@ -86,4 +86,12 @@ export class PrismaService implements OnModuleInit, OnModuleDestroy {
   get pushSubscription() {
     return (this.client as any).pushSubscription;
   }
+
+  /**
+   * Helper for interactive transactions.
+   * We keep it in PrismaService so other services don't need access to the raw PrismaClient.
+   */
+  async transaction<T>(fn: (tx: any) => Promise<T>): Promise<T> {
+    return this.client.$transaction(fn);
+  }
 }

@@ -57,11 +57,19 @@ export const adminApi = {
       method: "PATCH",
       body: JSON.stringify(body),
     }),
-  updateOrderStatus: (id: string, status: string) =>
+  takeOrder: (id: string) =>
+    adminRequest<any>(`/orders/${id}/take`, {
+      method: "POST",
+    }),
+  updateOrderStatus: (
+    id: string,
+    status: "NEW" | "ACCEPTED" | "READY" | "ON_THE_WAY" | "DONE" | "CANCELLED",
+    cancelReason?: string,
+  ) =>
     request<any>(`/orders/${id}/status`, {
       method: "PATCH",
       headers: getAuthHeaders(),
-      body: JSON.stringify({ status }),
+      body: JSON.stringify({ status, ...(cancelReason ? { cancelReason } : {}) }),
     }),
   updateUserRole: (id: string, role: string) =>
     request<any>(`/admin/users/${id}/role`, {
