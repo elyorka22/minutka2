@@ -24,7 +24,12 @@ export class OrdersController {
         // invalid token — create as guest
       }
     }
-    return this.ordersService.create(customerId, dto);
+    try {
+      return await this.ordersService.create(customerId, dto);
+    } catch (e: any) {
+      const message = e?.message ? String(e.message) : 'Order creation failed';
+      throw new BadRequestException(message);
+    }
   }
 
   @Get()
