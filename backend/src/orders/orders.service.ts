@@ -28,7 +28,17 @@ export class OrdersService {
   }
 
   async create(customerId: string | null, dto: CreateOrderDto) {
-    const userId = customerId ?? (await this.usersService.findOrCreateGuestUser());
+    let userId = customerId ?? (await this.usersService.findOrCreateGuestUser());
+
+    // If JWT points to a user that was deleted after token issuance,
+    // we must not create Address with an invalid FK.
+    const userExists = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: { id: true },
+    });
+    if (!userExists) {
+      userId = await this.usersService.findOrCreateGuestUser();
+    }
     const restaurant = await this.prisma.restaurant.findUnique({
       where: { id: dto.restaurantId, isActive: true },
     });
