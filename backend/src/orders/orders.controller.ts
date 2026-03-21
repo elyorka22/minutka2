@@ -85,7 +85,7 @@ export class CourierOrdersController {
     @Req() req: RequestWithUser,
     @Query('limit') limit?: string,
     @Query('offset') offset?: string,
-    @Query('status') status?: string,
+    @Query('scope') scope?: string,
   ) {
     if (req.user?.role !== 'COURIER') {
       throw new ForbiddenException('Faqat kuryerlar uchun');
@@ -98,10 +98,11 @@ export class CourierOrdersController {
         update: {},
       });
     }
+    const scopeNorm = scope === 'mine' ? 'mine' : 'pool';
     return this.ordersService.findForCourier(userId, {
       limit: limit ? Number(limit) : undefined,
       offset: offset ? Number(offset) : undefined,
-      status,
+      scope: scopeNorm,
     });
   }
 }

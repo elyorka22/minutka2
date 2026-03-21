@@ -10,15 +10,17 @@ function formatSum(n: number) {
   return `${new Intl.NumberFormat("uz-UZ").format(Math.round(n))} so'm`;
 }
 
+type CourierTab = "yangi" | "mine";
+
 export default function CourierPage() {
   const router = useRouter();
   const [orders, setOrders] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [filter, setFilter] = useState<"NEW" | "READY" | "IN_PATH">("READY");
+  const [tab, setTab] = useState<CourierTab>("yangi");
   const [actionBusy, setActionBusy] = useState(false);
   const [pushEnabled, setPushEnabled] = useState<boolean | null>(null);
-  const listLimit = 50;
+  const listLimit = 300;
   const listOffset = 0;
 
   const load = useCallback(async () => {
@@ -27,7 +29,7 @@ export default function CourierPage() {
       const list = await adminApi.getCourierOrders({
         limit: listLimit,
         offset: listOffset,
-        status: filter,
+        scope: tab === "mine" ? "mine" : "pool",
       });
       setOrders(Array.isArray(list) ? list : []);
     } catch (e: any) {
@@ -43,7 +45,7 @@ export default function CourierPage() {
     } finally {
       setLoading(false);
     }
-  }, [router, filter]);
+  }, [router, tab]);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -53,13 +55,18 @@ export default function CourierPage() {
       router.push("/login?next=/courier");
       return;
     }
-    // Check whether this courier has enabled push notifications.
     adminApi
       .getMyPushStatus()
       .then((s) => setPushEnabled(!!s.subscribed))
       .catch(() => setPushEnabled(null));
+  }, [router]);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    if (!window.localStorage.getItem("token")) return;
+    setLoading(true);
     load();
-  }, [load, router]);
+  }, [tab, load]);
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -87,7 +94,9 @@ export default function CourierPage() {
         </div>
       )}
       <p className="fd-card-desc" style={{ marginBottom: 16 }}>
-        READY holatidagi buyurtmalar (oxirgi 300 ta).
+        {tab === "yangi"
+          ? "Barcha faol buyurtmalar: olish mumkin bo‘lgan tayyor buyurtmalar va sizning jarayondagilaringiz."
+          : "Siz «Buyurtmani olish» bilan qabul qilgan buyurtmalar — «Yo‘lda» va «Tugatildi» shu yerda."}
       </p>
       <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 16 }}>
         <button type="button" className="fd-btn fd-btn-primary" onClick={() => load()} disabled={loading}>
@@ -100,36 +109,23 @@ export default function CourierPage() {
       <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 16 }}>
         <button
           type="button"
-          className={filter === "NEW" ? "fd-btn fd-btn-primary" : "fd-btn"}
-          onClick={() => setFilter("NEW")}
+          className={tab === "yangi" ? "fd-btn fd-btn-primary" : "fd-btn"}
+          onClick={() => setTab("yangi")}
         >
           Yangi
         </button>
         <button
           type="button"
-          className={filter === "READY" ? "fd-btn fd-btn-primary" : "fd-btn"}
-          onClick={() => setFilter("READY")}
+          className={tab === "mine" ? "fd-btn fd-btn-primary" : "fd-btn"}
+          onClick={() => setTab("mine")}
         >
-          Tayyor
-        </button>
-        <button
-          type="button"
-          className={filter === "IN_PATH" ? "fd-btn fd-btn-primary" : "fd-btn"}
-          onClick={() => setFilter("IN_PATH")}
-        >
-          Yo‘lda
+          Mening buyurtmalarim
         </button>
       </div>
       {error && <p className="fd-empty">{error}</p>}
       {!loading && !error && orders.length === 0 && <p className="fd-empty">Buyurtmalar yo‘q.</p>}
       <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-        {orders
-          .filter((o) => {
-            if (filter === "READY") return o.status === "READY";
-            if (filter === "IN_PATH") return o.status === "ON_THE_WAY";
-            return o.status === "NEW" || o.status === "ACCEPTED";
-          })
-          .map((o) => {
+        {orders.map((o) => {
           const lat = o.address?.latitude;
           const lng = o.address?.longitude;
           const mapUrl =
@@ -229,7 +225,13 @@ export default function CourierPage() {
                 {o.address?.street}, {o.address?.city}
               </p>
               {mapUrl && (
-                <a href={mapUrl} target="_blank" rel="noopener noreferrer" className="fd-btn fd-btn-primary" style={{ marginTop: 10, display: "inline-block", textDecoration: "none" }}>
+                <a
+                  href={mapUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="fd-btn fd-btn-primary"
+                  style={{ marginTop: 10, display: "inline-block", textDecoration: "none" }}
+                >
                   Xaritada ochish
                 </a>
               )}

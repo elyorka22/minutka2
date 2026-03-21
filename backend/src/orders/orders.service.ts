@@ -548,7 +548,7 @@ export class OrdersService {
   /** Barcha faol restoranlar buyurtmalari — kuryerlar ro‘yxati uchun */
   async findForCourier(
     courierUserId: string,
-    opts?: { limit?: number; offset?: number; status?: string },
+    opts?: { limit?: number; offset?: number; scope?: 'pool' | 'mine' },
   ) {
     const courier = await this.prisma.courier.upsert({
       where: { userId: courierUserId },
@@ -556,15 +556,43 @@ export class OrdersService {
       update: {},
     });
 
-    const statusFilter = this.mapStatusFilter(opts?.status);
     const take = typeof opts?.limit === 'number' ? opts.limit : 300;
     const skip = typeof opts?.offset === 'number' ? opts.offset : 0;
 
+    // Mening buyurtmalarim: faqat bu kuryerga biriktirilgan, faol yetkazib berish.
+    if (opts?.scope === 'mine') {
+      return this.prisma.order.findMany({
+        where: {
+          restaurant: { isActive: true },
+          courierId: courier.id,
+          status: { in: ['READY', 'ON_THE_WAY'] },
+        },
+        orderBy: { createdAt: 'desc' },
+        take,
+        skip,
+        include: {
+          items: {
+            select: {
+              id: true,
+              quantity: true,
+              price: true,
+              dish: { select: { name: true } },
+            },
+          },
+          address: true,
+          restaurant: { select: { name: true } },
+          customer: { select: { id: true, name: true, email: true, phone: true } },
+        },
+      });
+    }
+
+    // Yangi (pool): barcha ko‘rinadigan faol buyurtmalar — tayyor (olib olish mumkin) + mening jarayondagilar.
+    // DONE/CANCELLED chiqarilmaydi.
     const where: any = {
       restaurant: { isActive: true },
+      status: { notIn: ['DONE', 'CANCELLED'] },
       OR: [{ status: 'READY', courierId: null }, { courierId: courier.id }],
     };
-    if (statusFilter) where.status = statusFilter;
 
     return this.prisma.order.findMany({
       where,
