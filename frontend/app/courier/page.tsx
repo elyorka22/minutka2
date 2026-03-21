@@ -91,6 +91,13 @@ function PoolOrderCard({
   );
 }
 
+function orderStatusNorm(s: unknown): string {
+  return String(s ?? "")
+    .trim()
+    .toUpperCase()
+    .replace(/-/g, "_");
+}
+
 function FullOrderCard({
   o,
   actionBusy,
@@ -113,6 +120,11 @@ function FullOrderCard({
       ? `https://www.google.com/maps?q=${lat},${lng}`
       : null;
 
+  // «Mening buyurtmalarim» — barcha yozuvlar allaqachon shu kuryerga tegishli; courierId tekshiruvi kerak emas.
+  const st = orderStatusNorm(o.status);
+  const showOnTheWayBtn = st === "READY";
+  const showDeliveredBtn = st === "ON_THE_WAY" || st === "IN_PATH";
+
   return (
     <div className="fd-card" style={{ padding: 14 }}>
       <div style={{ display: "flex", justifyContent: "space-between", gap: 8, flexWrap: "wrap" }}>
@@ -124,42 +136,6 @@ function FullOrderCard({
         </div>
         <div style={{ fontWeight: 700 }}>{formatSum(Number(o.total))}</div>
       </div>
-      {o.status === "READY" && !!o.courierId && (
-        <div style={{ marginTop: 10, display: "flex", gap: 8, flexWrap: "wrap" }}>
-          <button
-            type="button"
-            className="fd-btn fd-btn-primary"
-            disabled={actionBusy || loading}
-            onClick={async () => {
-              try {
-                await onOnTheWay(o.id);
-              } catch (e: any) {
-                onError(e?.message ?? "Xatolik");
-              }
-            }}
-          >
-            Yo‘lda
-          </button>
-        </div>
-      )}
-      {o.status === "ON_THE_WAY" && !!o.courierId && (
-        <div style={{ marginTop: 10 }}>
-          <button
-            type="button"
-            className="fd-btn fd-btn-primary"
-            disabled={actionBusy || loading}
-            onClick={async () => {
-              try {
-                await onDone(o.id);
-              } catch (e: any) {
-                onError(e?.message ?? "Xatolik");
-              }
-            }}
-          >
-            Tugatildi
-          </button>
-        </div>
-      )}
       <p className="fd-checkout-meta" style={{ margin: "8px 0 4px" }}>
         {o.restaurant?.name ?? "Restoran"}
       </p>
@@ -194,6 +170,44 @@ function FullOrderCard({
             </li>
           ))}
         </ul>
+      )}
+      {showOnTheWayBtn && (
+        <div style={{ marginTop: 14, paddingTop: 12, borderTop: "1px solid var(--color-border, #e8e8e8)" }}>
+          <button
+            type="button"
+            className="fd-btn fd-btn-primary"
+            style={{ width: "100%" }}
+            disabled={actionBusy || loading}
+            onClick={async () => {
+              try {
+                await onOnTheWay(o.id);
+              } catch (e: any) {
+                onError(e?.message ?? "Xatolik");
+              }
+            }}
+          >
+            Yo‘lda
+          </button>
+        </div>
+      )}
+      {showDeliveredBtn && (
+        <div style={{ marginTop: 14, paddingTop: 12, borderTop: "1px solid var(--color-border, #e8e8e8)" }}>
+          <button
+            type="button"
+            className="fd-btn fd-btn-primary"
+            style={{ width: "100%" }}
+            disabled={actionBusy || loading}
+            onClick={async () => {
+              try {
+                await onDone(o.id);
+              } catch (e: any) {
+                onError(e?.message ?? "Xatolik");
+              }
+            }}
+          >
+            Yetkazildi
+          </button>
+        </div>
       )}
     </div>
   );
