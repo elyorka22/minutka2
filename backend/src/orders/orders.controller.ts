@@ -1,6 +1,8 @@
 import { BadRequestException, Body, Controller, ForbiddenException, Get, Param, Patch, Post, Query, Req, UseGuards } from '@nestjs/common';
+import { Throttle, ThrottlerGuard } from '@nestjs/throttler';
 import { OrdersService } from './orders.service';
 import { CreateOrderDto } from './dto/create-order.dto';
+import { PatchOrderStatusDto } from './dto/patch-order-status.dto';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { AuthService } from '../auth/auth.service';
 import { PrismaService } from '../prisma.service';
@@ -13,6 +15,8 @@ export class OrdersController {
   ) {}
 
   @Post()
+  @UseGuards(ThrottlerGuard)
+  @Throttle({ default: { limit: 15, ttl: 60000 } })
   async create(@Body() dto: CreateOrderDto, @Req() req: { headers?: { authorization?: string }; user?: { id: string } }) {
     let customerId: string | null = null;
     const authHeader = req.headers?.authorization;
@@ -51,7 +55,7 @@ export class OrdersController {
   @UseGuards(JwtAuthGuard)
   updateStatus(
     @Param('id') id: string,
-    @Body() body: { status: 'NEW' | 'ACCEPTED' | 'READY' | 'ON_THE_WAY' | 'DONE' | 'CANCELLED'; cancelReason?: string },
+    @Body() body: PatchOrderStatusDto,
     @Req() req: RequestWithUser,
   ) {
     const userId = req.user?.id;

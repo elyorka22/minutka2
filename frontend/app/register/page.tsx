@@ -23,7 +23,15 @@ export default function RegisterPage() {
         body: JSON.stringify({ name, email, password }),
       });
       if (!res.ok) {
-        throw new Error("Ro‘yxatdan o‘tishda xatolik yuz berdi");
+        let msg = "Ro‘yxatdan o‘tishda xatolik yuz berdi";
+        try {
+          const data = await res.json();
+          if (Array.isArray(data?.message)) msg = data.message.join(", ");
+          else if (typeof data?.message === "string") msg = data.message;
+        } catch {
+          // ignore
+        }
+        throw new Error(msg);
       }
       setSuccess("Foydalanuvchi ro‘yxatdan o‘tkazildi. Kerak bo‘lsa, unga admin roli berilishi mumkin.");
       setName("");
@@ -63,12 +71,14 @@ export default function RegisterPage() {
           />
         </label>
         <label className="fd-field">
-          <span>Parol</span>
+          <span>Parol (kamida 8 belgi)</span>
           <input
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             type="password"
             required
+            minLength={8}
+            autoComplete="new-password"
           />
         </label>
         {error && <p style={{ color: "#ff6a00" }}>{error}</p>}

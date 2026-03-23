@@ -349,7 +349,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
         <meta name="theme-color" content="#ff6b00" />
         <meta name="mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-capable" content="yes" />
-        <title>Minutka — Restoranlar va ovqat yetkazib berish xizmati</title>
+        <title>Minutka — Restoranlar va kafelardan ovqat yetkazib berish xizmati</title>
         <meta
           name="description"
           content="Minutka orqali shahringizdagi restoranlar va do‘konlardan tez buyurtma qiling. Eng yaxshi aksiyalar va qulay yetkazib berish xizmati."
