@@ -19,10 +19,11 @@ function Header() {
       </header>
     );
   }
-  return <HeaderMain />;
+  const showCity = !pathname.startsWith("/restaurant-admin") && !pathname.startsWith("/courier");
+  return <HeaderMain showCity={showCity} />;
 }
 
-function HeaderMain() {
+function HeaderMain({ showCity }: { showCity: boolean }) {
   const [canInstall, setCanInstall] = useState(false);
   const [installEvent, setInstallEvent] = useState<any | null>(null);
   const [isStandalone, setIsStandalone] = useState(false);
@@ -100,6 +101,7 @@ function HeaderMain() {
         <nav className="fd-nav">
           <Link href="/" className="fd-nav-link">Bosh sahifa</Link>
           <Link href="/restaurants" className="fd-nav-link">Restoranlar</Link>
+          {showCity && <span className="fd-badge" aria-label="Shahar">Chust</span>}
         </nav>
       </div>
       {!isStandalone && (

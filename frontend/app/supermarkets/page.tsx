@@ -24,6 +24,7 @@ export default async function SupermarketsPage() {
       <BackLink href="/" />
       <section className="fd-section">
         <h1 className="fd-section-title">Do‘konlar (supermarketlar)</h1>
+        <p className="fd-card-desc">Yetkazib berish faqat: Chust</p>
         <div className="fd-grid fd-grid--2">
           {supermarkets.map((s: any) => (
             <Link

@@ -68,7 +68,7 @@ export default function CheckoutPage() {
         restaurantId,
         address: {
           street: streetVal,
-          city: "Toshkent",
+          city: "Chust",
           details: phone.length === 9 ? `Tel: +998${phone}` : undefined,
           latitude: lat ? Number(lat) : 0,
           longitude: lng ? Number(lng) : 0,
@@ -146,6 +146,7 @@ export default function CheckoutPage() {
 
         <section className="fd-checkout-form">
           <h2>Manzil, geolokatsiya va to‘lov</h2>
+          <p className="fd-checkout-meta">Yetkazib berish faqat: Chust</p>
           {submitted ? (
             <p className="fd-success">
               Buyurtma qabul qilindi. Restoran tez orada siz bilan bog‘lanadi.
