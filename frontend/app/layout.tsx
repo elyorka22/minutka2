@@ -95,13 +95,25 @@ function HeaderMain({ showCity }: { showCity: boolean }) {
   return (
     <header className="fd-header">
       <div className="fd-header-left">
-        <Link href="/" className="fd-logo">
-          Minutka
-        </Link>
+        <div style={{ display: "flex", flexDirection: "column", lineHeight: 1.1 }}>
+          <Link href="/" className="fd-logo">
+            Minutka
+          </Link>
+          {showCity && (
+            <span
+              style={{
+                fontSize: "0.75rem",
+                color: "var(--color-text-secondary)",
+                marginTop: 2,
+              }}
+            >
+              Chust shahri bo'ylab
+            </span>
+          )}
+        </div>
         <nav className="fd-nav">
           <Link href="/" className="fd-nav-link">Bosh sahifa</Link>
           <Link href="/restaurants" className="fd-nav-link">Restoranlar</Link>
-          {showCity && <span className="fd-badge" aria-label="Shahar">Chust</span>}
         </nav>
       </div>
       {!isStandalone && (

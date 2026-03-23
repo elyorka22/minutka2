@@ -146,7 +146,6 @@ export default function CheckoutPage() {
 
         <section className="fd-checkout-form">
           <h2>Manzil, geolokatsiya va to‘lov</h2>
-          <p className="fd-checkout-meta">Yetkazib berish faqat: Chust</p>
           {submitted ? (
             <p className="fd-success">
               Buyurtma qabul qilindi. Restoran tez orada siz bilan bog‘lanadi.

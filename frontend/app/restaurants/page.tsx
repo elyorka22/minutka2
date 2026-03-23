@@ -24,7 +24,6 @@ export default async function RestaurantsPage() {
       <BackLink href="/" />
       <section className="fd-section">
         <h1 className="fd-section-title">Barcha restoranlar</h1>
-        <p className="fd-card-desc">Yetkazib berish faqat: Chust</p>
         <div className="fd-grid fd-grid--2">
           {restaurants.map((r: any) => (
             <Link key={r.id} href={`/restaurants/${r.id}`} className="fd-card fd-card--restaurant-tile">
