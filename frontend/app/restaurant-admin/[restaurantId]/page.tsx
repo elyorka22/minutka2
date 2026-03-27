@@ -9,10 +9,12 @@ type TabId = "orders" | "archive" | "stats";
 function OrderCard({
   o,
   onStatusChange,
+  onArchive,
   showStatusButtons = true,
 }: {
   o: any;
   onStatusChange?: (id: string, status: string, cancelReason?: string) => void;
+  onArchive?: (order: any) => void;
   showStatusButtons?: boolean;
 }) {
   const addr = o.address;
@@ -81,6 +83,15 @@ function OrderCard({
                 }}
               >
                 Bekor qilish
+              </button>
+            )}
+            {onArchive && (
+              <button
+                className="fd-btn"
+                type="button"
+                onClick={() => onArchive(o)}
+              >
+                Arxivga
               </button>
             )}
           </div>
@@ -161,6 +172,29 @@ export default function RestaurantAdminPage({
   const [debtInfo, setDebtInfo] = useState<{ amount: number; percent: number } | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [manualArchive, setManualArchive] = useState<any[]>([]);
+
+  const manualArchiveKey = `restaurant-admin-manual-archive:${restaurantId}`;
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    try {
+      const raw = window.localStorage.getItem(manualArchiveKey);
+      const parsed = raw ? JSON.parse(raw) : [];
+      setManualArchive(Array.isArray(parsed) ? parsed : []);
+    } catch {
+      setManualArchive([]);
+    }
+  }, [manualArchiveKey]);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    try {
+      window.localStorage.setItem(manualArchiveKey, JSON.stringify(manualArchive));
+    } catch {
+      // ignore storage issues
+    }
+  }, [manualArchive, manualArchiveKey]);
 
   function loadOrders(opts?: { background?: boolean }) {
     const background = !!opts?.background;
@@ -171,7 +205,11 @@ export default function RestaurantAdminPage({
         limit: 50,
         offset: 0,
       })
-      .then((data) => setOrders(Array.isArray(data) ? data : []))
+      .then((data) => {
+        const list = Array.isArray(data) ? data : [];
+        const hiddenIds = new Set(manualArchive.map((x: any) => x?.id));
+        setOrders(list.filter((o: any) => !hiddenIds.has(o.id)));
+      })
       .catch((err: any) => setError(err?.message ?? "Xatolik"))
       .finally(() => {
         if (!background) setLoading(false);
@@ -220,8 +258,8 @@ export default function RestaurantAdminPage({
     if (activeTab === "orders") loadOrders();
     else if (activeTab === "archive") loadArchive();
     else if (activeTab === "stats") loadStats();
-    
-  }, [restaurantId, activeTab]);
+
+  }, [restaurantId, activeTab, manualArchive]);
 
   useEffect(() => {
     if (activeTab !== "orders") return;
@@ -230,7 +268,7 @@ export default function RestaurantAdminPage({
       loadOrders({ background: true });
     }, 8000);
     return () => clearInterval(interval);
-  }, [activeTab, loading, restaurantId]);
+  }, [activeTab, loading, restaurantId, manualArchive]);
 
   async function changeStatus(id: string, status: string, cancelReason?: string) {
     try {
@@ -243,11 +281,20 @@ export default function RestaurantAdminPage({
     }
   }
 
+  function archiveOrder(order: any) {
+    setOrders((prev) => prev.filter((o) => o.id !== order.id));
+    setManualArchive((prev) => {
+      if (prev.some((x: any) => x?.id === order.id)) return prev;
+      return [{ ...order, _manualArchived: true }, ...prev];
+    });
+  }
+
   const tabs: { id: TabId; label: string }[] = [
     { id: "orders", label: "Buyurtmalar" },
     { id: "archive", label: "Arxiv" },
     { id: "stats", label: "Statistika" },
   ];
+  const mergedArchive = [...manualArchive, ...archive.filter((o) => !manualArchive.some((m: any) => m?.id === o?.id))];
 
   return (
     <div className="fd-shell fd-section" style={{ marginTop: 10 }}>
@@ -293,13 +340,14 @@ export default function RestaurantAdminPage({
 
       {activeTab === "orders" && !loading && (
         <div className="fd-admin-orders">
-          <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 16 }}>
-            <button type="button" className="fd-btn" onClick={() => setActiveTab("archive")}>
-              Arxiv
-            </button>
-          </div>
           {orders.map((o) => (
-              <OrderCard key={o.id} o={o} onStatusChange={changeStatus} showStatusButtons />
+              <OrderCard
+                key={o.id}
+                o={o}
+                onStatusChange={changeStatus}
+                onArchive={archiveOrder}
+                showStatusButtons
+              />
           ))}
           {orders.length === 0 && !error && <p className="fd-empty">Aktiv buyurtmalar yo‘q.</p>}
         </div>
@@ -310,10 +358,10 @@ export default function RestaurantAdminPage({
           <p className="fd-checkout-meta" style={{ marginBottom: 12 }}>
             Yetkazilgan va bekor qilingan buyurtmalar (oxirgi 3 kun). 3 kundan keyin avtomatik o‘chiriladi.
           </p>
-          {archive.map((o) => (
+          {mergedArchive.map((o) => (
             <OrderCard key={o.id} o={o} showStatusButtons={false} />
           ))}
-          {archive.length === 0 && !error && <p className="fd-empty">Arxiv bo‘sh.</p>}
+          {mergedArchive.length === 0 && !error && <p className="fd-empty">Arxiv bo‘sh.</p>}
         </div>
       )}
 
