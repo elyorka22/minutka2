@@ -90,6 +90,10 @@ export default async function HomePage() {
     featuredRestaurants.length > 0
       ? featuredRestaurants
       : normalRestaurants.slice(0, 8);
+  const fastFoodCarouselRestaurants =
+    normalRestaurants.length > 8
+      ? normalRestaurants.slice(8, 16)
+      : normalRestaurants.slice(0, 8);
 
   return (
     <div className="fd-shell">
@@ -152,7 +156,7 @@ export default async function HomePage() {
       <section className="fd-section">
         <h2 className="fd-section-title">
           <Link href="/restaurants" style={{ color: "inherit", textDecoration: "none" }}>
-            Top restoranlar
+            Milliy taomlar
           </Link>
         </h2>
         {topCarouselRestaurants.length > 0 ? (
@@ -177,6 +181,38 @@ export default async function HomePage() {
         ) : (
           <p className="fd-empty fd-checkout-meta">
             Restoranlar yo‘q. Admin panelda restoranlar qo‘shing va «Top karuselda» belgilang.
+          </p>
+        )}
+      </section>
+
+      <section className="fd-section">
+        <h2 className="fd-section-title">
+          <Link href="/restaurants" style={{ color: "inherit", textDecoration: "none" }}>
+            Fast food
+          </Link>
+        </h2>
+        {fastFoodCarouselRestaurants.length > 0 ? (
+          <div className="fd-home-stores">
+            {fastFoodCarouselRestaurants.map((r) => (
+              <Link
+                key={`fast-${r.id}`}
+                href={`/restaurants/${r.id}`}
+                className="fd-card fd-product-cat-card"
+              >
+                <div className="fd-product-cat-image-wrap">
+                  <SafeImage
+                    src={(r.coverUrl || r.logoUrl) ? imageUrl(r.coverUrl || r.logoUrl) : ""}
+                    alt=""
+                    className="fd-product-cat-image"
+                    fallbackStyle={{ height: 40 }}
+                  />
+                </div>
+              </Link>
+            ))}
+          </div>
+        ) : (
+          <p className="fd-empty fd-checkout-meta">
+            Restoranlar yo‘q. Admin panelda restoranlar qo‘shing.
           </p>
         )}
       </section>
