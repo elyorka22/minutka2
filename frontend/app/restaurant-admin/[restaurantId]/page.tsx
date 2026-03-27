@@ -150,7 +150,6 @@ export default function RestaurantAdminPage({
   const restaurantId = params.restaurantId;
   const [activeTab, setActiveTab] = useState<TabId>("orders");
   const [orders, setOrders] = useState<any[]>([]);
-  const [orderFilter, setOrderFilter] = useState<"NEW" | "READY" | "IN_PATH">("NEW");
   const [archive, setArchive] = useState<any[]>([]);
   const [stats, setStats] = useState<{
     activeOrdersCount: number;
@@ -171,7 +170,6 @@ export default function RestaurantAdminPage({
       .getRestaurantOrders(restaurantId, {
         limit: 50,
         offset: 0,
-        status: orderFilter,
       })
       .then((data) => setOrders(Array.isArray(data) ? data : []))
       .catch((err: any) => setError(err?.message ?? "Xatolik"))
@@ -223,7 +221,7 @@ export default function RestaurantAdminPage({
     else if (activeTab === "archive") loadArchive();
     else if (activeTab === "stats") loadStats();
     
-  }, [restaurantId, activeTab, orderFilter]);
+  }, [restaurantId, activeTab]);
 
   useEffect(() => {
     if (activeTab !== "orders") return;
@@ -232,7 +230,7 @@ export default function RestaurantAdminPage({
       loadOrders({ background: true });
     }, 8000);
     return () => clearInterval(interval);
-  }, [activeTab, loading, orderFilter, restaurantId]);
+  }, [activeTab, loading, restaurantId]);
 
   async function changeStatus(id: string, status: string, cancelReason?: string) {
     try {
@@ -250,12 +248,6 @@ export default function RestaurantAdminPage({
     { id: "archive", label: "Arxiv" },
     { id: "stats", label: "Statistika" },
   ];
-
-  const visibleOrders = orders.filter((o) => {
-    if (orderFilter === "READY") return o.status === "READY";
-    if (orderFilter === "IN_PATH") return o.status === "ON_THE_WAY";
-    return o.status === "NEW" || o.status === "ACCEPTED";
-  });
 
   return (
     <div className="fd-shell fd-section" style={{ marginTop: 10 }}>
@@ -302,32 +294,14 @@ export default function RestaurantAdminPage({
       {activeTab === "orders" && !loading && (
         <div className="fd-admin-orders">
           <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 16 }}>
-            <button
-              type="button"
-              className={orderFilter === "NEW" ? "fd-btn fd-btn-primary" : "fd-btn"}
-              onClick={() => setOrderFilter("NEW")}
-            >
-              Yangi
-            </button>
-            <button
-              type="button"
-              className={orderFilter === "READY" ? "fd-btn fd-btn-primary" : "fd-btn"}
-              onClick={() => setOrderFilter("READY")}
-            >
-              Tayyor
-            </button>
-            <button
-              type="button"
-              className={orderFilter === "IN_PATH" ? "fd-btn fd-btn-primary" : "fd-btn"}
-              onClick={() => setOrderFilter("IN_PATH")}
-            >
-              Yo‘lda
+            <button type="button" className="fd-btn" onClick={() => setActiveTab("archive")}>
+              Arxiv
             </button>
           </div>
-          {visibleOrders.map((o) => (
+          {orders.map((o) => (
               <OrderCard key={o.id} o={o} onStatusChange={changeStatus} showStatusButtons />
           ))}
-          {visibleOrders.length === 0 && !error && <p className="fd-empty">Aktiv buyurtmalar yo‘q.</p>}
+          {orders.length === 0 && !error && <p className="fd-empty">Aktiv buyurtmalar yo‘q.</p>}
         </div>
       )}
 
