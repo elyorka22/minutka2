@@ -104,6 +104,30 @@ export default function PlatformAdminPage() {
   }>>([]);
   const [pushSubscribersLoading, setPushSubscribersLoading] = useState(false);
   const router = useRouter();
+  const basePushPages: Array<{ url: string; label: string }> = [
+    { url: "/", label: "Bosh sahifa (/)" },
+    { url: "/restaurants", label: "Restoranlar (/restaurants)" },
+    { url: "/supermarkets", label: "Do‘konlar (/supermarkets)" },
+    { url: "/checkout", label: "Savat (/checkout)" },
+    { url: "/profile", label: "Profil (/profile)" },
+    { url: "/login", label: "Kirish (/login)" },
+    { url: "/register", label: "Ro‘yxatdan o‘tish (/register)" },
+    { url: "/courier", label: "Kuryer paneli (/courier)" },
+    { url: "/platform-admin", label: "Platforma admin (/platform-admin)" },
+  ];
+  const restaurantPushPages: Array<{ url: string; label: string }> = (data?.restaurants ?? []).map((r: any) => ({
+    url: `/restaurants/${r.id}`,
+    label: `Restoran sahifasi: ${r.name} (/restaurants/${r.id})`,
+  }));
+  const restaurantAdminPushPages: Array<{ url: string; label: string }> = (data?.restaurants ?? []).map((r: any) => ({
+    url: `/restaurant-admin/${r.id}`,
+    label: `Restoran admin: ${r.name} (/restaurant-admin/${r.id})`,
+  }));
+  const pushPageOptions = [
+    ...basePushPages,
+    ...restaurantPushPages,
+    ...restaurantAdminPushPages,
+  ];
 
   async function handleUploadCreateImage(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
@@ -1457,11 +1481,16 @@ export default function PlatformAdminPage() {
                   </label>
                   <label className="fd-field">
                     <span>URL (bosilganda ochiladigan sahifa)</span>
-                    <input
+                    <select
                       value={pushUrl}
                       onChange={(e) => setPushUrl(e.target.value)}
-                      placeholder="/"
-                    />
+                    >
+                      {pushPageOptions.map((p) => (
+                        <option key={p.url} value={p.url}>
+                          {p.label}
+                        </option>
+                      ))}
+                    </select>
                   </label>
                   {pushResult && (
                     <p
