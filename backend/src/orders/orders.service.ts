@@ -32,7 +32,8 @@ export class OrdersService {
   }
 
   async create(customerId: string | null, dto: CreateOrderDto) {
-    let userId = customerId ?? (await this.usersService.findOrCreateGuestUser());
+    let userId =
+      customerId ?? (await this.usersService.findOrCreateGuestUser(dto.clientKey));
 
     // If JWT points to a user that was deleted after token issuance,
     // we must not create Address with an invalid FK.
@@ -41,7 +42,7 @@ export class OrdersService {
       select: { id: true },
     });
     if (!userExists) {
-      userId = await this.usersService.findOrCreateGuestUser();
+      userId = await this.usersService.findOrCreateGuestUser(dto.clientKey);
     }
     const restaurant = await this.prisma.restaurant.findUnique({
       where: { id: dto.restaurantId, isActive: true },

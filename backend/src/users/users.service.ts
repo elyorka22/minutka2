@@ -46,11 +46,19 @@ export class UsersService {
 
   private static readonly GUEST_EMAIL = 'guest@minutka.local';
 
-  async findOrCreateGuestUser(): Promise<string> {
-    let user = await this.findByEmail(UsersService.GUEST_EMAIL);
+  private guestEmailForClientKey(clientKey?: string): string {
+    if (!clientKey) return UsersService.GUEST_EMAIL;
+    // clientKey — brauzerda saqlanadigan UUID (yoki shunga o'xshash).
+    // Email unik bo'lgani uchun, har bir clientKey alohida mijozga mos keladi.
+    return `client-${clientKey}@minutka.local`;
+  }
+
+  async findOrCreateGuestUser(clientKey?: string): Promise<string> {
+    const email = this.guestEmailForClientKey(clientKey);
+    let user = await this.findByEmail(email);
     if (user) return user.id;
     user = await this.create({
-      email: UsersService.GUEST_EMAIL,
+      email,
       name: 'Mehmon',
       password: 'guest-' + Math.random().toString(36).slice(2),
       role: 'CUSTOMER',

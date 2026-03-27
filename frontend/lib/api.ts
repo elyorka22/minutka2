@@ -91,13 +91,29 @@ export const api = {
     paymentMethod: "CARD" | "CASH";
   }): Promise<any> {
     const token = typeof window !== "undefined" ? window.localStorage.getItem("token") : null;
+    const clientKey =
+      typeof window !== "undefined"
+        ? (() => {
+            const keyName = "minutka_client_key";
+            let existing = window.localStorage.getItem(keyName);
+            if (!existing) {
+              const uuid =
+                (window.crypto && "randomUUID" in window.crypto
+                  ? (window.crypto as any).randomUUID()
+                  : `${Date.now()}-${Math.random().toString(16).slice(2)}`);
+              existing = String(uuid);
+              window.localStorage.setItem(keyName, existing);
+            }
+            return existing;
+          })()
+        : undefined;
     const res = await fetch(`${API_BASE}/orders`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
         ...(token ? { Authorization: `Bearer ${token}` } : {}),
       },
-      body: JSON.stringify(body),
+      body: JSON.stringify({ ...body, clientKey }),
       cache: "no-store",
     });
     if (!res.ok) {

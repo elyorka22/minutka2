@@ -59,6 +59,13 @@ export class CreateOrderAddressDto {
 }
 
 export class CreateOrderDto {
+  // No-auth mijzlar uchun brauzerda saqlanadigan noyob identifikator.
+  // Shaxsiylashtirish uchun: bir xil clientKey = bitta mijoz.
+  @IsOptional()
+  @IsString()
+  @MaxLength(128)
+  clientKey?: string;
+
   @IsString()
   @IsNotEmpty()
   @MaxLength(64)
