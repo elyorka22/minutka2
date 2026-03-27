@@ -111,6 +111,42 @@ export class AdminController {
     }
   }
 
+  @Get('users/push-subscribers')
+  async getUsersWithPushSubscriptions(@Req() req: RequestWithUser) {
+    if (req.user?.role !== 'PLATFORM_ADMIN') {
+      throw new ForbiddenException('Only platform admin allowed');
+    }
+
+    const users = await this.prisma.user.findMany({
+      where: {
+        role: UserRole.CUSTOMER,
+        pushSubscriptions: { some: {} },
+      },
+      orderBy: { createdAt: 'desc' },
+      select: {
+        id: true,
+        email: true,
+        name: true,
+        createdAt: true,
+        _count: {
+          select: {
+            pushSubscriptions: true,
+            orders: true,
+          },
+        },
+      },
+    });
+
+    return users.map((u) => ({
+      id: u.id,
+      email: u.email,
+      name: u.name,
+      createdAt: u.createdAt,
+      pushSubscriptionsCount: u._count.pushSubscriptions,
+      ordersCount: u._count.orders,
+    }));
+  }
+
   @Patch('users/:id/role')
   async updateUserRole(
     @Param('id') id: string,

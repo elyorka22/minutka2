@@ -148,6 +148,15 @@ export const adminApi = {
     }),
   getMyPushStatus: () =>
     adminRequest<{ subscribed: boolean; count: number }>("/push/me"),
+  getPushSubscribersCustomers: () =>
+    adminRequest<Array<{
+      id: string;
+      email: string;
+      name: string;
+      createdAt: string;
+      pushSubscriptionsCount: number;
+      ordersCount: number;
+    }>>("/admin/users/push-subscribers"),
   deleteRestaurant: (id: string) =>
     adminRequest<any>(`/admin/restaurants/${id}`, {
       method: "DELETE",

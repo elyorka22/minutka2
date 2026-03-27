@@ -94,6 +94,15 @@ export default function PlatformAdminPage() {
   const [pushUrl, setPushUrl] = useState("/");
   const [pushSending, setPushSending] = useState(false);
   const [pushResult, setPushResult] = useState<string | null>(null);
+  const [pushSubscribersCustomers, setPushSubscribersCustomers] = useState<Array<{
+    id: string;
+    email: string;
+    name: string;
+    createdAt: string;
+    pushSubscriptionsCount: number;
+    ordersCount: number;
+  }>>([]);
+  const [pushSubscribersLoading, setPushSubscribersLoading] = useState(false);
   const router = useRouter();
 
   async function handleUploadCreateImage(e: React.ChangeEvent<HTMLInputElement>) {
@@ -147,6 +156,16 @@ export default function PlatformAdminPage() {
       active = false;
     };
   }, []);
+
+  useEffect(() => {
+    if (activeTab !== "users") return;
+    setPushSubscribersLoading(true);
+    adminApi
+      .getPushSubscribersCustomers()
+      .then((list) => setPushSubscribersCustomers(Array.isArray(list) ? list : []))
+      .catch(() => setPushSubscribersCustomers([]))
+      .finally(() => setPushSubscribersLoading(false));
+  }, [activeTab]);
 
   useEffect(() => {
     if (activeTab !== "restaurant-stats") return;
@@ -639,6 +658,26 @@ export default function PlatformAdminPage() {
             >
               <section>
                 <h2>Foydalanuvchilar</h2>
+                <div className="fd-card" style={{ padding: 12, marginBottom: 12 }}>
+                  <div style={{ fontWeight: 600, marginBottom: 8 }}>
+                    Push obunasi bor mijozlar
+                  </div>
+                  {pushSubscribersLoading ? (
+                    <p className="fd-checkout-meta" style={{ margin: 0 }}>Yuklanmoqda…</p>
+                  ) : pushSubscribersCustomers.length > 0 ? (
+                    <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                      {pushSubscribersCustomers.map((u) => (
+                        <div key={u.id} className="fd-checkout-meta" style={{ margin: 0 }}>
+                          {u.email} · buyurtmalar: {u.ordersCount} · push: {u.pushSubscriptionsCount}
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="fd-checkout-meta" style={{ margin: 0 }}>
+                      Push obunasi bor mijozlar topilmadi.
+                    </p>
+                  )}
+                </div>
                 <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 16 }}>
                   <button
                     type="button"
