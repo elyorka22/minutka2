@@ -702,6 +702,30 @@ body {
   margin: 0;
 }
 
+/* Restaurant page: horizontal category chips (carousel) */
+.fd-restaurant-category-carousel {
+  display: flex;
+  flex-wrap: nowrap;
+  gap: 8px;
+  overflow-x: auto;
+  padding: 0 0 14px;
+  margin: 0 0 4px;
+  -webkit-overflow-scrolling: touch;
+  scroll-snap-type: x proximity;
+  scrollbar-width: none;
+}
+
+.fd-restaurant-category-carousel::-webkit-scrollbar {
+  height: 0;
+}
+
+.fd-restaurant-category-carousel .fd-chip {
+  flex-shrink: 0;
+  scroll-snap-align: start;
+  font: inherit;
+  font-family: inherit;
+}
+
 /* Dish cards — компактнее (~половина высоты от прежнего блока с фото) */
 .fd-card--dish {
   transition: box-shadow 0.2s ease, border-color 0.2s ease;
