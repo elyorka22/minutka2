@@ -20,6 +20,7 @@ export default function PlatformAdminPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<TabId>("stats");
+  const [userSubTab, setUserSubTab] = useState<"customers" | "admins" | "couriers">("customers");
   const [tabsOpen, setTabsOpen] = useState(false);
   const [createName, setCreateName] = useState("");
   const [createDesc, setCreateDesc] = useState("");
@@ -638,7 +639,37 @@ export default function PlatformAdminPage() {
             >
               <section>
                 <h2>Foydalanuvchilar</h2>
-                {data.users?.map((u: any) => (
+                <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 16 }}>
+                  <button
+                    type="button"
+                    className={userSubTab === "customers" ? "fd-btn fd-btn-primary" : "fd-btn"}
+                    onClick={() => setUserSubTab("customers")}
+                  >
+                    Oddiy foydalanuvchilar
+                  </button>
+                  <button
+                    type="button"
+                    className={userSubTab === "admins" ? "fd-btn fd-btn-primary" : "fd-btn"}
+                    onClick={() => setUserSubTab("admins")}
+                  >
+                    Adminlar
+                  </button>
+                  <button
+                    type="button"
+                    className={userSubTab === "couriers" ? "fd-btn fd-btn-primary" : "fd-btn"}
+                    onClick={() => setUserSubTab("couriers")}
+                  >
+                    Kuryerlar
+                  </button>
+                </div>
+                {(data.users ?? [])
+                  .filter((u: any) => {
+                    const role = String(u?.role ?? "");
+                    if (userSubTab === "couriers") return role === "COURIER";
+                    if (userSubTab === "admins") return role === "RESTAURANT_ADMIN" || role === "PLATFORM_ADMIN";
+                    return role === "CUSTOMER";
+                  })
+                  .map((u: any) => (
                   <div key={u.id} className="fd-checkout-item">
                     <div>
                       <div>{u.email}</div>
@@ -674,8 +705,13 @@ export default function PlatformAdminPage() {
                       </button>
                     </div>
                   </div>
-                ))}
-                {(!data.users || data.users.length === 0) && (
+                  ))}
+                {((data.users ?? []).filter((u: any) => {
+                  const role = String(u?.role ?? "");
+                  if (userSubTab === "couriers") return role === "COURIER";
+                  if (userSubTab === "admins") return role === "RESTAURANT_ADMIN" || role === "PLATFORM_ADMIN";
+                  return role === "CUSTOMER";
+                }).length === 0) && (
                   <p className="fd-empty">Foydalanuvchilar yo‘q.</p>
                 )}
               </section>
