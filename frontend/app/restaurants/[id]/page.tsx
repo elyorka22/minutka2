@@ -53,7 +53,7 @@ function RestaurantPageClient({ restaurant, dishes }: { restaurant: any; dishes:
                     src={dish.imageUrl ? imageUrl(dish.imageUrl) : ""}
                     alt=""
                     className="fd-card-image"
-                    style={{ width: "100%", aspectRatio: "4/5", objectFit: "contain" }}
+                    style={{ width: "100%", height: "100%" }}
                     fallbackStyle={{ height: 140 }}
                   />
                   {quantity === 0 ? (
