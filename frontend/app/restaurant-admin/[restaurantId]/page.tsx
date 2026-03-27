@@ -3,9 +3,8 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { adminApi } from "../../../lib/adminApi";
-import { BackLink } from "../../../components/BackLink";
 
-type TabId = "orders" | "archive" | "payments" | "stats" | "settings";
+type TabId = "orders" | "archive" | "stats";
 
 function OrderCard({
   o,
@@ -162,17 +161,6 @@ export default function RestaurantAdminPage({
   } | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [telegramChatId, setTelegramChatId] = useState("");
-  const [settingsSaving, setSettingsSaving] = useState(false);
-  const [settingsMessage, setSettingsMessage] = useState<string | null>(null);
-  const [pushEnabled, setPushEnabled] = useState<boolean | null>(null);
-
-  useEffect(() => {
-    adminApi
-      .getMyPushStatus()
-      .then((s) => setPushEnabled(!!s.subscribed))
-      .catch(() => setPushEnabled(null));
-  }, [restaurantId]);
 
   function loadOrders() {
     setLoading(true);
@@ -212,28 +200,7 @@ export default function RestaurantAdminPage({
     if (activeTab === "orders") loadOrders();
     else if (activeTab === "archive") loadArchive();
     else if (activeTab === "stats") loadStats();
-    else if (activeTab === "settings") {
-      setLoading(true);
-      setError(null);
-      adminApi
-        .getRestaurantSettings(restaurantId)
-        .then((s) => setTelegramChatId(s.telegramChatId ?? ""))
-        .catch((err: any) => setError(err?.message ?? "Xatolik"))
-        .finally(() => setLoading(false));
-    } else if (activeTab === "payments") {
-      setLoading(true);
-      setError(null);
-      Promise.all([
-        adminApi.getRestaurantStats(restaurantId),
-        adminApi.getRestaurantOrdersArchive(restaurantId),
-      ])
-        .then(([s, a]) => {
-          setStats(s);
-          setArchive(Array.isArray(a) ? a : []);
-        })
-        .catch((err: any) => setError(err?.message ?? "Xatolik"))
-        .finally(() => setLoading(false));
-    }
+    
   }, [restaurantId, activeTab, orderFilter]);
 
   useEffect(() => {
@@ -259,13 +226,9 @@ export default function RestaurantAdminPage({
   const tabs: { id: TabId; label: string }[] = [
     { id: "orders", label: "Buyurtmalar" },
     { id: "archive", label: "Arxiv" },
-    { id: "payments", label: "Platforma to'lovlari" },
     { id: "stats", label: "Statistika" },
-    { id: "settings", label: "Sozlamalar" },
   ];
 
-  const deliveredForPayments = (activeTab === "payments" ? archive : []).filter((o: any) => o.status === "DONE");
-  const percent = stats?.platformFeePercent ?? 10;
   const visibleOrders = orders.filter((o) => {
     if (orderFilter === "READY") return o.status === "READY";
     if (orderFilter === "IN_PATH") return o.status === "ON_THE_WAY";
@@ -274,21 +237,12 @@ export default function RestaurantAdminPage({
 
   return (
     <div className="fd-shell fd-section">
-      <BackLink href="/profile">← Profil</BackLink>
+      <div style={{ marginBottom: 12 }}>
+        <Link href="/profile" className="fd-btn" style={{ textDecoration: "none" }}>
+          Profilga qaytish
+        </Link>
+      </div>
       <h1 className="fd-section-title">Restoran boshqaruvi</h1>
-
-      {pushEnabled === false && (
-        <div className="fd-card" style={{ padding: 16, marginTop: 12 }}>
-          <p className="fd-card-desc" style={{ margin: 0 }}>
-            Bildirishnomalar yoqilmagan. Buyurtmalarni qabul qilish uchun profilda pushni yoqing.
-          </p>
-          <div style={{ marginTop: 12, display: "flex" }}>
-            <Link href="/profile" className="fd-btn fd-btn-primary" style={{ textDecoration: "none" }}>
-              Bildirishnomani yoqish
-            </Link>
-          </div>
-        </div>
-      )}
 
       <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 16 }}>
         {tabs.map((t) => (
@@ -361,36 +315,6 @@ export default function RestaurantAdminPage({
         </div>
       )}
 
-      {activeTab === "payments" && !loading && (
-        <div>
-          {stats != null && (
-            <div className="fd-card" style={{ padding: 16, marginBottom: 16 }}>
-              <p className="fd-card-desc">
-                Platforma ulushi: <strong>{stats.platformFeePercent}%</strong> (har bir yetkazilgan buyurtma uchun).
-                Jami platformaga to‘langan: <strong>{Number(stats.totalPlatformFee).toLocaleString()} so&apos;m</strong>.
-              </p>
-            </div>
-          )}
-          <div className="fd-card-desc" style={{ fontWeight: 600, marginBottom: 8 }}>
-            Yetkazilgan buyurtmalar bo‘yicha platforma to‘lovi
-          </div>
-          <ul style={{ margin: 0, paddingLeft: 20 }}>
-            {deliveredForPayments.map((o: any) => {
-              const fee = (Number(o.total) * percent) / 100;
-              return (
-                <li key={o.id} style={{ marginBottom: 6 }}>
-                  #{o.id.slice(0, 8)} — {Number(o.total).toLocaleString()} so&apos;m × {percent}% ={" "}
-                  {fee.toLocaleString()} so&apos;m
-                </li>
-              );
-            })}
-          </ul>
-          {deliveredForPayments.length === 0 && !error && (
-            <p className="fd-empty">Hozircha yetkazilgan buyurtmalar yo‘q.</p>
-          )}
-        </div>
-      )}
-
       {activeTab === "stats" && !loading && stats != null && (
         <div className="fd-card" style={{ padding: 16 }}>
           <p className="fd-card-desc">
@@ -408,49 +332,6 @@ export default function RestaurantAdminPage({
           <p className="fd-card-desc">
             <strong>Platformaga to‘langan:</strong> {Number(stats.totalPlatformFee).toLocaleString()} so&apos;m
           </p>
-        </div>
-      )}
-
-      {activeTab === "settings" && !loading && (
-        <div className="fd-card" style={{ padding: 16 }}>
-          <h3 className="fd-card-desc" style={{ marginBottom: 8 }}>Telegram — buyurtmalar haqida xabar</h3>
-          <p className="fd-card-desc" style={{ marginBottom: 12, fontSize: "0.875rem" }}>
-            Chat ID ni kiriting: yangi buyurtma kelganda shu chatga xabar yuboriladi. Minutka Telegram botiga /start yoki /id yuboring — tugma chiqadi yoki Chat ID darhol yuboriladi. Yoki @userinfobot dan olishingiz mumkin.
-          </p>
-          <form
-            onSubmit={async (e) => {
-              e.preventDefault();
-              setSettingsMessage(null);
-              setSettingsSaving(true);
-              try {
-                await adminApi.updateRestaurantSettings(restaurantId, { telegramChatId: telegramChatId.trim() || undefined });
-                setSettingsMessage("Saqlandi.");
-              } catch (err: any) {
-                setSettingsMessage(err?.message ?? "Xatolik");
-              } finally {
-                setSettingsSaving(false);
-              }
-            }}
-            className="fd-form"
-          >
-            <label className="fd-field">
-              <span>Telegram Chat ID</span>
-              <input
-                type="text"
-                value={telegramChatId}
-                onChange={(e) => setTelegramChatId(e.target.value)}
-                placeholder="-1001234567890 yoki 123456789"
-              />
-            </label>
-            {settingsMessage && (
-              <p style={{ color: settingsMessage === "Saqlandi." ? "var(--color-success, green)" : "var(--color-orange)", marginBottom: 8 }}>
-                {settingsMessage}
-              </p>
-            )}
-            <button type="submit" className="fd-btn fd-btn-primary" disabled={settingsSaving}>
-              {settingsSaving ? "Saqlanmoqda…" : "Saqlash"}
-            </button>
-          </form>
         </div>
       )}
     </div>
