@@ -173,6 +173,7 @@ export default function RestaurantAdminPage({
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [manualArchive, setManualArchive] = useState<any[]>([]);
+  const [ordersLastSyncAt, setOrdersLastSyncAt] = useState<string | null>(null);
 
   const manualArchiveKey = `restaurant-admin-manual-archive:${restaurantId}`;
 
@@ -209,6 +210,12 @@ export default function RestaurantAdminPage({
         const list = Array.isArray(data) ? data : [];
         const hiddenIds = new Set(manualArchive.map((x: any) => x?.id));
         setOrders(list.filter((o: any) => !hiddenIds.has(o.id)));
+        const latest = list
+          .map((o: any) => String(o?.updatedAt ?? o?.createdAt ?? ""))
+          .filter(Boolean)
+          .sort()
+          .pop();
+        if (latest) setOrdersLastSyncAt(latest);
       })
       .catch((err: any) => setError(err?.message ?? "Xatolik"))
       .finally(() => {
@@ -263,12 +270,25 @@ export default function RestaurantAdminPage({
 
   useEffect(() => {
     if (activeTab !== "orders") return;
+    let inFlight = false;
     const interval = setInterval(() => {
+      if (typeof document !== "undefined" && document.hidden) return;
       if (loading) return;
-      loadOrders({ background: true });
-    }, 8000);
+      if (inFlight) return;
+      inFlight = true;
+      adminApi
+        .getRestaurantOrdersChanges(restaurantId, { since: ordersLastSyncAt ?? undefined })
+        .then((meta) => {
+          if (meta?.lastUpdatedAt) setOrdersLastSyncAt(meta.lastUpdatedAt);
+          if (!meta?.changed) return;
+          return Promise.resolve(loadOrders({ background: true }));
+        })
+        .finally(() => {
+          inFlight = false;
+        });
+    }, 12000);
     return () => clearInterval(interval);
-  }, [activeTab, loading, restaurantId, manualArchive]);
+  }, [activeTab, loading, restaurantId, manualArchive, ordersLastSyncAt]);
 
   async function changeStatus(id: string, status: string, cancelReason?: string) {
     try {

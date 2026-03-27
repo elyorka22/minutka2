@@ -15,6 +15,7 @@ import { RestaurantsModule } from './restaurants/restaurants.module';
 import { MenuModule } from './menu/menu.module';
 import { OrdersModule } from './orders/orders.module';
 import { VisitsModule } from './visits.module';
+import { CacheService } from './cache.service';
 
 @Module({
   imports: [
@@ -39,6 +40,6 @@ import { VisitsModule } from './visits.module';
     VisitsModule,
   ],
   controllers: [AppController, AdminController, ProductsController, BannersController, ProductCategoriesController, PushController],
-  providers: [AppService],
+  providers: [AppService, CacheService],
 })
 export class AppModule {}

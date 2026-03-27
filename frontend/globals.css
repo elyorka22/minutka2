@@ -702,13 +702,13 @@ body {
   margin: 0;
 }
 
-/* Dish cards */
+/* Dish cards — компактнее (~половина высоты от прежнего блока с фото) */
 .fd-card--dish {
   transition: box-shadow 0.2s ease, border-color 0.2s ease;
 }
 
 .fd-card--dish .fd-card-media {
-  aspect-ratio: 4 / 5;
+  aspect-ratio: 8 / 5;
   overflow: hidden;
   background: #fff;
 }
@@ -721,13 +721,60 @@ body {
 }
 
 .fd-card--dish .fd-card-body {
-  padding: 14px 14px 12px;
+  padding: 8px 10px 8px;
 }
 
 .fd-card--dish h3 {
-  font-size: 0.96rem;
+  font-size: 0.875rem;
   font-weight: 600;
-  margin: 0 0 4px;
+  line-height: 1.25;
+  margin: 0 0 2px;
+}
+
+.fd-card--dish .fd-card-desc {
+  margin: 4px 0 0;
+  font-size: 0.75rem;
+  line-height: 1.35;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
+}
+
+.fd-card--dish .fd-dish-footer {
+  margin-top: 6px;
+  padding-top: 6px;
+}
+
+.fd-card--dish .fd-price {
+  font-size: 0.875rem;
+}
+
+.fd-card--dish .fd-card-plus-btn {
+  right: 6px;
+  bottom: 6px;
+  width: 28px;
+  height: 28px;
+}
+
+.fd-card--dish .fd-card-plus-btn .material-symbols-rounded {
+  font-size: 18px;
+}
+
+.fd-card--dish .fd-qty--overlay {
+  right: 6px;
+  bottom: 6px;
+  padding: 3px 6px;
+}
+
+.fd-card--dish .fd-qty-btn {
+  width: 18px;
+  height: 18px;
+  font-size: 0.9rem;
+}
+
+.fd-card--dish .fd-qty-value {
+  font-size: 0.8rem;
 }
 
 /* Restaurants page: compact square cards, 3 in a row */

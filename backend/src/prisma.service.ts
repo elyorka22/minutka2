@@ -94,4 +94,8 @@ export class PrismaService implements OnModuleInit, OnModuleDestroy {
   async transaction<T>(fn: (tx: any) => Promise<T>): Promise<T> {
     return this.client.$transaction(fn);
   }
+
+  $queryRaw<T = unknown>(query: TemplateStringsArray, ...values: any[]): Promise<T> {
+    return (this.client as any).$queryRaw(query, ...values);
+  }
 }

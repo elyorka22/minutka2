@@ -221,6 +221,7 @@ export default function CourierPage() {
   const [tab, setTab] = useState<CourierTab>("yangi");
   const [actionBusy, setActionBusy] = useState(false);
   const [pushEnabled, setPushEnabled] = useState<boolean | null>(null);
+  const [ordersLastSyncAt, setOrdersLastSyncAt] = useState<string | null>(null);
   const listLimit = 300;
   const listOffset = 0;
 
@@ -233,6 +234,12 @@ export default function CourierPage() {
         scope: tab === "mine" ? "mine" : "pool",
       });
       setOrders(Array.isArray(list) ? list : []);
+      const latest = (Array.isArray(list) ? list : [])
+        .map((o: any) => String(o?.updatedAt ?? o?.createdAt ?? ""))
+        .filter(Boolean)
+        .sort()
+        .pop();
+      if (latest) setOrdersLastSyncAt(latest);
     } catch (e: any) {
       const msg = String(e?.message ?? "Xatolik");
       setError(msg);
@@ -270,13 +277,29 @@ export default function CourierPage() {
   }, [tab, load]);
 
   useEffect(() => {
+    let inFlight = false;
     const interval = setInterval(() => {
+      if (typeof document !== "undefined" && document.hidden) return;
       if (actionBusy) return;
       if (loading) return;
-      load();
-    }, 8000);
+      if (inFlight) return;
+      inFlight = true;
+      adminApi
+        .getCourierOrdersChanges({
+          scope: tab === "mine" ? "mine" : "pool",
+          since: ordersLastSyncAt ?? undefined,
+        })
+        .then((meta) => {
+          if (meta?.lastUpdatedAt) setOrdersLastSyncAt(meta.lastUpdatedAt);
+          if (!meta?.changed) return;
+          return load();
+        })
+        .finally(() => {
+          inFlight = false;
+        });
+    }, 15000);
     return () => clearInterval(interval);
-  }, [load, actionBusy, loading]);
+  }, [load, actionBusy, loading, tab, ordersLastSyncAt]);
 
   async function handleTake(id: string) {
     setActionBusy(true);

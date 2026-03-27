@@ -6,6 +6,7 @@ import {
   Param,
   Post,
   Delete,
+  Query,
   Req,
   UseGuards,
   UseInterceptors,
@@ -18,6 +19,7 @@ import { JwtAuthGuard } from './auth/jwt-auth.guard';
 import { PrismaService } from './prisma.service';
 import { UsersService } from './users/users.service';
 import { VisitsService } from './visits.service';
+import { CacheService } from './cache.service';
 import { UserRole } from '../generated/prisma/enums';
 import * as fs from 'fs';
 import * as path from 'path';
@@ -36,12 +38,40 @@ export class AdminController {
     private readonly prisma: PrismaService,
     private readonly usersService: UsersService,
     private readonly visitsService: VisitsService,
+    private readonly cache: CacheService,
   ) {
     const publicKey = process.env.PUBLIC_VAPID_KEY;
     const privateKey = process.env.PRIVATE_VAPID_KEY;
     if (publicKey && privateKey) {
       webpush.setVapidDetails('mailto:admin@minut-ka.uz', publicKey, privateKey);
     }
+  }
+
+  private assertPlatformAdmin(req: RequestWithUser) {
+    if (req.user?.role !== 'PLATFORM_ADMIN') {
+      throw new ForbiddenException('Only platform admin allowed');
+    }
+  }
+
+  private parsePagination(limitRaw?: string, offsetRaw?: string) {
+    const limit = Math.min(Math.max(Number(limitRaw ?? 20) || 20, 1), 100);
+    const offset = Math.max(Number(offsetRaw ?? 0) || 0, 0);
+    return { limit, offset };
+  }
+
+  private invalidateCatalogCache() {
+    this.cache.invalidatePrefix('restaurants:');
+    this.cache.invalidatePrefix('menu:');
+    this.cache.invalidatePrefix('home:');
+  }
+
+  private invalidateHomeCache() {
+    this.cache.invalidatePrefix('home:');
+    this.cache.invalidatePrefix('restaurants:featured');
+  }
+
+  private invalidateAdminStatsCache() {
+    this.cache.invalidatePrefix('admin:stats:');
   }
 
   @Get('my-restaurants')
@@ -52,8 +82,21 @@ export class AdminController {
     }
     const user = await this.prisma.user.findUnique({
       where: { id: userId },
-      include: {
-        restaurants: { where: { isActive: true }, orderBy: { name: 'asc' } },
+      select: {
+        restaurants: {
+          where: { isActive: true },
+          orderBy: { name: 'asc' },
+          select: {
+            id: true,
+            name: true,
+            description: true,
+            address: true,
+            logoUrl: true,
+            coverUrl: true,
+            isSupermarket: true,
+            isActive: true,
+          },
+        },
       },
     });
     if (!user) throw new ForbiddenException('User not found');
@@ -62,38 +105,35 @@ export class AdminController {
 
   @Get('overview')
   async overview(@Req() req: RequestWithUser) {
-    if (req.user?.role !== 'PLATFORM_ADMIN') {
-      throw new ForbiddenException('Only platform admin allowed');
-    }
+    this.assertPlatformAdmin(req);
 
     try {
-      const [restaurants, users, recentOrders, banners, productCategories] = await Promise.all([
-        this.prisma.restaurant.findMany({
-          where: { isActive: true },
-          orderBy: { createdAt: 'desc' },
-          take: 20,
-        }),
-        this.prisma.user.findMany({
-          orderBy: { createdAt: 'desc' },
-          take: 20,
-        }),
-        this.prisma.order.findMany({
-          orderBy: { createdAt: 'desc' },
-          take: 20,
-          include: {
-            restaurant: true,
-            customer: { select: { id: true, email: true, name: true } },
-          },
-        }),
+      const [stats, restaurants, users, recentOrders, banners, productCategories] = await Promise.all([
+        this.getOverviewStats(req),
+        this.getOverviewRestaurants(req, '20', '0'),
+        this.getOverviewUsers(req, '20', '0'),
+        this.getOverviewRecentOrders(req, '20', '0'),
         this.prisma.banner.findMany({
           orderBy: [{ sortOrder: 'asc' }, { createdAt: 'desc' }],
+          select: {
+            id: true,
+            title: true,
+            text: true,
+            imageUrl: true,
+            ctaLabel: true,
+            ctaHref: true,
+            sortOrder: true,
+            isActive: true,
+          },
         }),
         this.prisma.productCategory.findMany({
           orderBy: [{ sortOrder: 'asc' }, { createdAt: 'desc' }],
+          select: { id: true, name: true, imageUrl: true, sortOrder: true, isActive: true },
         }),
       ]);
 
       return {
+        stats,
         restaurants,
         users,
         recentOrders,
@@ -109,6 +149,94 @@ export class AdminController {
       }
       throw e;
     }
+  }
+
+  @Get('overview/stats')
+  async getOverviewStats(@Req() req: RequestWithUser) {
+    this.assertPlatformAdmin(req);
+    const [restaurants, users, totalOrders, delivered, cancelled, admins] = await Promise.all([
+      this.prisma.restaurant.count({ where: { isActive: true } }),
+      this.prisma.user.count(),
+      this.prisma.order.count(),
+      this.prisma.order.count({ where: { status: 'DONE' } }),
+      this.prisma.order.count({ where: { status: 'CANCELLED' } }),
+      this.prisma.user.count({
+        where: { role: { in: [UserRole.PLATFORM_ADMIN, UserRole.RESTAURANT_ADMIN, UserRole.COURIER] } },
+      }),
+    ]);
+    return { restaurants, users, totalOrders, delivered, cancelled, admins };
+  }
+
+  @Get('overview/restaurants')
+  async getOverviewRestaurants(
+    @Req() req: RequestWithUser,
+    @Query('limit') limitRaw?: string,
+    @Query('offset') offsetRaw?: string,
+  ) {
+    this.assertPlatformAdmin(req);
+    const { limit, offset } = this.parsePagination(limitRaw, offsetRaw);
+    return this.prisma.restaurant.findMany({
+      where: { isActive: true },
+      orderBy: { createdAt: 'desc' },
+      take: limit,
+      skip: offset,
+      select: {
+        id: true,
+        name: true,
+        description: true,
+        logoUrl: true,
+        isFeatured: true,
+        isSupermarket: true,
+        platformFeePercent: true,
+        createdAt: true,
+      },
+    });
+  }
+
+  @Get('overview/users')
+  async getOverviewUsers(
+    @Req() req: RequestWithUser,
+    @Query('limit') limitRaw?: string,
+    @Query('offset') offsetRaw?: string,
+  ) {
+    this.assertPlatformAdmin(req);
+    const { limit, offset } = this.parsePagination(limitRaw, offsetRaw);
+    return this.prisma.user.findMany({
+      orderBy: { createdAt: 'desc' },
+      take: limit,
+      skip: offset,
+      select: {
+        id: true,
+        email: true,
+        name: true,
+        role: true,
+        status: true,
+        createdAt: true,
+      },
+    });
+  }
+
+  @Get('overview/recent-orders')
+  async getOverviewRecentOrders(
+    @Req() req: RequestWithUser,
+    @Query('limit') limitRaw?: string,
+    @Query('offset') offsetRaw?: string,
+  ) {
+    this.assertPlatformAdmin(req);
+    const { limit, offset } = this.parsePagination(limitRaw, offsetRaw);
+    return this.prisma.order.findMany({
+      orderBy: { createdAt: 'desc' },
+      take: limit,
+      skip: offset,
+      select: {
+        id: true,
+        status: true,
+        total: true,
+        createdAt: true,
+        restaurant: { select: { id: true, name: true } },
+        customer: { select: { id: true, email: true, name: true } },
+      },
+    });
   }
 
   @Get('users/push-subscribers')
@@ -205,13 +333,17 @@ export class AdminController {
     if (!title || !message) {
       throw new BadRequestException('title and message are required');
     }
-    const subs = await this.prisma.pushSubscription.findMany();
+    const subs = await this.prisma.pushSubscription.findMany({
+      select: { id: true, endpoint: true, p256dh: true, auth: true },
+    });
     let success = 0;
     let failed = 0;
-    await Promise.all(
-      subs.map(async (s) => {
-        try {
-          await webpush.sendNotification(
+    const chunkSize = 100;
+    for (let i = 0; i < subs.length; i += chunkSize) {
+      const chunk = subs.slice(i, i + chunkSize);
+      const settled = await Promise.allSettled(
+        chunk.map((s) =>
+          webpush.sendNotification(
             {
               endpoint: s.endpoint,
               keys: { p256dh: s.p256dh, auth: s.auth },
@@ -221,16 +353,24 @@ export class AdminController {
               body: message,
               url,
             }),
-          );
+          ),
+        ),
+      );
+      for (let j = 0; j < settled.length; j++) {
+        const r = settled[j];
+        if (r.status === 'fulfilled') {
           success += 1;
-        } catch (e: any) {
-          failed += 1;
-          if (e?.statusCode === 410 || e?.statusCode === 404) {
-            await this.prisma.pushSubscription.delete({ where: { id: s.id } }).catch(() => {});
-          }
+          continue;
         }
-      }),
-    );
+        failed += 1;
+        const err: any = r.reason;
+        if (err?.statusCode === 410 || err?.statusCode === 404) {
+          await this.prisma.pushSubscription
+            .delete({ where: { id: chunk[j].id } })
+            .catch(() => {});
+        }
+      }
+    }
     return { ok: true, success, failed };
   }
 
@@ -245,15 +385,21 @@ export class AdminController {
     const user = await this.prisma.user.findUnique({ where: { id } });
     if (!user) throw new BadRequestException('Foydalanuvchi topilmadi');
 
-    const orderIds = (await this.prisma.order.findMany({ where: { customerId: id }, select: { id: true } })).map((o) => o.id);
-    for (const orderId of orderIds) {
+    const orderIds = (
+      await this.prisma.order.findMany({ where: { customerId: id }, select: { id: true } })
+    ).map((o) => o.id);
+    if (orderIds.length) {
       const dt = this.prisma.deliveryTracking;
-      if (dt) await dt.deleteMany({ where: { orderId } }).catch(() => {});
-      await this.prisma.payment.deleteMany({ where: { orderId } }).catch(() => {});
-      await this.prisma.orderItem.deleteMany({ where: { orderId } });
+      await Promise.all([
+        dt ? dt.deleteMany({ where: { orderId: { in: orderIds } } }).catch(() => {}) : Promise.resolve(),
+        this.prisma.payment.deleteMany({ where: { orderId: { in: orderIds } } }).catch(() => {}),
+        this.prisma.orderItem.deleteMany({ where: { orderId: { in: orderIds } } }),
+      ]);
     }
-    await this.prisma.order.deleteMany({ where: { customerId: id } });
-    await this.prisma.address.deleteMany({ where: { userId: id } });
+    await Promise.all([
+      this.prisma.order.deleteMany({ where: { customerId: id } }),
+      this.prisma.address.deleteMany({ where: { userId: id } }),
+    ]);
     const restaurantsWithAdmin = await this.prisma.restaurant.findMany({
       where: { admins: { some: { id } } },
       select: { id: true },
@@ -388,6 +534,8 @@ export class AdminController {
         admins: { connect: { id: adminId } },
       },
     });
+    this.invalidateCatalogCache();
+    this.invalidateAdminStatsCache();
     return restaurant;
   }
 
@@ -429,6 +577,8 @@ export class AdminController {
         ...(body.platformFeePercent !== undefined && { platformFeePercent: Number(body.platformFeePercent) }),
       },
     });
+    this.invalidateCatalogCache();
+    this.invalidateAdminStatsCache();
     return restaurant;
   }
 
@@ -442,6 +592,8 @@ export class AdminController {
       const restaurant = await this.prisma.restaurant.delete({
         where: { id },
       });
+      this.invalidateCatalogCache();
+      this.invalidateAdminStatsCache();
       return restaurant;
     } catch (e: any) {
       // Если есть связанные данные и срабатывает ограничение внешнего ключа,
@@ -452,6 +604,8 @@ export class AdminController {
           where: { id },
           data: { isActive: false },
         });
+        this.invalidateCatalogCache();
+        this.invalidateAdminStatsCache();
         return restaurant;
       }
       throw e;
@@ -465,9 +619,43 @@ export class AdminController {
     }
     const restaurant = await this.prisma.restaurant.findUnique({
       where: { id },
-      include: {
-        categories: { orderBy: { sortOrder: 'asc' }, include: { dishes: true } },
-        dishes: true,
+      select: {
+        id: true,
+        name: true,
+        address: true,
+        description: true,
+        logoUrl: true,
+        coverUrl: true,
+        categories: {
+          orderBy: { sortOrder: 'asc' },
+          select: {
+            id: true,
+            name: true,
+            sortOrder: true,
+            dishes: {
+              select: {
+                id: true,
+                name: true,
+                description: true,
+                price: true,
+                imageUrl: true,
+                categoryId: true,
+                isAvailable: true,
+              },
+            },
+          },
+        },
+        dishes: {
+          select: {
+            id: true,
+            name: true,
+            description: true,
+            price: true,
+            imageUrl: true,
+            categoryId: true,
+            isAvailable: true,
+          },
+        },
       },
     });
     if (!restaurant) throw new BadRequestException('Restaurant not found');
@@ -509,6 +697,7 @@ export class AdminController {
       where: { id },
       data: { platformFeeClearedAt: new Date() },
     });
+    this.invalidateAdminStatsCache();
     return { ok: true };
   }
 
@@ -517,7 +706,7 @@ export class AdminController {
     if (req.user?.role !== 'PLATFORM_ADMIN') {
       throw new ForbiddenException('Only platform admin allowed');
     }
-    return this.visitsService.getStats(7);
+    return this.cache.getOrSet('admin:stats:visits:7d', 30_000, () => this.visitsService.getStats(7));
   }
 
   @Get('stats/restaurants')
@@ -525,94 +714,117 @@ export class AdminController {
     if (req.user?.role !== 'PLATFORM_ADMIN') {
       throw new ForbiddenException('Only platform admin allowed');
     }
-    const now = new Date();
-    const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+    return this.cache.getOrSet('admin:stats:restaurants:full', 45_000, async () => {
+      const now = new Date();
+      const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+      const [deliveredAgg, topDishRows, balancesRows, byDayRows, byHourRows] = await Promise.all([
+        this.prisma.order.aggregate({
+          where: { status: 'DONE', createdAt: { gte: sevenDaysAgo } },
+          _count: { id: true },
+          _sum: { total: true },
+        }),
+        this.prisma.$queryRaw<
+          Array<{
+            dishId: string;
+            dishName: string;
+            restaurantName: string;
+            totalAmount: number;
+            totalQuantity: number;
+          }>
+        >`
+        SELECT
+          d.id AS "dishId",
+          d.name AS "dishName",
+          r.name AS "restaurantName",
+          COALESCE(SUM((oi.price::numeric) * oi.quantity), 0)::float AS "totalAmount",
+          COALESCE(SUM(oi.quantity), 0)::int AS "totalQuantity"
+        FROM "OrderItem" oi
+        JOIN "Order" o ON o.id = oi."orderId"
+        JOIN "Dish" d ON d.id = oi."dishId"
+        JOIN "Restaurant" r ON r.id = d."restaurantId"
+        WHERE o.status = 'DONE' AND o."createdAt" >= ${sevenDaysAgo}
+        GROUP BY d.id, d.name, r.name
+      `,
+        this.prisma.$queryRaw<
+          Array<{ restaurantId: string; restaurantName: string; amountOwed: number }>
+        >`
+        SELECT
+          r.id AS "restaurantId",
+          r.name AS "restaurantName",
+          COALESCE(
+            SUM(
+              CASE
+                WHEN o.id IS NULL THEN 0
+                ELSE (o.total::numeric) * (r."platformFeePercent"::numeric) / 100
+              END
+            ),
+            0
+          )::float AS "amountOwed"
+        FROM "Restaurant" r
+        LEFT JOIN "Order" o
+          ON o."restaurantId" = r.id
+          AND o.status = 'DONE'
+          AND (r."platformFeeClearedAt" IS NULL OR o."createdAt" > r."platformFeeClearedAt")
+        WHERE r."isActive" = true
+        GROUP BY r.id, r.name
+      `,
+        this.prisma.$queryRaw<Array<{ day: number; count: number }>>`
+        SELECT
+          EXTRACT(DOW FROM o."createdAt")::int AS day,
+          COUNT(*)::int AS count
+        FROM "Order" o
+        WHERE o.status = 'DONE'
+        GROUP BY EXTRACT(DOW FROM o."createdAt")
+      `,
+        this.prisma.$queryRaw<Array<{ hour: number; count: number }>>`
+        SELECT
+          EXTRACT(HOUR FROM o."createdAt")::int AS hour,
+          COUNT(*)::int AS count
+        FROM "Order" o
+        WHERE o.status = 'DONE'
+        GROUP BY EXTRACT(HOUR FROM o."createdAt")
+      `,
+      ]);
 
-    const deliveredOrders = await this.prisma.order.findMany({
-      where: { status: 'DONE', createdAt: { gte: sevenDaysAgo } },
-      select: { id: true, total: true, createdAt: true, restaurantId: true },
-      orderBy: { createdAt: 'asc' },
+      const deliveredLast7Days = {
+        count: deliveredAgg._count.id ?? 0,
+        totalAmount: Number(deliveredAgg._sum.total ?? 0),
+      };
+
+      const topDishesByAmount = [...topDishRows]
+        .sort((a, b) => Number(b.totalAmount) - Number(a.totalAmount))
+        .slice(0, 15);
+      const topDishesByQuantity = [...topDishRows]
+        .sort((a, b) => Number(b.totalQuantity) - Number(a.totalQuantity))
+        .slice(0, 15);
+
+      const restaurantBalances = balancesRows.map((r) => ({
+        restaurantId: r.restaurantId,
+        restaurantName: r.restaurantName,
+        amountOwed: Math.round(Number(r.amountOwed) * 100) / 100,
+      }));
+
+      const byDayMap = new Map(byDayRows.map((r) => [Number(r.day), Number(r.count)]));
+      const ordersByDayOfWeek = [1, 2, 3, 4, 5, 6, 0].map((day) => ({
+        day,
+        count: byDayMap.get(day) ?? 0,
+      }));
+
+      const byHourMap = new Map(byHourRows.map((r) => [Number(r.hour), Number(r.count)]));
+      const ordersByHour = Array.from({ length: 24 }, (_, h) => ({
+        hour: h,
+        count: byHourMap.get(h) ?? 0,
+      }));
+
+      return {
+        deliveredLast7Days,
+        topDishesByAmount,
+        topDishesByQuantity,
+        restaurantBalances,
+        ordersByDayOfWeek,
+        ordersByHour,
+      };
     });
-
-    const deliveredLast7Days = {
-      count: deliveredOrders.length,
-      totalAmount: deliveredOrders.reduce((s, o) => s + Number(o.total), 0),
-    };
-
-    const orderIds = deliveredOrders.map((o) => o.id);
-    const items = await this.prisma.orderItem.findMany({
-      where: { orderId: { in: orderIds } },
-      include: { dish: { include: { restaurant: { select: { name: true } } } } },
-    });
-
-    const dishMap = new Map<string, { dishId: string; dishName: string; restaurantName: string; totalAmount: number; totalQuantity: number }>();
-    for (const it of items) {
-      const key = it.dishId;
-      const price = Number(it.price);
-      const qty = it.quantity;
-      const amount = price * qty;
-      const existing = dishMap.get(key);
-      if (existing) {
-        existing.totalAmount += amount;
-        existing.totalQuantity += qty;
-      } else {
-        dishMap.set(key, {
-          dishId: it.dish.id,
-          dishName: it.dish.name,
-          restaurantName: it.dish.restaurant?.name ?? '',
-          totalAmount: amount,
-          totalQuantity: qty,
-        });
-      }
-    }
-    const allDishes = Array.from(dishMap.values());
-    const topDishesByAmount = [...allDishes].sort((a, b) => b.totalAmount - a.totalAmount).slice(0, 15);
-    const topDishesByQuantity = [...allDishes].sort((a, b) => b.totalQuantity - a.totalQuantity).slice(0, 15);
-
-    const restaurants = await this.prisma.restaurant.findMany({
-      where: { isActive: true },
-      select: { id: true, name: true, platformFeePercent: true, platformFeeClearedAt: true },
-    });
-    const restaurantBalances: { restaurantId: string; restaurantName: string; amountOwed: number }[] = [];
-    for (const r of restaurants) {
-      const clearedAt = r.platformFeeClearedAt;
-      const ordersForRestaurant = deliveredOrders.filter(
-        (o) => o.restaurantId === r.id && (!clearedAt || new Date(o.createdAt) > clearedAt),
-      );
-      const amountOwed = ordersForRestaurant.reduce(
-        (s, o) => s + (Number(o.total) * Number(r.platformFeePercent)) / 100,
-        0,
-      );
-      restaurantBalances.push({
-        restaurantId: r.id,
-        restaurantName: r.name,
-        amountOwed: Math.round(amountOwed * 100) / 100,
-      });
-    }
-
-    const allOrdersForTime = await this.prisma.order.findMany({
-      where: { status: 'DONE' },
-      select: { createdAt: true },
-    });
-    const dayCount: Record<number, number> = { 0: 0, 1: 0, 2: 0, 3: 0, 4: 0, 5: 0, 6: 0 };
-    const hourCount: Record<number, number> = {};
-    for (let h = 0; h < 24; h++) hourCount[h] = 0;
-    for (const o of allOrdersForTime) {
-      const d = new Date(o.createdAt);
-      dayCount[d.getDay()] = (dayCount[d.getDay()] ?? 0) + 1;
-      hourCount[d.getHours()] = (hourCount[d.getHours()] ?? 0) + 1;
-    }
-    const ordersByDayOfWeek = [1, 2, 3, 4, 5, 6, 0].map((day) => ({ day, count: dayCount[day] ?? 0 }));
-    const ordersByHour = Array.from({ length: 24 }, (_, h) => ({ hour: h, count: hourCount[h] ?? 0 }));
-
-    return {
-      deliveredLast7Days,
-      topDishesByAmount,
-      topDishesByQuantity,
-      restaurantBalances,
-      ordersByDayOfWeek,
-      ordersByHour,
-    };
   }
 
   @Post('restaurants/:id/categories')
@@ -634,6 +846,8 @@ export class AdminController {
         sortOrder: body.sortOrder ?? 0,
       },
     });
+    this.invalidateCatalogCache();
+    this.invalidateAdminStatsCache();
     return category;
   }
 
@@ -653,6 +867,8 @@ export class AdminController {
     await this.prisma.category.delete({
       where: { id: categoryId },
     });
+    this.invalidateCatalogCache();
+    this.invalidateAdminStatsCache();
     return { ok: true };
   }
 
@@ -688,6 +904,8 @@ export class AdminController {
         imageUrl: body.imageUrl?.trim() ?? null,
       },
     });
+    this.invalidateCatalogCache();
+    this.invalidateAdminStatsCache();
     return dish;
   }
 
@@ -703,6 +921,8 @@ export class AdminController {
     await this.prisma.dish.delete({
       where: { id: dishId },
     });
+    this.invalidateCatalogCache();
+    this.invalidateAdminStatsCache();
     return { ok: true };
   }
 
@@ -861,6 +1081,7 @@ export class AdminController {
         isActive: body.isActive ?? true,
       },
     });
+    this.invalidateHomeCache();
     return banner;
   }
 
@@ -894,6 +1115,7 @@ export class AdminController {
         ...(body.isActive !== undefined && { isActive: body.isActive }),
       },
     });
+    this.invalidateHomeCache();
     return banner;
   }
 
@@ -905,6 +1127,7 @@ export class AdminController {
     await this.prisma.banner.delete({
       where: { id },
     });
+    this.invalidateHomeCache();
     return { ok: true };
   }
 }

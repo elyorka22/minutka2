@@ -54,7 +54,7 @@ function RestaurantPageClient({ restaurant, dishes }: { restaurant: any; dishes:
                     alt=""
                     className="fd-card-image"
                     style={{ width: "100%", height: "100%" }}
-                    fallbackStyle={{ height: 140 }}
+                    fallbackStyle={{ height: 72 }}
                   />
                   {quantity === 0 ? (
                     <button

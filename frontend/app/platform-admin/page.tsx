@@ -232,45 +232,31 @@ export default function PlatformAdminPage() {
   }, [activeTab]);
 
   async function fetchOverview() {
-    const res = await fetch(
-      (process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:4000") +
-        "/admin/overview",
-      {
-        cache: "no-store",
-        headers:
-          typeof window === "undefined"
-            ? {}
-            : {
-                Authorization:
-                  `Bearer ${window.localStorage.getItem("token") ?? ""}`,
-              },
-      },
-    );
-
-    if (res.status === 401) {
-      if (typeof window !== "undefined") {
-        window.localStorage.removeItem("token");
+    try {
+      const [stats, restaurants, users, recentOrders, banners, productCategories] =
+        await Promise.all([
+          adminApi.getOverviewStats(),
+          adminApi.getOverviewRestaurants({ limit: 20, offset: 0 }),
+          adminApi.getOverviewUsers({ limit: 20, offset: 0 }),
+          adminApi.getOverviewRecentOrders({ limit: 20, offset: 0 }),
+          adminApi.getBanners(),
+          adminApi.getProductCategories(),
+        ]);
+      return { stats, restaurants, users, recentOrders, banners, productCategories } as any;
+    } catch (e: any) {
+      const msg = String(e?.message ?? "");
+      if (msg.includes("401")) {
+        if (typeof window !== "undefined") window.localStorage.removeItem("token");
+        router.push("/login?next=/profile");
+      } else if (msg.includes("403")) {
+        router.push("/profile");
       }
-      router.push("/login?next=/profile");
-      throw new Error("Unauthorized");
+      throw e;
     }
-    if (res.status === 403) {
-      // Foydalanuvchi kiritilgan, lekin platform admin emas (masalan restoran admin) — token o‘chirilmaydi, profilga yuboramiz
-      router.push("/profile");
-      throw new Error("Forbidden");
-    }
-
-    const body = await res.json().catch(() => ({}));
-    if (!res.ok) {
-      const errMsg =
-        (body?.message && (typeof body.message === "string" ? body.message : body.message[0])) ||
-        "Server xatosi";
-      throw new Error(errMsg);
-    }
-    return body as any;
   }
 
   function getStats() {
+    if (data?.stats) return data.stats;
     const restaurants = data?.restaurants ?? [];
     const users = data?.users ?? [];
     const orders = data?.recentOrders ?? [];

@@ -16,6 +16,8 @@ type OrderStatus =
 
 @Injectable()
 export class OrdersService {
+  private lastArchiveCleanupAtMs = 0;
+
   constructor(
     private readonly prisma: PrismaService,
     private readonly usersService: UsersService,
@@ -46,6 +48,12 @@ export class OrdersService {
     }
     const restaurant = await this.prisma.restaurant.findUnique({
       where: { id: dto.restaurantId, isActive: true },
+      select: {
+        id: true,
+        name: true,
+        deliveryFee: true,
+        telegramChatId: true,
+      },
     });
     if (!restaurant) throw new Error('Restaurant not found');
 
@@ -53,15 +61,16 @@ export class OrdersService {
     const serviceFeeRate = 0.1;
     let subtotal = 0;
 
-    const dishPrices: { dishId: string; price: number }[] = [];
+    const requestedDishIds = Array.from(new Set(dto.items.map((i) => i.dishId)));
+    const dishes = await this.prisma.dish.findMany({
+      where: { id: { in: requestedDishIds }, restaurantId: dto.restaurantId, isAvailable: true },
+      select: { id: true, price: true },
+    });
+    const dishById = new Map(dishes.map((d) => [d.id, Number(d.price)]));
     for (const item of dto.items) {
-      const dish = await this.prisma.dish.findFirst({
-        where: { id: item.dishId, restaurantId: dto.restaurantId, isAvailable: true },
-      });
-      if (!dish) throw new Error(`Dish ${item.dishId} not found`);
-      const price = Number(dish.price);
+      const price = dishById.get(item.dishId);
+      if (price == null) throw new Error(`Dish ${item.dishId} not found`);
       subtotal += price * item.quantity;
-      dishPrices.push({ dishId: item.dishId, price });
     }
 
     const serviceFee = Math.round(subtotal * serviceFeeRate * 100) / 100;
@@ -91,25 +100,45 @@ export class OrdersService {
         total,
         items: {
           create: dto.items.map((item) => {
-            const p = dishPrices.find((x) => x.dishId === item.dishId);
+            const p = dishById.get(item.dishId);
             return {
               dishId: item.dishId,
               quantity: item.quantity,
-              price: p?.price ?? 0,
+              price: p ?? 0,
             };
           }),
         },
       },
-      include: {
-        items: { include: { dish: true } },
-        address: true,
-        restaurant: true,
+      select: {
+        id: true,
+        total: true,
+        createdAt: true,
+        items: {
+          select: {
+            dishId: true,
+            quantity: true,
+            price: true,
+            dish: { select: { id: true, name: true, imageUrl: true } },
+          },
+        },
+        address: {
+          select: {
+            id: true,
+            label: true,
+            street: true,
+            city: true,
+            details: true,
+            latitude: true,
+            longitude: true,
+          },
+        },
+        restaurant: { select: { id: true, name: true } },
         customer: { select: { name: true } },
       },
     });
 
     const notifyUrl = process.env.TELEGRAM_BOT_NOTIFY_URL;
-    const chatId = (order.restaurant as any).telegramChatId;
+      const chatId = (restaurant as any).telegramChatId;
     if (notifyUrl && chatId) {
       const base = notifyUrl.replace(/\/$/, '');
       const phone = order.address?.details?.replace(/^Tel:\s*/i, '') ?? '';
@@ -117,7 +146,7 @@ export class OrdersService {
         chatId,
         order: {
           id: order.id,
-          restaurantName: order.restaurant.name,
+          restaurantName: restaurant.name,
           total: Number(order.total),
           customerName: (order as any).customer?.name ?? '',
           phone,
@@ -142,19 +171,16 @@ export class OrdersService {
       const adminUserIds =
         restaurantWithAdmins?.admins?.map((u) => u.id).filter(Boolean) ?? [];
 
-      const result = await this.sendPushToUserIds(adminUserIds, {
-        title: "Minutka",
+      void this.sendPushToUserIds(adminUserIds, {
+        title: 'Minutka',
         message: `Yangi buyurtma #${order.id.slice(0, 8)}`,
         url: `/restaurant-admin/${dto.restaurantId}`,
-      });
-
-      // eslint-disable-next-line no-console
-      console.log('[push] restaurant-admins NEW order', {
-        restaurantId: dto.restaurantId,
-        adminsFound: adminUserIds.length,
-        pushSubscriptionsFound: result.subscriptionsFound,
-        success: result.success,
-        failed: result.failed,
+      }).catch((e) => {
+        // eslint-disable-next-line no-console
+        console.error('[push] restaurant-admins NEW order failed', {
+          restaurantId: dto.restaurantId,
+          error: e?.message ?? String(e),
+        });
       });
     } catch (e: any) {
       // eslint-disable-next-line no-console
@@ -262,10 +288,12 @@ export class OrdersService {
     let success = 0;
     let failed = 0;
 
-    await Promise.allSettled(
-      subs.map(async (s: any) => {
-        try {
-          await webpush.sendNotification(
+    const chunkSize = 100;
+    for (let i = 0; i < subs.length; i += chunkSize) {
+      const chunk = subs.slice(i, i + chunkSize);
+      const settled = await Promise.allSettled(
+        chunk.map((s: any) =>
+          webpush.sendNotification(
             {
               endpoint: s.endpoint,
               keys: { p256dh: s.p256dh, auth: s.auth },
@@ -275,16 +303,24 @@ export class OrdersService {
               body: payload.message,
               url: payload.url,
             }),
-          );
+          ),
+        ),
+      );
+      for (let j = 0; j < settled.length; j++) {
+        const r = settled[j];
+        if (r.status === 'fulfilled') {
           success += 1;
-        } catch (e: any) {
-          failed += 1;
-          if (e?.statusCode === 410 || e?.statusCode === 404) {
-            await this.prisma.pushSubscription.delete({ where: { id: s.id } }).catch(() => {});
-          }
+          continue;
         }
-      }),
-    );
+        failed += 1;
+        const err: any = r.reason;
+        if (err?.statusCode === 410 || err?.statusCode === 404) {
+          await this.prisma.pushSubscription
+            .delete({ where: { id: chunk[j].id } })
+            .catch(() => {});
+        }
+      }
+    }
 
     return { subscriptionsFound: subs.length, success, failed };
   }
@@ -489,11 +525,11 @@ export class OrdersService {
         where: { id: order!.restaurantId },
         select: { name: true },
       });
-      await this.notifyAllCouriersReady(id, restaurant?.name);
+      void this.notifyAllCouriersReady(id, restaurant?.name).catch(() => {});
     }
 
     if (status === 'ON_THE_WAY' && order?.customerId) {
-      await this.notifyCustomerOnTheWay(order.customerId, id);
+      void this.notifyCustomerOnTheWay(order.customerId, id).catch(() => {});
     }
 
     return this.prisma.order.findUnique({
@@ -616,6 +652,76 @@ export class OrdersService {
     });
   }
 
+  async hasRestaurantOrdersChanges(
+    restaurantId: string,
+    opts?: { status?: string; sinceIso?: string },
+  ): Promise<{ changed: boolean; lastUpdatedAt: string | null }> {
+    if (!opts?.sinceIso) return { changed: true, lastUpdatedAt: null };
+    const since = new Date(opts.sinceIso);
+    if (Number.isNaN(since.getTime())) return { changed: true, lastUpdatedAt: null };
+
+    let whereStatus: any;
+    if (opts?.status) {
+      const s = opts.status.toUpperCase();
+      if (s === 'NEW') whereStatus = { in: ['NEW', 'ACCEPTED'] };
+      else if (s === 'READY') whereStatus = 'READY';
+      else if (s === 'IN_PATH') whereStatus = 'ON_THE_WAY';
+      else whereStatus = this.mapStatusFilter(opts.status);
+    } else {
+      whereStatus = { notIn: ['DONE', 'CANCELLED'] };
+    }
+
+    const latest = await this.prisma.order.findFirst({
+      where: { restaurantId, status: whereStatus as any },
+      orderBy: { updatedAt: 'desc' },
+      select: { updatedAt: true },
+    });
+    if (!latest) return { changed: false, lastUpdatedAt: null };
+    return {
+      changed: latest.updatedAt.getTime() > since.getTime(),
+      lastUpdatedAt: latest.updatedAt.toISOString(),
+    };
+  }
+
+  async hasCourierOrdersChanges(
+    courierUserId: string,
+    opts?: { scope?: 'pool' | 'mine'; sinceIso?: string },
+  ): Promise<{ changed: boolean; lastUpdatedAt: string | null }> {
+    if (!opts?.sinceIso) return { changed: true, lastUpdatedAt: null };
+    const since = new Date(opts.sinceIso);
+    if (Number.isNaN(since.getTime())) return { changed: true, lastUpdatedAt: null };
+
+    const courier = await this.prisma.courier.upsert({
+      where: { userId: courierUserId },
+      create: { userId: courierUserId },
+      update: {},
+    });
+
+    const where =
+      opts?.scope === 'mine'
+        ? {
+            restaurant: { isActive: true },
+            courierId: courier.id,
+            status: { in: ['READY', 'ON_THE_WAY'] },
+          }
+        : {
+            restaurant: { isActive: true },
+            status: { notIn: ['DONE', 'CANCELLED'] },
+            OR: [{ status: 'READY', courierId: null }, { courierId: courier.id }],
+          };
+
+    const latest = await this.prisma.order.findFirst({
+      where: where as any,
+      orderBy: { updatedAt: 'desc' },
+      select: { updatedAt: true },
+    });
+    if (!latest) return { changed: false, lastUpdatedAt: null };
+    return {
+      changed: latest.updatedAt.getTime() > since.getTime(),
+      lastUpdatedAt: latest.updatedAt.toISOString(),
+    };
+  }
+
   async deleteOrdersOlderThanDays(days: number): Promise<number> {
     const cutoff = new Date();
     cutoff.setDate(cutoff.getDate() - days);
@@ -623,19 +729,28 @@ export class OrdersService {
       where: { createdAt: { lt: cutoff } },
       select: { id: true },
     });
-    for (const o of old) {
-      if (this.prisma.deliveryTracking) {
-        await this.prisma.deliveryTracking.deleteMany({ where: { orderId: o.id } }).catch(() => {});
-      }
-      await this.prisma.orderItem.deleteMany({ where: { orderId: o.id } });
-      await this.prisma.payment.deleteMany({ where: { orderId: o.id } }).catch(() => {});
-      await this.prisma.order.delete({ where: { id: o.id } }).catch(() => {});
-    }
-    return old.length;
+    const ids = old.map((o) => o.id);
+    if (!ids.length) return 0;
+    const dt = this.prisma.deliveryTracking;
+    await Promise.all([
+      dt ? dt.deleteMany({ where: { orderId: { in: ids } } }).catch(() => {}) : Promise.resolve(),
+      this.prisma.orderItem.deleteMany({ where: { orderId: { in: ids } } }),
+      this.prisma.payment.deleteMany({ where: { orderId: { in: ids } } }).catch(() => {}),
+    ]);
+    await this.prisma.order.deleteMany({ where: { id: { in: ids } } }).catch(() => {});
+    return ids.length;
+  }
+
+  private scheduleArchiveCleanup(days: number) {
+    const nowMs = Date.now();
+    const minIntervalMs = 15 * 60 * 1000;
+    if (nowMs - this.lastArchiveCleanupAtMs < minIntervalMs) return;
+    this.lastArchiveCleanupAtMs = nowMs;
+    void this.deleteOrdersOlderThanDays(days).catch(() => {});
   }
 
   async findArchiveForRestaurant(restaurantId: string) {
-    await this.deleteOrdersOlderThanDays(3);
+    this.scheduleArchiveCleanup(3);
     const since = new Date();
     since.setDate(since.getDate() - 3);
     return this.prisma.order.findMany({
@@ -654,14 +769,15 @@ export class OrdersService {
   }
 
   async getRestaurantStats(restaurantId: string) {
-    const [restaurant, orders, activeCount] = await Promise.all([
+    const [restaurant, doneAgg, activeCount] = await Promise.all([
       this.prisma.restaurant.findUnique({
         where: { id: restaurantId },
         select: { platformFeePercent: true },
       }),
-      this.prisma.order.findMany({
+      this.prisma.order.aggregate({
         where: { restaurantId, status: 'DONE' },
-        select: { total: true, subtotal: true },
+        _count: { id: true },
+        _sum: { total: true },
       }),
       this.prisma.order.count({
         where: {
@@ -671,16 +787,11 @@ export class OrdersService {
       }),
     ]);
     const percent = restaurant?.platformFeePercent != null ? Number(restaurant.platformFeePercent) : 10;
-    let totalRevenue = 0;
-    let totalPlatformFee = 0;
-    for (const o of orders) {
-      const t = Number(o.total);
-      totalRevenue += t;
-      totalPlatformFee += (t * percent) / 100;
-    }
+    const totalRevenue = Number(doneAgg._sum.total ?? 0);
+    const totalPlatformFee = (totalRevenue * percent) / 100;
     return {
       activeOrdersCount: activeCount,
-      deliveredOrdersCount: orders.length,
+      deliveredOrdersCount: doneAgg._count.id ?? 0,
       totalRevenue: Math.round(totalRevenue * 100) / 100,
       platformFeePercent: percent,
       totalPlatformFee: Math.round(totalPlatformFee * 100) / 100,

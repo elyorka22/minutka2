@@ -39,6 +39,36 @@ function adminRequest<T>(path: string, init?: RequestInit): Promise<T> {
 }
 
 export const adminApi = {
+  getOverviewStats: () =>
+    adminRequest<{
+      restaurants: number;
+      users: number;
+      totalOrders: number;
+      delivered: number;
+      cancelled: number;
+      admins: number;
+    }>("/admin/overview/stats"),
+  getOverviewRestaurants: (opts?: { limit?: number; offset?: number }) => {
+    const qs = new URLSearchParams();
+    if (typeof opts?.limit === "number") qs.set("limit", String(opts.limit));
+    if (typeof opts?.offset === "number") qs.set("offset", String(opts.offset));
+    const query = qs.toString();
+    return adminRequest<any[]>(`/admin/overview/restaurants${query ? `?${query}` : ""}`);
+  },
+  getOverviewUsers: (opts?: { limit?: number; offset?: number }) => {
+    const qs = new URLSearchParams();
+    if (typeof opts?.limit === "number") qs.set("limit", String(opts.limit));
+    if (typeof opts?.offset === "number") qs.set("offset", String(opts.offset));
+    const query = qs.toString();
+    return adminRequest<any[]>(`/admin/overview/users${query ? `?${query}` : ""}`);
+  },
+  getOverviewRecentOrders: (opts?: { limit?: number; offset?: number }) => {
+    const qs = new URLSearchParams();
+    if (typeof opts?.limit === "number") qs.set("limit", String(opts.limit));
+    if (typeof opts?.offset === "number") qs.set("offset", String(opts.offset));
+    const query = qs.toString();
+    return adminRequest<any[]>(`/admin/overview/recent-orders${query ? `?${query}` : ""}`);
+  },
   getRestaurants: () => request<any>("/restaurants"),
   getMyRestaurants: () =>
     request<any[]>("/admin/my-restaurants", { headers: getAuthHeaders() }),
@@ -54,6 +84,18 @@ export const adminApi = {
     const query = qs.toString();
     return adminRequest<any[]>(`/restaurants/${id}/orders${query ? `?${query}` : ""}`);
   },
+  getRestaurantOrdersChanges: (
+    id: string,
+    opts?: { status?: string; since?: string },
+  ) => {
+    const qs = new URLSearchParams();
+    if (opts?.status) qs.set("status", opts.status);
+    if (opts?.since) qs.set("since", opts.since);
+    const query = qs.toString();
+    return adminRequest<{ changed: boolean; lastUpdatedAt: string | null }>(
+      `/restaurants/${id}/orders/changes${query ? `?${query}` : ""}`,
+    );
+  },
   getRestaurantOrdersArchive: (id: string) =>
     adminRequest<any[]>(`/restaurants/${id}/orders/archive`),
   getRestaurantStats: (id: string) =>
@@ -66,6 +108,16 @@ export const adminApi = {
     if (opts?.scope) qs.set("scope", opts.scope);
     const query = qs.toString();
     return adminRequest<any[]>(`/courier/orders${query ? `?${query}` : ""}`, { method: "GET" });
+  },
+  getCourierOrdersChanges: (opts?: { scope?: "pool" | "mine"; since?: string }) => {
+    const qs = new URLSearchParams();
+    if (opts?.scope) qs.set("scope", opts.scope);
+    if (opts?.since) qs.set("since", opts.since);
+    const query = qs.toString();
+    return adminRequest<{ changed: boolean; lastUpdatedAt: string | null }>(
+      `/courier/orders/changes${query ? `?${query}` : ""}`,
+      { method: "GET" },
+    );
   },
   getRestaurantSettings: (id: string) =>
     adminRequest<{ telegramChatId: string }>(`/restaurants/${id}/settings`),

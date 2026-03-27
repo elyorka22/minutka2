@@ -109,6 +109,25 @@ export class CourierOrdersController {
       scope: scopeNorm,
     });
   }
+
+  @Get('orders/changes')
+  @UseGuards(JwtAuthGuard)
+  async changes(
+    @Req() req: RequestWithUser,
+    @Query('scope') scope?: string,
+    @Query('since') since?: string,
+  ) {
+    if (req.user?.role !== 'COURIER') {
+      throw new ForbiddenException('Faqat kuryerlar uchun');
+    }
+    const userId = req.user?.id;
+    if (!userId) throw new BadRequestException('Unauthorized');
+    const scopeNorm = scope === 'mine' ? 'mine' : 'pool';
+    return this.ordersService.hasCourierOrdersChanges(userId, {
+      scope: scopeNorm,
+      sinceIso: since,
+    });
+  }
 }
 
 interface RequestWithUser {
@@ -149,6 +168,23 @@ export class RestaurantOrdersController {
       limit: limit ? Number(limit) : undefined,
       offset: offset ? Number(offset) : undefined,
       status,
+    });
+  }
+
+  @Get('changes')
+  @UseGuards(JwtAuthGuard)
+  async hasChanges(
+    @Param('restaurantId') restaurantId: string,
+    @Req() req: RequestWithUser,
+    @Query('status') status?: string,
+    @Query('since') since?: string,
+  ) {
+    const userId = req.user?.id;
+    const role = req.user?.role;
+    if (userId && role) await this.ensureRestaurantAdminAccess(restaurantId, userId, role);
+    return this.ordersService.hasRestaurantOrdersChanges(restaurantId, {
+      status,
+      sinceIso: since,
     });
   }
 
