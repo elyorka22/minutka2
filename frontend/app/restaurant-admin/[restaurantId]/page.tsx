@@ -162,8 +162,9 @@ export default function RestaurantAdminPage({
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  function loadOrders() {
-    setLoading(true);
+  function loadOrders(opts?: { background?: boolean }) {
+    const background = !!opts?.background;
+    if (!background) setLoading(true);
     setError(null);
     adminApi
       .getRestaurantOrders(restaurantId, {
@@ -173,7 +174,9 @@ export default function RestaurantAdminPage({
       })
       .then((data) => setOrders(Array.isArray(data) ? data : []))
       .catch((err: any) => setError(err?.message ?? "Xatolik"))
-      .finally(() => setLoading(false));
+      .finally(() => {
+        if (!background) setLoading(false);
+      });
   }
 
   function loadArchive() {
@@ -207,7 +210,7 @@ export default function RestaurantAdminPage({
     if (activeTab !== "orders") return;
     const interval = setInterval(() => {
       if (loading) return;
-      loadOrders();
+      loadOrders({ background: true });
     }, 8000);
     return () => clearInterval(interval);
   }, [activeTab, loading, orderFilter, restaurantId]);
@@ -236,8 +239,8 @@ export default function RestaurantAdminPage({
   });
 
   return (
-    <div className="fd-shell fd-section">
-      <div style={{ marginBottom: 12 }}>
+    <div className="fd-shell fd-section" style={{ marginTop: 10 }}>
+      <div style={{ marginBottom: 10 }}>
         <Link href="/profile" className="fd-btn" style={{ textDecoration: "none" }}>
           Profilga qaytish
         </Link>
