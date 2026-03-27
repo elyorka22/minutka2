@@ -159,6 +159,7 @@ export default function RestaurantAdminPage({
     platformFeePercent: number;
     totalPlatformFee: number;
   } | null>(null);
+  const [debtInfo, setDebtInfo] = useState<{ amount: number; percent: number } | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -194,10 +195,28 @@ export default function RestaurantAdminPage({
     setError(null);
     adminApi
       .getRestaurantStats(restaurantId)
-      .then(setStats)
+      .then((s) => {
+        setStats(s);
+        setDebtInfo({
+          amount: Number(s?.totalPlatformFee ?? 0),
+          percent: Number(s?.platformFeePercent ?? 0),
+        });
+      })
       .catch((err: any) => setError(err?.message ?? "Xatolik"))
       .finally(() => setLoading(false));
   }
+
+  useEffect(() => {
+    adminApi
+      .getRestaurantStats(restaurantId)
+      .then((s) =>
+        setDebtInfo({
+          amount: Number(s?.totalPlatformFee ?? 0),
+          percent: Number(s?.platformFeePercent ?? 0),
+        }),
+      )
+      .catch(() => setDebtInfo(null));
+  }, [restaurantId]);
 
   useEffect(() => {
     if (activeTab === "orders") loadOrders();
@@ -240,20 +259,26 @@ export default function RestaurantAdminPage({
 
   return (
     <div className="fd-shell fd-section" style={{ marginTop: 10 }}>
-      <div style={{ marginBottom: 10 }}>
+      <div style={{ marginBottom: 10, display: "flex", justifyContent: "space-between", gap: 8, flexWrap: "wrap" }}>
         <Link href="/profile" className="fd-btn" style={{ textDecoration: "none" }}>
           Profilga qaytish
         </Link>
+        <button type="button" className="fd-btn" disabled style={{ cursor: "default" }}>
+          {debtInfo
+            ? `Platforma qarzi: ${debtInfo.amount.toLocaleString()} so'm (${debtInfo.percent}%)`
+            : "Platforma qarzi: —"}
+        </button>
       </div>
       <h1 className="fd-section-title">Restoran boshqaruvi</h1>
 
-      <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 16 }}>
+      <div style={{ display: "flex", gap: 6, flexWrap: "nowrap", overflowX: "auto", marginBottom: 16, paddingBottom: 2 }}>
         {tabs.map((t) => (
           <button
             key={t.id}
             type="button"
             className={t.id === activeTab ? "fd-btn fd-btn-primary" : "fd-btn"}
             onClick={() => setActiveTab(t.id)}
+            style={{ padding: "8px 12px", fontSize: "0.85rem", flexShrink: 0 }}
           >
             {t.label}
           </button>
