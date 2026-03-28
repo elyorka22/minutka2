@@ -571,6 +571,70 @@ body {
   background: var(--color-orange-light);
 }
 
+/* Rasm bilan: matn va tugma rasm ustida (pastki gradient orqali o‘qiladi) */
+.fd-banner--photo {
+  position: relative;
+  overflow: hidden;
+  padding: 0;
+  min-height: min(52vw, 280px);
+  max-height: min(56vw, 300px);
+  background: #1f2937;
+}
+
+.fd-banner--photo .fd-banner-media {
+  position: absolute;
+  inset: 0;
+  margin: 0;
+  border-radius: inherit;
+  overflow: hidden;
+}
+
+.fd-banner--photo .fd-banner-img {
+  width: 100%;
+  height: 100%;
+  min-height: 200px;
+  object-fit: cover;
+  object-position: center;
+  display: block;
+}
+
+.fd-banner-scrim {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: linear-gradient(
+    to top,
+    rgba(0, 0, 0, 0.88) 0%,
+    rgba(0, 0, 0, 0.45) 38%,
+    rgba(0, 0, 0, 0.12) 62%,
+    transparent 85%
+  );
+}
+
+.fd-banner--photo .fd-banner-body {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 1;
+  padding: 16px 18px 18px;
+}
+
+.fd-banner--photo .fd-banner-title,
+.fd-banner--photo .fd-banner-text {
+  color: #fff;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.45);
+}
+
+.fd-banner--photo .fd-banner-title {
+  margin-bottom: 4px;
+}
+
+.fd-banner--photo .fd-banner-text {
+  margin: 0 0 10px;
+  opacity: 0.96;
+}
+
 .fd-banner-title {
   font-size: clamp(1rem, 2.8vw, 1.2rem);
   font-weight: 700;
@@ -587,21 +651,6 @@ body {
   padding-inline: 14px;
   padding-block: 8px;
   font-size: 0.85rem;
-}
-
-.fd-banner-media {
-  width: 100%;
-  margin: -18px -18px 12px;
-  max-height: 200px;
-  overflow: hidden;
-  border-radius: var(--radius-lg) var(--radius-lg) 0 0;
-}
-
-.fd-banner-img {
-  width: 100%;
-  height: 180px;
-  object-fit: cover;
-  display: block;
 }
 
 .fd-banner-body {

@@ -116,8 +116,11 @@ export default async function HomePage() {
       <section className="fd-home-banners">
         {displayBanners.map((b, index) => {
           const isPrimary = index === 0;
-          const bannerClass = isPrimary ? "fd-banner fd-banner--primary" : "fd-banner fd-banner--secondary";
           const imgSrc = b.imageUrl ? imageUrl(b.imageUrl) : "";
+          const bannerClass = [
+            "fd-banner",
+            imgSrc ? "fd-banner--photo" : isPrimary ? "fd-banner--primary" : "fd-banner--secondary",
+          ].join(" ");
           const textBlock = (
             <>
               <div className="fd-banner-title">{b.title}</div>
@@ -139,6 +142,7 @@ export default async function HomePage() {
                   priority={isPrimary}
                   sizes="(max-width: 768px) 100vw, 720px"
                 />
+                <div className="fd-banner-scrim" aria-hidden="true" />
               </div>
               <div className="fd-banner-body">{textBlock}</div>
             </>
