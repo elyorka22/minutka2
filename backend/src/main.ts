@@ -28,15 +28,19 @@ async function bootstrap() {
   const corsOpts = getCorsOptions();
   app.enableCors(corsOpts);
   const co = process.env.CORS_ORIGINS?.trim();
+  const fo = process.env.FRONTEND_ORIGIN?.trim();
   if (co && co !== '*') {
     // eslint-disable-next-line no-console
     console.log(`[cors] CORS_ORIGINS set (${co.split(',').length} entries)`);
   } else if (co === '*') {
     // eslint-disable-next-line no-console
     console.warn('[cors] CORS_ORIGINS=* (all origins)');
+  } else if (fo) {
+    // eslint-disable-next-line no-console
+    console.log(`[cors] FRONTEND_ORIGIN set (${fo})`);
   } else if (process.env.NODE_ENV === 'production') {
     // eslint-disable-next-line no-console
-    console.warn('[cors] CORS_ORIGINS missing in production — browser requests will fail');
+    console.warn('[cors] Set CORS_ORIGINS or FRONTEND_ORIGIN in production — browser requests will fail');
   }
   app.useGlobalFilters(new AllExceptionsFilter());
   app.useGlobalInterceptors(new TimeoutInterceptor());

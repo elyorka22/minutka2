@@ -17,8 +17,20 @@ type CorsMode =
   | { kind: 'dev' }
   | { kind: 'none' };
 
+/** CORS_ORIGINS (comma-separated) or single FRONTEND_ORIGIN, e.g. https://www.minut-ka.uz */
+function readCorsOriginsRaw(): string | undefined {
+  const primary = process.env.CORS_ORIGINS?.trim();
+  if (primary === '*') {
+    return '*';
+  }
+  if (primary) {
+    return primary;
+  }
+  return process.env.FRONTEND_ORIGIN?.trim();
+}
+
 function getCorsMode(): CorsMode {
-  const raw = process.env.CORS_ORIGINS?.trim();
+  const raw = readCorsOriginsRaw();
   if (raw === '*') {
     return { kind: 'wildcard' };
   }
@@ -64,11 +76,10 @@ export function reflectAllowedOrigin(originHeader: string | undefined): string |
 }
 
 /**
- * CORS_ORIGINS — vergul bilan ajratilgan ro'yxat, masalan:
- *   https://minut-ka.uz,https://www.minut-ka.uz
- * CORS_ORIGINS=* — barcha originlarga ruxsat (faqat kerak bo'lsa).
- * Productionda ro'yxatni aniq ko'rsating; bo'sh qoldirilsa — cross-origin bloklanadi.
- * Domen brauzerdagi Origin bilan bir xil bo'lishi kerak (www / defis / https).
+ * CORS_ORIGINS — comma-separated, e.g. https://minut-ka.uz,https://www.minut-ka.uz
+ * FRONTEND_ORIGIN — one origin if you prefer a single variable (same as browser URL).
+ * CORS_ORIGINS=* — allow all (dev only recommended).
+ * Origin must match the browser exactly (https, www, hyphens).
  */
 export function getCorsOptions(): CorsOptions {
   const base: Pick<CorsOptions, 'credentials' | 'methods' | 'allowedHeaders' | 'optionsSuccessStatus'> = {
