@@ -26,6 +26,61 @@
 
 * {
   box-sizing: border-box;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Keyboard: no default ring on click-focus; show ring only for :focus-visible */
+button:focus,
+a:focus,
+summary:focus,
+[tabindex]:not([tabindex="-1"]):focus {
+  outline: none;
+}
+
+button:focus-visible,
+a:focus-visible,
+summary:focus-visible,
+[tabindex]:not([tabindex="-1"]):focus-visible {
+  outline: 2px solid var(--color-orange);
+  outline-offset: 2px;
+}
+
+/* Tappable UI: no text-selection flash on tap (prose links keep selection below) */
+button,
+input[type="button"],
+input[type="submit"],
+input[type="reset"],
+.fd-bottom-item,
+.fd-nav-link,
+.fd-chip,
+.fd-card,
+.fd-btn,
+.fd-cart,
+.fd-banner-btn,
+.fd-card-plus-btn,
+.fd-qty-btn,
+.fd-install-btn,
+.fd-pwa-btn,
+.fd-home-address-value,
+.fd-product-cat-card,
+.fd-admin-tab,
+.fd-admin-sidebar-back-link,
+.fd-admin-sidebar-logout,
+.fd-logo,
+.fd-update-banner__btn,
+.fd-geo-btn,
+.fd-back-link,
+.fd-link,
+[role="button"] {
+  -webkit-tap-highlight-color: transparent;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.fd-field a,
+.fd-checkout-meta a {
+  user-select: text;
+  -webkit-user-select: text;
 }
 
 html,
@@ -86,6 +141,11 @@ body {
 .fd-update-banner__btn {
   padding: 8px 10px;
   font-size: 0.9rem;
+  transition: transform 0.12s ease;
+}
+
+.fd-update-banner__btn:active {
+  transform: scale(0.98);
 }
 
 .fd-header-left {
@@ -100,11 +160,15 @@ body {
   letter-spacing: -0.02em;
   color: var(--color-orange);
   text-decoration: none;
-  transition: color 0.15s ease;
+  transition: color 0.15s ease, transform 0.12s ease;
 }
 
 .fd-logo:hover {
   color: var(--color-orange-hover);
+}
+
+.fd-logo:active {
+  transform: scale(0.98);
 }
 
 .fd-nav {
@@ -119,7 +183,7 @@ body {
   text-decoration: none;
   padding: 8px 14px;
   border-radius: var(--radius-md);
-  transition: color 0.15s ease, background 0.15s ease;
+  transition: color 0.15s ease, background 0.15s ease, transform 0.12s ease;
 }
 
 .fd-nav-link:hover {
@@ -127,14 +191,24 @@ body {
   background: var(--color-orange-light);
 }
 
+.fd-nav-link:active {
+  transform: scale(0.98);
+}
+
 .fd-link {
+  display: inline-block;
   color: var(--color-orange);
   text-decoration: none;
   font-weight: 500;
+  transition: transform 0.12s ease;
 }
 
 .fd-link:hover {
   text-decoration: underline;
+}
+
+.fd-link:active {
+  transform: scale(0.98);
 }
 
 .fd-back-link {
@@ -147,12 +221,16 @@ body {
   font-size: 0.9375rem;
   padding: 8px 0;
   margin-bottom: 16px;
-  transition: opacity 0.15s ease;
+  transition: opacity 0.15s ease, transform 0.12s ease;
 }
 
 .fd-back-link:hover {
   text-decoration: underline;
   opacity: 0.9;
+}
+
+.fd-back-link:active {
+  transform: scale(0.98);
 }
 
 .fd-cart {
@@ -167,7 +245,7 @@ body {
   font-size: 0.9375rem;
   font-weight: 600;
   box-shadow: var(--shadow-sm);
-  transition: background 0.15s ease, transform 0.1s ease;
+  transition: background 0.15s ease, transform 0.12s ease;
 }
 
 .fd-cart:hover {
@@ -207,6 +285,11 @@ body {
   font-size: 0.85rem;
   font-weight: 500;
   cursor: pointer;
+  transition: transform 0.12s ease;
+}
+
+.fd-install-btn:active {
+  transform: scale(0.98);
 }
 
 .fd-install-icon {
@@ -276,7 +359,7 @@ body {
   font-size: 0.9375rem;
   font-family: inherit;
   text-decoration: none;
-  transition: background 0.15s ease, color 0.15s ease, box-shadow 0.15s ease;
+  transition: background 0.15s ease, color 0.15s ease, box-shadow 0.15s ease, transform 0.12s ease;
 }
 
 .fd-btn-primary {
@@ -300,6 +383,10 @@ body {
   border-color: var(--color-border-strong);
 }
 
+.fd-btn:active {
+  transform: scale(0.98);
+}
+
 /* Sections */
 .fd-section {
   margin-top: 32px;
@@ -311,6 +398,19 @@ body {
   letter-spacing: -0.02em;
   margin: 0 0 20px;
   color: var(--color-text);
+}
+
+.fd-section-title a {
+  display: inline-block;
+  border-radius: var(--radius-sm);
+  transition: transform 0.12s ease;
+  -webkit-tap-highlight-color: transparent;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.fd-section-title a:active {
+  transform: scale(0.98);
 }
 
 /* Restaurants/Supermarkets pages: compact top spacing */
@@ -354,6 +454,11 @@ body {
   font-size: 0.9rem;
   text-align: left;
   cursor: pointer;
+  transition: transform 0.12s ease;
+}
+
+.fd-home-address-value:active {
+  transform: scale(0.98);
 }
 
 .fd-home-search {
@@ -393,11 +498,15 @@ body {
   text-decoration: none;
   font-weight: 500;
   user-select: none;
-  transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+  transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease, transform 0.12s ease;
 }
 
 .fd-chip:hover {
   border-color: var(--color-border-strong);
+}
+
+.fd-chip:active {
+  transform: scale(0.98);
 }
 
 .fd-chip--active {
@@ -446,6 +555,11 @@ body {
   width: min(calc(100vw - 40px), 720px);
   scroll-snap-align: center;
   flex-shrink: 0;
+  transition: transform 0.12s ease;
+}
+
+.fd-banner:active {
+  transform: scale(0.98);
 }
 
 .fd-banner--primary {
@@ -571,13 +685,17 @@ body {
   text-decoration: none;
   color: inherit;
   box-shadow: var(--shadow-sm);
-  transition: box-shadow 0.2s ease, transform 0.2s ease, border-color 0.2s ease;
+  transition: box-shadow 0.2s ease, transform 0.12s ease, border-color 0.2s ease;
 }
 
 .fd-card:hover {
   box-shadow: var(--shadow-lg);
   border-color: var(--color-orange-muted);
   transform: translateY(-2px);
+}
+
+.fd-card:active {
+  transform: scale(0.98);
 }
 
 .fd-card--product .fd-card-body {
@@ -655,6 +773,11 @@ body {
   color: #fff;
   cursor: pointer;
   box-shadow: 0 4px 10px rgba(0, 0, 0, 0.15);
+  transition: transform 0.12s ease;
+}
+
+.fd-card-plus-btn:active {
+  transform: scale(0.98);
 }
 
 .fd-card-plus-btn .material-symbols-rounded {
@@ -879,6 +1002,11 @@ body {
   justify-content: center;
   cursor: pointer;
   padding: 0;
+  transition: transform 0.12s ease;
+}
+
+.fd-qty-btn:active {
+  transform: scale(0.98);
 }
 
 .fd-qty-value {
@@ -924,6 +1052,11 @@ body {
   padding: 6px 0;
   cursor: pointer;
   position: relative;
+  transition: transform 0.12s ease, color 0.15s ease;
+}
+
+.fd-bottom-item:active {
+  transform: scale(0.98);
 }
 
 .fd-bottom-label {
@@ -1179,12 +1312,16 @@ body {
   font-weight: 500;
   cursor: pointer;
   border-radius: var(--radius-sm);
-  transition: background 0.15s, color 0.15s;
+  transition: background 0.15s, color 0.15s, transform 0.12s ease;
 }
 
 .fd-admin-tab:hover {
   background: var(--color-orange-light);
   color: var(--color-orange);
+}
+
+.fd-admin-tab:active {
+  transform: scale(0.98);
 }
 
 .fd-admin-tab-active {
@@ -1556,8 +1693,12 @@ body {
   border-radius: var(--radius-md);
   border: none;
   cursor: pointer;
-  transition: background 0.15s ease, color 0.15s ease;
+  transition: background 0.15s ease, color 0.15s ease, transform 0.12s ease;
   font-family: inherit;
+}
+
+.fd-pwa-btn:active {
+  transform: scale(0.98);
 }
 
 .fd-pwa-btn--primary {
@@ -1576,4 +1717,29 @@ body {
 
 .fd-pwa-btn--secondary:hover {
   background: var(--color-border-strong);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .fd-card:active,
+  .fd-card:hover,
+  .fd-btn:active,
+  .fd-chip:active,
+  .fd-bottom-item:active,
+  .fd-nav-link:active,
+  .fd-logo:active,
+  .fd-back-link:active,
+  .fd-link:active,
+  .fd-cart:active,
+  .fd-banner:active,
+  .fd-section-title a:active,
+  .fd-card-plus-btn:active,
+  .fd-qty-btn:active,
+  .fd-install-btn:active,
+  .fd-pwa-btn:active,
+  .fd-update-banner__btn:active,
+  .fd-home-address-value:active,
+  .fd-admin-tab:active {
+    transform: none;
+    transition: none;
+  }
 }
