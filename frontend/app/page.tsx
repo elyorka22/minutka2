@@ -1,5 +1,6 @@
 import Link from "next/link";
-import { api, imageUrl } from "../lib/api";
+import { imageUrl } from "../lib/api";
+import { fetchHomepageStable, type HomepageRestaurant, type HomepageBanner } from "../lib/api-server";
 import { SafeImage } from "../components/SafeImage";
 
 export const metadata = {
@@ -13,31 +14,8 @@ export const metadata = {
   },
 };
 
-type RestaurantCard = {
-  id: string;
-  name: string;
-  description?: string | null;
-  rating?: number | null;
-  logoUrl?: string | null;
-  coverUrl?: string | null;
-  isSupermarket?: boolean | null;
-  isFeatured?: boolean | null;
-  featuredSortOrder?: number | null;
-};
-
-type BannerCard = {
-  id: string;
-  title: string;
-  text?: string | null;
-  imageUrl?: string | null;
-  ctaLabel?: string | null;
-  ctaHref?: string | null;
-};
-
-async function getRestaurants(): Promise<RestaurantCard[]> {
-  const data = await api.getRestaurants();
-  if (!Array.isArray(data)) return [];
-  return data.map((r: any) => ({
+function mapRestaurant(r: HomepageRestaurant) {
+  return {
     id: String(r.id),
     name: String(r.name),
     description: r.description ?? null,
@@ -47,42 +25,26 @@ async function getRestaurants(): Promise<RestaurantCard[]> {
     isSupermarket: !!r.isSupermarket,
     isFeatured: !!r.isFeatured,
     featuredSortOrder: r.featuredSortOrder ?? null,
-  }));
+  };
 }
 
-async function getFeaturedRestaurants(): Promise<RestaurantCard[]> {
-  const data = await api.getFeaturedRestaurants();
-  if (!Array.isArray(data)) return [];
-  return data.map((r: any) => ({
-    id: String(r.id),
-    name: String(r.name),
-    description: r.description ?? null,
-    rating: typeof r.rating === "number" ? r.rating : null,
-    logoUrl: r.logoUrl ?? null,
-    coverUrl: r.coverUrl ?? null,
-    isSupermarket: !!r.isSupermarket,
-  }));
-}
-
-async function getBannersForHome(): Promise<BannerCard[]> {
-  const data = await api.getBanners();
-  if (!Array.isArray(data)) return [];
-  return data.map((b: any) => ({
+function mapBanner(b: HomepageBanner) {
+  return {
     id: String(b.id),
     title: String(b.title),
     text: b.text ?? null,
     imageUrl: b.imageUrl ?? null,
     ctaLabel: b.ctaLabel ?? null,
     ctaHref: b.ctaHref ?? null,
-  }));
+  };
 }
 
 export default async function HomePage() {
-  const [restaurants, banners, featuredRestaurants] = await Promise.all([
-    getRestaurants(),
-    getBannersForHome(),
-    getFeaturedRestaurants(),
-  ]);
+  const home = await fetchHomepageStable();
+  const restaurants = (home.restaurants || []).map(mapRestaurant);
+  const featuredRestaurants = (home.featured || []).map(mapRestaurant);
+  const banners = (home.banners || []).map(mapBanner);
+  const topCategories = home.topCategories || [];
 
   const supermarkets = restaurants.filter((r) => r.isSupermarket);
   const normalRestaurants = restaurants.filter((r) => !r.isSupermarket);
@@ -95,8 +57,38 @@ export default async function HomePage() {
       ? normalRestaurants.slice(8, 16)
       : normalRestaurants.slice(0, 8);
 
+  const displayBanners =
+    banners.length > 0
+      ? banners
+      : [
+          {
+            id: "demo-1",
+            title: "Chegirma 30%",
+            text: "Sevimli restoranlardan issiq yetkazib berish.",
+            ctaLabel: "Aksiyani ko‘rish",
+            ctaHref: undefined as string | undefined,
+            imageUrl: null as string | null,
+          },
+          {
+            id: "demo-2",
+            title: "Tezkor yetkazib berish",
+            text: "Mahsulotlarni yaqin do‘konlardan tez yetkazib beramiz.",
+            ctaLabel: undefined as string | undefined,
+            ctaHref: undefined as string | undefined,
+            imageUrl: null as string | null,
+          },
+        ];
+
+  const firstHeroSrc = displayBanners[0]?.imageUrl ? imageUrl(displayBanners[0].imageUrl) : "";
+
   return (
     <div className="fd-shell">
+      {firstHeroSrc ? (
+        <head>
+          <link rel="preload" as="image" href={firstHeroSrc} />
+        </head>
+      ) : null}
+
       <section className="fd-home-top">
         <div className="fd-home-search">
           <input
@@ -116,25 +108,11 @@ export default async function HomePage() {
       </section>
 
       <section className="fd-home-banners">
-        {(banners.length ? banners : [
-          {
-            id: "demo-1",
-            title: "Chegirma 30%",
-            text: "Sevimli restoranlardan issiq yetkazib berish.",
-            ctaLabel: "Aksiyani ko‘rish",
-            ctaHref: undefined,
-          },
-          {
-            id: "demo-2",
-            title: "Tezkor yetkazib berish",
-            text: "Mahsulotlarni yaqin do‘konlardan tez yetkazib beramiz.",
-            ctaLabel: undefined,
-            ctaHref: undefined,
-          },
-        ]).map((b, index) => {
+        {displayBanners.map((b, index) => {
           const isPrimary = index === 0;
           const bannerClass = isPrimary ? "fd-banner fd-banner--primary" : "fd-banner fd-banner--secondary";
-          const content = (
+          const imgSrc = b.imageUrl ? imageUrl(b.imageUrl) : "";
+          const textBlock = (
             <>
               <div className="fd-banner-title">{b.title}</div>
               {b.text && <p className="fd-banner-text">{b.text}</p>}
@@ -144,6 +122,22 @@ export default async function HomePage() {
                 </button>
               )}
             </>
+          );
+          const content = imgSrc ? (
+            <>
+              <div className="fd-banner-media">
+                <SafeImage
+                  src={imgSrc}
+                  alt=""
+                  className="fd-banner-img"
+                  priority={isPrimary}
+                  sizes="(max-width: 768px) 100vw, 720px"
+                />
+              </div>
+              <div className="fd-banner-body">{textBlock}</div>
+            </>
+          ) : (
+            textBlock
           );
           return (
             <article key={b.id} className={bannerClass}>
@@ -173,6 +167,7 @@ export default async function HomePage() {
                     alt=""
                     className="fd-product-cat-image"
                     fallbackStyle={{ height: 40 }}
+                    sizes="120px"
                   />
                 </div>
               </Link>
@@ -205,6 +200,7 @@ export default async function HomePage() {
                     alt=""
                     className="fd-product-cat-image"
                     fallbackStyle={{ height: 40 }}
+                    sizes="120px"
                   />
                 </div>
               </Link>
@@ -237,6 +233,7 @@ export default async function HomePage() {
                     alt=""
                     className="fd-product-cat-image"
                     fallbackStyle={{ height: 40 }}
+                    sizes="120px"
                   />
                 </div>
               </Link>
@@ -244,6 +241,40 @@ export default async function HomePage() {
           </div>
         )}
       </section>
+
+      {topCategories.length > 0 && (
+        <section className="fd-section">
+          <h2 className="fd-section-title">
+            <Link href="/supermarkets" style={{ color: "inherit", textDecoration: "none" }}>
+              Mahsulot toifalari
+            </Link>
+          </h2>
+          <div className="fd-home-stores">
+            {topCategories.map((c) => (
+              <Link
+                key={c.id}
+                href="/supermarkets"
+                className="fd-card fd-product-cat-card"
+              >
+                <div className="fd-product-cat-image-wrap">
+                  <SafeImage
+                    src={c.imageUrl ? imageUrl(c.imageUrl) : ""}
+                    alt={c.name}
+                    className="fd-product-cat-image"
+                    fallbackStyle={{ height: 40 }}
+                    sizes="120px"
+                  />
+                </div>
+                <div className="fd-card-body" style={{ padding: "8px 10px" }}>
+                  <span className="fd-card-desc" style={{ margin: 0 }}>
+                    {c.name}
+                  </span>
+                </div>
+              </Link>
+            ))}
+          </div>
+        </section>
+      )}
 
       <section className="fd-section">
         <h2 className="fd-section-title">
@@ -260,6 +291,7 @@ export default async function HomePage() {
                 className="fd-card-image"
                 style={{ width: "100%", aspectRatio: "16/10", objectFit: "cover" }}
                 fallbackStyle={{ height: 160 }}
+                sizes="(max-width: 640px) 50vw, 320px"
               />
               <div className="fd-card-body">
                 <div className="fd-card-title-row">

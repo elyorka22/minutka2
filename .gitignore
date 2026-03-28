@@ -7,6 +7,7 @@ yarn-error.log*
 # Next.js
 .next
 out
+*.tsbuildinfo
 
 # NestJS
 backend/dist
@@ -18,6 +19,10 @@ playwright-report
 # Env
 .env
 .env.*
+!.env.example
+
+# DB migration temp dumps
+.tmp-migrate
 
 # Prisma
 backend/prisma/dev.db

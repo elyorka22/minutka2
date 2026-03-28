@@ -2,6 +2,7 @@ import { BadRequestException, ForbiddenException, Injectable } from '@nestjs/com
 import { PrismaService } from '../prisma.service';
 import { UsersService } from '../users/users.service';
 import { CreateOrderDto } from './dto/create-order.dto';
+import { fetchWithRetry } from '../common/http/fetch-with-retry';
 
 // eslint-disable-next-line @typescript-eslint/no-var-requires
 const webpush = require('web-push');
@@ -154,7 +155,7 @@ export class OrdersService {
           lng: order.address?.longitude,
         },
       };
-      fetch(`${base}/notify`, {
+      fetchWithRetry(`${base}/notify`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),

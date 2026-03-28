@@ -20,6 +20,7 @@ import { PrismaService } from './prisma.service';
 import { UsersService } from './users/users.service';
 import { VisitsService } from './visits.service';
 import { CacheService } from './cache.service';
+import { StorageService } from './storage/storage.service';
 import { UserRole } from '../generated/prisma/enums';
 import * as fs from 'fs';
 import * as path from 'path';
@@ -39,6 +40,7 @@ export class AdminController {
     private readonly usersService: UsersService,
     private readonly visitsService: VisitsService,
     private readonly cache: CacheService,
+    private readonly storage: StorageService,
   ) {
     const publicKey = process.env.PUBLIC_VAPID_KEY;
     const privateKey = process.env.PRIVATE_VAPID_KEY;
@@ -63,11 +65,13 @@ export class AdminController {
     this.cache.invalidatePrefix('restaurants:');
     this.cache.invalidatePrefix('menu:');
     this.cache.invalidatePrefix('home:');
+    this.cache.invalidatePrefix('homepage:');
   }
 
   private invalidateHomeCache() {
     this.cache.invalidatePrefix('home:');
     this.cache.invalidatePrefix('restaurants:featured');
+    this.cache.invalidatePrefix('homepage:');
   }
 
   private invalidateAdminStatsCache() {
@@ -439,6 +443,19 @@ export class AdminController {
     }
     const ext = path.extname(file.originalname) || (file.mimetype === 'image/png' ? '.png' : file.mimetype === 'image/webp' ? '.webp' : file.mimetype === 'image/gif' ? '.gif' : '.jpg');
     const filename = randomUUID() + ext;
+
+    if (this.storage.isEnabled()) {
+      const publicUrl = await this.storage.uploadPublicImage({
+        buffer: file.buffer,
+        filename,
+        contentType: file.mimetype,
+      });
+      if (publicUrl) {
+        this.invalidateHomeCache();
+        return { url: publicUrl };
+      }
+    }
+
     const uploadsDir = path.join(process.cwd(), 'uploads');
     fs.mkdirSync(uploadsDir, { recursive: true });
     fs.writeFileSync(path.join(uploadsDir, filename), file.buffer);
@@ -450,6 +467,7 @@ export class AdminController {
     const inferredBase = protocol && host ? `${protocol}://${host}` : '';
     const baseUrl = process.env.PUBLIC_API_URL || inferredBase;
     const url = baseUrl ? `${baseUrl.replace(/\/$/, '')}/uploads/${filename}` : `/uploads/${filename}`;
+    this.invalidateHomeCache();
     return { url };
   }
 
@@ -990,6 +1008,7 @@ export class AdminController {
         isActive: body.isActive ?? true,
       },
     });
+    this.invalidateHomeCache();
     return category;
   }
 
@@ -1011,6 +1030,7 @@ export class AdminController {
         ...(body.isActive !== undefined && { isActive: body.isActive }),
       },
     });
+    this.invalidateHomeCache();
     return category;
   }
 
@@ -1037,6 +1057,7 @@ export class AdminController {
     await this.prisma.productCategory.delete({
       where: { id },
     });
+    this.invalidateHomeCache();
     return { ok: true };
   }
 

@@ -1,5 +1,6 @@
 import Link from "next/link";
-import { api, imageUrl } from "../../lib/api";
+import { imageUrl } from "../../lib/api";
+import { fetchRestaurantsList } from "../../lib/api-server";
 import { SafeImage } from "../../components/SafeImage";
 import { BackLink } from "../../components/BackLink";
 
@@ -15,7 +16,7 @@ export const metadata = {
 };
 
 export default async function SupermarketsPage() {
-  const data = await api.getRestaurants();
+  const data = await fetchRestaurantsList();
   const all = Array.isArray(data) ? data : [];
   const supermarkets = all.filter((r: any) => !!r.isSupermarket);
 

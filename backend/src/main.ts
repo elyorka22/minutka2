@@ -2,13 +2,31 @@ import { ValidationPipe } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import { getCorsOptions } from './cors.config';
+import { AllExceptionsFilter } from './common/filters/all-exceptions.filter';
+import { TimeoutInterceptor } from './common/interceptors/timeout.interceptor';
 import * as express from 'express';
 import * as path from 'path';
 import * as fs from 'fs';
 import { gzipSync } from 'zlib';
 
+function cacheControlForPublicGet(pathname: string): string | null {
+  if (pathname === '/homepage' || pathname === '/banners' || pathname === '/restaurants/featured') {
+    return 'public, max-age=30, s-maxage=30, stale-while-revalidate=120';
+  }
+  if (pathname === '/restaurants' || pathname === '/product-categories' || pathname === '/products') {
+    return 'public, max-age=60, s-maxage=60, stale-while-revalidate=180';
+  }
+  if (pathname.startsWith('/restaurants/') && !pathname.includes('/orders')) {
+    return 'public, max-age=30, s-maxage=30, stale-while-revalidate=120';
+  }
+  return null;
+}
+
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
+  app.enableShutdownHooks();
+  app.useGlobalFilters(new AllExceptionsFilter());
+  app.useGlobalInterceptors(new TimeoutInterceptor());
   app.useGlobalPipes(
     new ValidationPipe({
       whitelist: true,
@@ -61,9 +79,35 @@ async function bootstrap() {
     });
     next();
   });
+  expressApp.use((req: any, res: any, next: any) => {
+    if (String(req.method ?? '') !== 'GET') return next();
+    const p = String(req.path ?? '');
+    if (
+      p.startsWith('/admin') ||
+      p.startsWith('/auth') ||
+      p.startsWith('/orders') ||
+      p === '/visit' ||
+      p.startsWith('/push') ||
+      p.startsWith('/courier')
+    ) {
+      return next();
+    }
+    if (p === '/health') {
+      res.setHeader('Cache-Control', 'no-store');
+      return next();
+    }
+    const cc = cacheControlForPublicGet(p);
+    if (cc) {
+      res.setHeader('Cache-Control', cc);
+    }
+    next();
+  });
   const uploadsDir = path.join(process.cwd(), 'uploads');
   fs.mkdirSync(uploadsDir, { recursive: true });
   app.use('/uploads', express.static(uploadsDir));
-  await app.listen(process.env.PORT ?? 3000);
+  const port = process.env.PORT ?? 3000;
+  await app.listen(port);
+  // eslint-disable-next-line no-console
+  console.log(`Listening on ${port}`);
 }
 bootstrap();

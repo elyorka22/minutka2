@@ -1,9 +1,10 @@
-import { Injectable, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
+import { Injectable, Logger, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
 import { PrismaPg } from '@prisma/adapter-pg';
 import { PrismaClient } from '../generated/prisma/client';
 
 @Injectable()
 export class PrismaService implements OnModuleInit, OnModuleDestroy {
+  private readonly logger = new Logger(PrismaService.name);
   private client: InstanceType<typeof PrismaClient>;
 
   constructor() {
@@ -12,11 +13,37 @@ export class PrismaService implements OnModuleInit, OnModuleDestroy {
       throw new Error('DATABASE_URL is not set');
     }
     const adapter = new PrismaPg({ connectionString: url });
-    this.client = new PrismaClient({ adapter });
+    const slowMs = Number(process.env.PRISMA_SLOW_QUERY_MS ?? 0);
+    const log =
+      slowMs > 0 ? ([{ level: 'query' as const, emit: 'event' as const }] as { level: 'query'; emit: 'event' }[]) : [];
+    this.client = new PrismaClient({
+      adapter,
+      ...(log.length ? { log } : {}),
+    });
+    if (slowMs > 0) {
+      (this.client as { $on(event: 'query', cb: (e: { duration: number; query: string }) => void): void }).$on(
+        'query',
+        (e) => {
+          if (e.duration >= slowMs) {
+            this.logger.warn(`Slow query ${e.duration}ms: ${e.query?.slice(0, 500)}`);
+          }
+        },
+      );
+    }
   }
 
   async onModuleInit() {
-    await this.client.$connect();
+    let last: unknown;
+    for (let i = 0; i < 5; i++) {
+      try {
+        await this.client.$connect();
+        return;
+      } catch (e) {
+        last = e;
+        await new Promise((r) => setTimeout(r, 400 * (i + 1)));
+      }
+    }
+    throw last;
   }
 
   async onModuleDestroy() {

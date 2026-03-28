@@ -16,10 +16,14 @@ import { MenuModule } from './menu/menu.module';
 import { OrdersModule } from './orders/orders.module';
 import { VisitsModule } from './visits.module';
 import { CacheModule } from './cache.module';
+import { HomepageModule } from './homepage/homepage.module';
+import { HealthController } from './health/health.controller';
+import { StorageService } from './storage/storage.service';
 
 @Module({
   imports: [
     CacheModule,
+    HomepageModule,
     ConfigModule.forRoot({
       isGlobal: true,
     }),
@@ -40,7 +44,15 @@ import { CacheModule } from './cache.module';
     OrdersModule,
     VisitsModule,
   ],
-  controllers: [AppController, AdminController, ProductsController, BannersController, ProductCategoriesController, PushController],
-  providers: [AppService],
+  controllers: [
+    AppController,
+    AdminController,
+    ProductsController,
+    BannersController,
+    ProductCategoriesController,
+    PushController,
+    HealthController,
+  ],
+  providers: [AppService, StorageService],
 })
 export class AppModule {}

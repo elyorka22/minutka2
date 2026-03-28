@@ -9,6 +9,9 @@ type Props = {
   style?: React.CSSProperties;
   fallbackClassName?: string;
   fallbackStyle?: React.CSSProperties;
+  /** LCP / hero: eager load + high fetch priority */
+  priority?: boolean;
+  sizes?: string;
 };
 
 export function SafeImage({
@@ -18,6 +21,8 @@ export function SafeImage({
   style,
   fallbackClassName = "fd-card-image fd-card-image--placeholder",
   fallbackStyle,
+  priority = false,
+  sizes,
 }: Props) {
   const [failed, setFailed] = useState(false);
 
@@ -36,6 +41,10 @@ export function SafeImage({
       alt={alt}
       className={className}
       style={style}
+      sizes={sizes}
+      loading={priority ? "eager" : "lazy"}
+      decoding="async"
+      fetchPriority={priority ? "high" : "auto"}
       onError={() => setFailed(true)}
     />
   );

@@ -1,8 +1,8 @@
-import { api } from "../../../lib/api";
+import { fetchRestaurant } from "../../../lib/api-server";
 import { RestaurantPageClient } from "./RestaurantPageClient";
 
 async function loadRestaurant(id: string) {
-  const data = await api.getRestaurant(id);
+  const data = await fetchRestaurant(id);
   return data as any;
 }
 
