@@ -78,6 +78,8 @@ export default function PlatformAdminPage() {
   const [bannerCtaLabel, setBannerCtaLabel] = useState("");
   const [bannerCtaHref, setBannerCtaHref] = useState("");
   const [bannerSortOrder, setBannerSortOrder] = useState("");
+  const [bannerImageUrl, setBannerImageUrl] = useState("");
+  const [bannerImageUploading, setBannerImageUploading] = useState(false);
   const [bannerSubmitting, setBannerSubmitting] = useState(false);
   const [bannerError, setBannerError] = useState<string | null>(null);
   const [addAdminEmails, setAddAdminEmails] = useState<Record<string, string>>({});
@@ -506,6 +508,35 @@ export default function PlatformAdminPage() {
     }
   }
 
+  async function handleUploadBannerImage(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    e.target.value = "";
+    setBannerImageUploading(true);
+    setBannerError(null);
+    try {
+      const { url } = await adminApi.uploadImage(file);
+      setBannerImageUrl(url);
+    } catch (err: any) {
+      setBannerError(err?.message ?? "Yuklashda xatolik");
+    } finally {
+      setBannerImageUploading(false);
+    }
+  }
+
+  async function handleUploadExistingBannerImage(bannerId: string, e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    e.target.value = "";
+    setBannerError(null);
+    try {
+      const { url } = await adminApi.uploadImage(file);
+      await handleUpdateBanner(bannerId, { imageUrl: url });
+    } catch (err: any) {
+      setBannerError(err?.message ?? "Yuklashda xatolik");
+    }
+  }
+
   async function handleCreateBanner(e: React.FormEvent) {
     e.preventDefault();
     setBannerError(null);
@@ -518,6 +549,7 @@ export default function PlatformAdminPage() {
       const created = await adminApi.createBanner({
         title: bannerTitle.trim(),
         text: bannerText.trim() || undefined,
+        imageUrl: bannerImageUrl.trim() || undefined,
         ctaLabel: bannerCtaLabel.trim() || undefined,
         ctaHref: bannerCtaHref.trim() || undefined,
         sortOrder: bannerSortOrder ? Number(bannerSortOrder) : undefined,
@@ -526,6 +558,7 @@ export default function PlatformAdminPage() {
       setBanners((prev) => [created, ...prev]);
       setBannerTitle("");
       setBannerText("");
+      setBannerImageUrl("");
       setBannerCtaLabel("");
       setBannerCtaHref("");
       setBannerSortOrder("");
@@ -1525,7 +1558,8 @@ export default function PlatformAdminPage() {
                   <h3>Bosh sahifa bannerlari</h3>
                   <p className="fd-checkout-meta">
                     Bu yerda kategoriya tugmalarining ostida ko‘rinadigan reklama bannerlarini
-                    boshqarishingiz mumkin.
+                    boshqarishingiz mumkin. Rasm ixtiyoriy — sarlavha va matn rasm bilan birga
+                    ko‘rinadi.
                   </p>
 
                   <form onSubmit={handleCreateBanner} className="fd-form" style={{ marginTop: 16 }}>
@@ -1540,11 +1574,53 @@ export default function PlatformAdminPage() {
                     </label>
                     <label className="fd-field">
                       <span>Matn</span>
-                      <input
+                      <textarea
                         value={bannerText}
                         onChange={(e) => setBannerText(e.target.value)}
-                        placeholder="Qisqacha izoh"
+                        placeholder="Banner ostidagi qisqacha matn (ixtiyoriy)"
+                        rows={3}
+                        style={{ minHeight: 72, resize: "vertical" }}
                       />
+                    </label>
+                    <label className="fd-field">
+                      <span>Banner rasmi</span>
+                      <input
+                        type="url"
+                        value={bannerImageUrl}
+                        onChange={(e) => setBannerImageUrl(e.target.value)}
+                        placeholder="Supabase/storage URL yoki telefondan yuklang"
+                      />
+                      <div style={{ marginTop: 8, display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
+                        <input
+                          type="file"
+                          accept="image/*"
+                          id="create-banner-image-file"
+                          style={{ display: "none" }}
+                          onChange={handleUploadBannerImage}
+                        />
+                        <label htmlFor="create-banner-image-file" style={{ margin: 0 }}>
+                          <span className="fd-btn fd-btn-primary" style={{ cursor: "pointer", display: "inline-block" }}>
+                            {bannerImageUploading ? "Yuklanmoqda..." : "Telefondan yuklash"}
+                          </span>
+                        </label>
+                      </div>
+                      {bannerImageUrl.trim() && (
+                        <img
+                          src={imageUrl(bannerImageUrl.trim())}
+                          alt="Banner"
+                          style={{
+                            marginTop: 8,
+                            maxWidth: "100%",
+                            maxHeight: 140,
+                            objectFit: "cover",
+                            borderRadius: 8,
+                            border: "1px solid var(--color-border)",
+                          }}
+                          onError={(e) => {
+                            (e.target as HTMLImageElement).style.display = "none";
+                          }}
+                        />
+                      )}
                     </label>
                     <label className="fd-field">
                       <span>Tugma matni</span>
@@ -1579,7 +1655,7 @@ export default function PlatformAdminPage() {
                     <button
                       type="submit"
                       className="fd-btn fd-btn-primary"
-                      disabled={bannerSubmitting}
+                      disabled={bannerSubmitting || bannerImageUploading}
                     >
                       {bannerSubmitting ? "Saqlanmoqda..." : "Banner qo‘shish"}
                     </button>
@@ -1599,6 +1675,53 @@ export default function PlatformAdminPage() {
                         {b.text && (
                           <div className="fd-admin-kpi-sub">{b.text}</div>
                         )}
+                        {b.imageUrl ? (
+                          <img
+                            src={imageUrl(String(b.imageUrl))}
+                            alt=""
+                            style={{
+                              marginTop: 8,
+                              width: "100%",
+                              maxHeight: 100,
+                              objectFit: "cover",
+                              borderRadius: 8,
+                              border: "1px solid var(--color-border)",
+                            }}
+                            onError={(e) => {
+                              (e.target as HTMLImageElement).style.display = "none";
+                            }}
+                          />
+                        ) : null}
+                        <label className="fd-field" style={{ marginTop: 10, marginBottom: 0 }}>
+                          <span className="fd-checkout-meta">Rasm URL</span>
+                          <input
+                            key={`${b.id}-${b.imageUrl ?? ""}`}
+                            type="url"
+                            defaultValue={b.imageUrl ?? ""}
+                            placeholder="Bo‘sh qoldiring — rasm yo‘q"
+                            style={{ fontSize: "0.85rem" }}
+                            onBlur={(e) => {
+                              const v = e.target.value.trim();
+                              const cur = (b.imageUrl as string | null | undefined) ?? "";
+                              if (v === cur) return;
+                              handleUpdateBanner(b.id, { imageUrl: v ? v : null });
+                            }}
+                          />
+                        </label>
+                        <div style={{ marginTop: 6, display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
+                          <input
+                            type="file"
+                            accept="image/*"
+                            id={`banner-image-file-${b.id}`}
+                            style={{ display: "none" }}
+                            onChange={(e) => handleUploadExistingBannerImage(b.id, e)}
+                          />
+                          <label htmlFor={`banner-image-file-${b.id}`} style={{ margin: 0 }}>
+                            <span className="fd-btn" style={{ cursor: "pointer", display: "inline-block", fontSize: "0.85rem", padding: "6px 12px" }}>
+                              Rasm yuklash
+                            </span>
+                          </label>
+                        </div>
                         <div
                           style={{
                             marginTop: 8,

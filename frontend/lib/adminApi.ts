@@ -349,7 +349,7 @@ export const adminApi = {
     body: {
       title?: string;
       text?: string;
-      imageUrl?: string;
+      imageUrl?: string | null;
       ctaLabel?: string;
       ctaHref?: string;
       sortOrder?: number;
