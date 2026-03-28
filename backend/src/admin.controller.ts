@@ -190,6 +190,11 @@ export class AdminController {
         description: true,
         logoUrl: true,
         isFeatured: true,
+        featuredSortOrder: true,
+        carouselNational: true,
+        carouselNationalSort: true,
+        carouselFastFood: true,
+        carouselFastFoodSort: true,
         isSupermarket: true,
         platformFeePercent: true,
         createdAt: true,
@@ -572,6 +577,10 @@ export class AdminController {
       deliveryRadiusM?: number;
       isFeatured?: boolean;
       featuredSortOrder?: number;
+      carouselNational?: boolean;
+      carouselNationalSort?: number;
+      carouselFastFood?: boolean;
+      carouselFastFoodSort?: number;
       platformFeePercent?: number;
     },
     @Req() req: RequestWithUser,
@@ -592,6 +601,10 @@ export class AdminController {
         ...(body.deliveryRadiusM !== undefined && { deliveryRadiusM: body.deliveryRadiusM }),
         ...(body.isFeatured !== undefined && { isFeatured: body.isFeatured }),
         ...(body.featuredSortOrder !== undefined && { featuredSortOrder: body.featuredSortOrder }),
+        ...(body.carouselNational !== undefined && { carouselNational: body.carouselNational }),
+        ...(body.carouselNationalSort !== undefined && { carouselNationalSort: body.carouselNationalSort }),
+        ...(body.carouselFastFood !== undefined && { carouselFastFood: body.carouselFastFood }),
+        ...(body.carouselFastFoodSort !== undefined && { carouselFastFoodSort: body.carouselFastFoodSort }),
         ...(body.platformFeePercent !== undefined && { platformFeePercent: Number(body.platformFeePercent) }),
       },
     });

@@ -48,14 +48,20 @@ export default async function HomePage() {
 
   const supermarkets = restaurants.filter((r) => r.isSupermarket);
   const normalRestaurants = restaurants.filter((r) => !r.isSupermarket);
+  const nationalFromApi = (home.nationalCarousel || []).map(mapRestaurant);
+  const fastFromApi = (home.fastFoodCarousel || []).map(mapRestaurant);
   const topCarouselRestaurants =
-    featuredRestaurants.length > 0
-      ? featuredRestaurants
-      : normalRestaurants.slice(0, 8);
+    nationalFromApi.length > 0
+      ? nationalFromApi
+      : featuredRestaurants.length > 0
+        ? featuredRestaurants
+        : normalRestaurants.slice(0, 8);
   const fastFoodCarouselRestaurants =
-    normalRestaurants.length > 8
-      ? normalRestaurants.slice(8, 16)
-      : normalRestaurants.slice(0, 8);
+    fastFromApi.length > 0
+      ? fastFromApi
+      : normalRestaurants.length > 8
+        ? normalRestaurants.slice(8, 16)
+        : normalRestaurants.slice(0, 8);
 
   const displayBanners =
     banners.length > 0

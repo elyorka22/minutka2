@@ -74,6 +74,10 @@ model Restaurant {
   isSupermarket Boolean @default(false)
   isFeatured Boolean @default(false)
   featuredSortOrder Int @default(0)
+  carouselNational     Boolean @default(false)
+  carouselNationalSort Int     @default(0)
+  carouselFastFood     Boolean @default(false)
+  carouselFastFoodSort Int     @default(0)
   platformFeePercent Float @default(10)
   platformFeeClearedAt DateTime?
   telegramChatId     String?

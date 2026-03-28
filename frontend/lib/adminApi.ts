@@ -242,6 +242,10 @@ export const adminApi = {
       deliveryRadiusM?: number;
       isFeatured?: boolean;
       featuredSortOrder?: number;
+      carouselNational?: boolean;
+      carouselNationalSort?: number;
+      carouselFastFood?: boolean;
+      carouselFastFoodSort?: number;
       platformFeePercent?: number;
     }
   ) =>

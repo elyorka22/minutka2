@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma.service';
 import { CacheService } from '../cache.service';
+import { buildNationalAndFastCarousels, cardSelect } from './homepage-carousel.util';
 
 @Injectable()
 export class HomepageService {
@@ -11,38 +12,11 @@ export class HomepageService {
 
   getHomepage() {
     return this.cache.getOrSet('homepage:aggregate', 30_000, async () => {
-      const [restaurants, featured, banners, topCategories] = await Promise.all([
+      const [restaurantRows, banners, topCategories] = await Promise.all([
         this.prisma.restaurant.findMany({
           where: { isActive: true },
           orderBy: { rating: 'desc' },
-          select: {
-            id: true,
-            name: true,
-            description: true,
-            rating: true,
-            logoUrl: true,
-            coverUrl: true,
-            isSupermarket: true,
-            isFeatured: true,
-            featuredSortOrder: true,
-            isActive: true,
-          },
-        }),
-        this.prisma.restaurant.findMany({
-          where: { isActive: true, isSupermarket: false, isFeatured: true },
-          orderBy: { featuredSortOrder: 'asc' },
-          take: 20,
-          select: {
-            id: true,
-            name: true,
-            description: true,
-            rating: true,
-            logoUrl: true,
-            coverUrl: true,
-            isSupermarket: true,
-            isFeatured: true,
-            featuredSortOrder: true,
-          },
+          select: cardSelect,
         }),
         this.prisma.banner.findMany({
           where: { isActive: true },
@@ -70,7 +44,21 @@ export class HomepageService {
         }),
       ]);
 
-      return { restaurants, featured, banners, topCategories };
+      const { nationalCarousel, fastFoodCarousel } = buildNationalAndFastCarousels(restaurantRows);
+
+      const featured = restaurantRows
+        .filter((r) => !r.isSupermarket && r.isFeatured)
+        .sort((a, b) => a.featuredSortOrder - b.featuredSortOrder || b.rating - a.rating)
+        .slice(0, 20);
+
+      return {
+        restaurants: restaurantRows,
+        featured,
+        nationalCarousel,
+        fastFoodCarousel,
+        banners,
+        topCategories,
+      };
     });
   }
 }

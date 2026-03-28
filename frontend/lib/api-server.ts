@@ -15,6 +15,10 @@ export type HomepageRestaurant = {
   isSupermarket?: boolean | null;
   isFeatured?: boolean | null;
   featuredSortOrder?: number | null;
+  carouselNational?: boolean | null;
+  carouselNationalSort?: number | null;
+  carouselFastFood?: boolean | null;
+  carouselFastFoodSort?: number | null;
   isActive?: boolean | null;
 };
 
@@ -38,9 +42,53 @@ export type HomepageTopCategory = {
 export type HomepagePayload = {
   restaurants: HomepageRestaurant[];
   featured: HomepageRestaurant[];
+  nationalCarousel?: HomepageRestaurant[];
+  fastFoodCarousel?: HomepageRestaurant[];
   banners: HomepageBanner[];
   topCategories: HomepageTopCategory[];
 };
+
+function buildCarouselsFromList(restaurants: HomepageRestaurant[]): {
+  nationalCarousel: HomepageRestaurant[];
+  fastFoodCarousel: HomepageRestaurant[];
+} {
+  const normal = restaurants.filter((r) => !r.isSupermarket);
+  const byRating = [...normal].sort((a, b) => (b.rating ?? 0) - (a.rating ?? 0));
+  const nationalExplicit = normal
+    .filter((r) => r.carouselNational)
+    .sort(
+      (a, b) =>
+        (a.carouselNationalSort ?? 0) - (b.carouselNationalSort ?? 0) ||
+        (b.rating ?? 0) - (a.rating ?? 0),
+    );
+  let nationalCarousel: HomepageRestaurant[];
+  if (nationalExplicit.length > 0) {
+    nationalCarousel = nationalExplicit;
+  } else {
+    const featured = normal
+      .filter((r) => r.isFeatured)
+      .sort(
+        (a, b) =>
+          (a.featuredSortOrder ?? 0) - (b.featuredSortOrder ?? 0) ||
+          (b.rating ?? 0) - (a.rating ?? 0),
+      );
+    nationalCarousel = featured.length > 0 ? featured : byRating.slice(0, 8);
+  }
+  const fastExplicit = normal
+    .filter((r) => r.carouselFastFood)
+    .sort(
+      (a, b) =>
+        (a.carouselFastFoodSort ?? 0) - (b.carouselFastFoodSort ?? 0) ||
+        (b.rating ?? 0) - (a.rating ?? 0),
+    );
+  const fastFoodCarousel =
+    fastExplicit.length > 0
+      ? fastExplicit
+      : byRating.length > 8
+        ? byRating.slice(8, 16)
+        : byRating.slice(0, 8);
+  return { nationalCarousel, fastFoodCarousel };
+}
 
 async function fetchJson<T>(path: string, revalidate: number): Promise<T> {
   const res = await fetch(`${API_BASE}${path}`, {
@@ -81,10 +129,15 @@ export async function fetchHomepageStable(): Promise<HomepagePayload> {
     } catch {
       topCategories = [];
     }
+    const list = Array.isArray(restaurants) ? restaurants : [];
+    const feat = Array.isArray(featured) ? featured : [];
+    const { nationalCarousel, fastFoodCarousel } = buildCarouselsFromList(list);
     return {
-      restaurants: Array.isArray(restaurants) ? restaurants : [],
+      restaurants: list,
       banners: Array.isArray(banners) ? banners : [],
-      featured: Array.isArray(featured) ? featured : [],
+      featured: feat,
+      nationalCarousel,
+      fastFoodCarousel,
       topCategories,
     };
   }

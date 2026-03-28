@@ -43,6 +43,10 @@ export default function PlatformAdminPage() {
     platformFeePercent: string;
     isFeatured: boolean;
     featuredSortOrder: string;
+    carouselNational: boolean;
+    carouselNationalSort: string;
+    carouselFastFood: boolean;
+    carouselFastFoodSort: string;
   }>({
     name: "",
     description: "",
@@ -50,6 +54,10 @@ export default function PlatformAdminPage() {
     platformFeePercent: "10",
     isFeatured: false,
     featuredSortOrder: "0",
+    carouselNational: false,
+    carouselNationalSort: "0",
+    carouselFastFood: false,
+    carouselFastFoodSort: "0",
   });
   const [productName, setProductName] = useState("");
   const [productPrice, setProductPrice] = useState("");
@@ -365,6 +373,10 @@ export default function PlatformAdminPage() {
       platformFeePercent: String(r.platformFeePercent ?? 10),
       isFeatured: !!r.isFeatured,
       featuredSortOrder: String(r.featuredSortOrder ?? 0),
+      carouselNational: !!r.carouselNational,
+      carouselNationalSort: String(r.carouselNationalSort ?? 0),
+      carouselFastFood: !!r.carouselFastFood,
+      carouselFastFoodSort: String(r.carouselFastFoodSort ?? 0),
     });
   }
 
@@ -374,6 +386,8 @@ export default function PlatformAdminPage() {
     try {
       const platformFee = Number(editRestaurantForm.platformFeePercent);
       const featuredOrder = Number(editRestaurantForm.featuredSortOrder);
+      const natSort = Number(editRestaurantForm.carouselNationalSort);
+      const fastSort = Number(editRestaurantForm.carouselFastFoodSort);
       const updated = await adminApi.updateRestaurant(restaurantId, {
         name: editRestaurantForm.name.trim() || undefined,
         description: editRestaurantForm.description.trim() || undefined,
@@ -382,6 +396,10 @@ export default function PlatformAdminPage() {
         platformFeePercent: Number.isFinite(platformFee) ? platformFee : undefined,
         isFeatured: editRestaurantForm.isFeatured,
         featuredSortOrder: Number.isFinite(featuredOrder) ? featuredOrder : 0,
+        carouselNational: editRestaurantForm.carouselNational,
+        carouselNationalSort: Number.isFinite(natSort) ? natSort : 0,
+        carouselFastFood: editRestaurantForm.carouselFastFood,
+        carouselFastFoodSort: Number.isFinite(fastSort) ? fastSort : 0,
       });
       setData((prev: any) =>
         prev
@@ -1706,6 +1724,55 @@ export default function PlatformAdminPage() {
                   </label>
                   {!editingRestaurant.isSupermarket && (
                     <>
+                      <p className="fd-card-desc" style={{ margin: "8px 0 4px" }}>
+                        Bosh sahifa karusellari (hech biri belgilanmasa — avtomatik ro‘yxat ishlatiladi).
+                      </p>
+                      <label className="fd-field" style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                        <input
+                          type="checkbox"
+                          checked={editRestaurantForm.carouselNational}
+                          onChange={(e) =>
+                            setEditRestaurantForm((p) => ({ ...p, carouselNational: e.target.checked }))
+                          }
+                        />
+                        <span>«Milliy taomlar» karuselida</span>
+                      </label>
+                      {editRestaurantForm.carouselNational && (
+                        <label className="fd-field">
+                          <span>Tartib (0 = birinchi)</span>
+                          <input
+                            type="number"
+                            min={0}
+                            value={editRestaurantForm.carouselNationalSort}
+                            onChange={(e) =>
+                              setEditRestaurantForm((p) => ({ ...p, carouselNationalSort: e.target.value }))
+                            }
+                          />
+                        </label>
+                      )}
+                      <label className="fd-field" style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                        <input
+                          type="checkbox"
+                          checked={editRestaurantForm.carouselFastFood}
+                          onChange={(e) =>
+                            setEditRestaurantForm((p) => ({ ...p, carouselFastFood: e.target.checked }))
+                          }
+                        />
+                        <span>«Fast food» karuselida</span>
+                      </label>
+                      {editRestaurantForm.carouselFastFood && (
+                        <label className="fd-field">
+                          <span>Tartib (0 = birinchi)</span>
+                          <input
+                            type="number"
+                            min={0}
+                            value={editRestaurantForm.carouselFastFoodSort}
+                            onChange={(e) =>
+                              setEditRestaurantForm((p) => ({ ...p, carouselFastFoodSort: e.target.value }))
+                            }
+                          />
+                        </label>
+                      )}
                       <label className="fd-field" style={{ display: "flex", alignItems: "center", gap: 8 }}>
                         <input
                           type="checkbox"
@@ -1714,11 +1781,11 @@ export default function PlatformAdminPage() {
                             setEditRestaurantForm((p) => ({ ...p, isFeatured: e.target.checked }))
                           }
                         />
-                        <span>Top karuselda</span>
+                        <span>Zaxira: «Top» ro‘yxati (Milliy karusel bo‘sh bo‘lsa)</span>
                       </label>
                       {editRestaurantForm.isFeatured && (
                         <label className="fd-field">
-                          <span>Tartib</span>
+                          <span>Top tartib</span>
                           <input
                             type="number"
                             min={0}
