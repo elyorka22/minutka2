@@ -25,6 +25,19 @@ function cacheControlForPublicGet(pathname: string): string | null {
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
   app.enableShutdownHooks();
+  const corsOpts = getCorsOptions();
+  app.enableCors(corsOpts);
+  const co = process.env.CORS_ORIGINS?.trim();
+  if (co && co !== '*') {
+    // eslint-disable-next-line no-console
+    console.log(`[cors] CORS_ORIGINS set (${co.split(',').length} entries)`);
+  } else if (co === '*') {
+    // eslint-disable-next-line no-console
+    console.warn('[cors] CORS_ORIGINS=* (all origins)');
+  } else if (process.env.NODE_ENV === 'production') {
+    // eslint-disable-next-line no-console
+    console.warn('[cors] CORS_ORIGINS missing in production — browser requests will fail');
+  }
   app.useGlobalFilters(new AllExceptionsFilter());
   app.useGlobalInterceptors(new TimeoutInterceptor());
   app.useGlobalPipes(
@@ -35,10 +48,12 @@ async function bootstrap() {
       transformOptions: { enableImplicitConversion: true },
     }),
   );
-  app.enableCors(getCorsOptions());
   const expressApp = app.getHttpAdapter().getInstance();
   expressApp.set('trust proxy', 1);
   expressApp.use((req: any, res: any, next: any) => {
+    if (String(req.method ?? '') === 'OPTIONS') {
+      return next();
+    }
     const accept = String(req.headers?.['accept-encoding'] ?? '');
     if (!accept.includes('gzip')) return next();
     const originalSend = res.send.bind(res);

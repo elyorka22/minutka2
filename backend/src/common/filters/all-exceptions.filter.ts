@@ -7,6 +7,7 @@ import {
   Logger,
 } from '@nestjs/common';
 import { Request, Response } from 'express';
+import { reflectAllowedOrigin } from '../../cors.config';
 
 @Catch()
 export class AllExceptionsFilter implements ExceptionFilter {
@@ -34,6 +35,13 @@ export class AllExceptionsFilter implements ExceptionFilter {
 
     if (status >= 500) {
       this.logger.error(`${req.method} ${req.url} -> ${status}`, exception instanceof Error ? exception.stack : String(exception));
+    }
+
+    const origin = req.headers.origin;
+    const reflected = typeof origin === 'string' ? reflectAllowedOrigin(origin) : false;
+    if (reflected) {
+      res.setHeader('Access-Control-Allow-Origin', reflected);
+      res.setHeader('Access-Control-Allow-Credentials', 'true');
     }
 
     res.status(status).json({
