@@ -314,15 +314,14 @@ export default async function HomePage() {
         <div className="fd-grid fd-grid--barcha-home">
           {normalRestaurants.map((r) => (
             <Link key={r.id} href={`/restaurants/${r.id}`} className="fd-card">
-              <div className="fd-card-media fd-card-media--barcha">
-                <SafeImage
-                  src={(r.coverUrl || r.logoUrl) ? imageUrl(r.coverUrl || r.logoUrl) : ""}
-                  alt=""
-                  className="fd-card-image fd-card-image--barcha"
-                  fallbackStyle={{ width: "100%", height: "100%", minHeight: 80 }}
-                  sizes="(max-width: 640px) 50vw, 320px"
-                />
-              </div>
+              <SafeImage
+                src={(r.coverUrl || r.logoUrl) ? imageUrl(r.coverUrl || r.logoUrl) : ""}
+                alt=""
+                className="fd-card-image"
+                style={{ width: "100%", aspectRatio: "16/10", objectFit: "cover" }}
+                fallbackStyle={{ height: 160 }}
+                sizes="(max-width: 640px) 50vw, 320px"
+              />
               <div className="fd-card-body">
                 <div className="fd-card-title-row">
                   <h3>{r.name}</h3>
