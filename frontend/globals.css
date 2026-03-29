@@ -660,17 +660,34 @@ body {
 .fd-home-stores {
   margin-top: 16px;
   display: flex;
-  gap: 12px;
+  gap: 10px;
   overflow-x: auto;
   padding-bottom: 4px;
   scroll-snap-type: x mandatory;
 }
 
 .fd-home-stores > .fd-card {
-  min-width: 110px;
-  max-width: 120px;
-  aspect-ratio: 1 / 1;
+  min-width: 96px;
+  max-width: 108px;
   scroll-snap-align: start;
+  flex-shrink: 0;
+}
+
+/* Faqat rasm (Milliy / Fast food / do‘konlar) — kvadrat o‘rniga pastroq (3:2) */
+.fd-home-stores > .fd-card:not(:has(.fd-card-body)) {
+  aspect-ratio: 3 / 2;
+}
+
+/* Mahsulot toifalari: nom ostida — umumiy balandlikni boshqarish */
+.fd-home-stores > .fd-card:has(.fd-card-body) {
+  aspect-ratio: auto;
+  min-width: 96px;
+  max-width: 112px;
+}
+
+.fd-home-stores > .fd-card:has(.fd-card-body) .fd-product-cat-image-wrap {
+  aspect-ratio: 3 / 2;
+  height: auto;
   flex-shrink: 0;
 }
 
