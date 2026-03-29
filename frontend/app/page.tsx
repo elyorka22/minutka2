@@ -1,6 +1,11 @@
 import Link from "next/link";
 import { imageUrl } from "../lib/api";
-import { fetchHomepageStable, type HomepageRestaurant, type HomepageBanner } from "../lib/api-server";
+import {
+  fetchHomepageStable,
+  buildCarouselsFromList,
+  type HomepageRestaurant,
+  type HomepageBanner,
+} from "../lib/api-server";
 import { SafeImage } from "../components/SafeImage";
 
 export const metadata = {
@@ -48,17 +53,31 @@ export default async function HomePage() {
 
   const supermarkets = restaurants.filter((r) => r.isSupermarket);
   const normalRestaurants = restaurants.filter((r) => !r.isSupermarket);
-  const nationalFromApi = (home.nationalCarousel || []).map(mapRestaurant);
-  const fastFromApi = (home.fastFoodCarousel || []).map(mapRestaurant);
-  const topCarouselRestaurants =
-    nationalFromApi.length > 0
-      ? nationalFromApi
+
+  /**
+   * Bo‘sh [] ham server javobi: unda featured/slice ishlatmaslik kerak (aks holda faqat Fast belgilangan
+   * restoran yana «Top» orqali Milliyda chiqadi).
+   * Agar massivlar yo‘q bo‘lsa, lekin restoranlar ro‘yxati bor — buildCarouselsFromList (xuddi /homepage fallback).
+   */
+  const hasNationalCarousel = Array.isArray(home.nationalCarousel);
+  const hasFastFoodCarousel = Array.isArray(home.fastFoodCarousel);
+  const builtFromList =
+    !hasNationalCarousel || !hasFastFoodCarousel
+      ? buildCarouselsFromList(home.restaurants ?? [])
+      : null;
+
+  const topCarouselRestaurants = hasNationalCarousel
+    ? (home.nationalCarousel ?? []).map(mapRestaurant)
+    : builtFromList
+      ? builtFromList.nationalCarousel.map(mapRestaurant)
       : featuredRestaurants.length > 0
         ? featuredRestaurants
         : normalRestaurants.slice(0, 8);
-  const fastFoodCarouselRestaurants =
-    fastFromApi.length > 0
-      ? fastFromApi
+
+  const fastFoodCarouselRestaurants = hasFastFoodCarousel
+    ? (home.fastFoodCarousel ?? []).map(mapRestaurant)
+    : builtFromList
+      ? builtFromList.fastFoodCarousel.map(mapRestaurant)
       : normalRestaurants.length > 8
         ? normalRestaurants.slice(8, 16)
         : normalRestaurants.slice(0, 8);

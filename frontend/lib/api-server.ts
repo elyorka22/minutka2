@@ -48,7 +48,7 @@ export type HomepagePayload = {
   topCategories: HomepageTopCategory[];
 };
 
-function buildCarouselsFromList(restaurants: HomepageRestaurant[]): {
+export function buildCarouselsFromList(restaurants: HomepageRestaurant[]): {
   nationalCarousel: HomepageRestaurant[];
   fastFoodCarousel: HomepageRestaurant[];
 } {
