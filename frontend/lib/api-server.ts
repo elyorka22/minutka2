@@ -53,7 +53,6 @@ function buildCarouselsFromList(restaurants: HomepageRestaurant[]): {
   fastFoodCarousel: HomepageRestaurant[];
 } {
   const normal = restaurants.filter((r) => !r.isSupermarket);
-  const byRating = [...normal].sort((a, b) => (b.rating ?? 0) - (a.rating ?? 0));
   const nationalExplicit = normal
     .filter((r) => r.carouselNational)
     .sort(
@@ -61,19 +60,6 @@ function buildCarouselsFromList(restaurants: HomepageRestaurant[]): {
         (a.carouselNationalSort ?? 0) - (b.carouselNationalSort ?? 0) ||
         (b.rating ?? 0) - (a.rating ?? 0),
     );
-  let nationalCarousel: HomepageRestaurant[];
-  if (nationalExplicit.length > 0) {
-    nationalCarousel = nationalExplicit;
-  } else {
-    const featured = normal
-      .filter((r) => r.isFeatured)
-      .sort(
-        (a, b) =>
-          (a.featuredSortOrder ?? 0) - (b.featuredSortOrder ?? 0) ||
-          (b.rating ?? 0) - (a.rating ?? 0),
-      );
-    nationalCarousel = featured.length > 0 ? featured : byRating.slice(0, 8);
-  }
   const fastExplicit = normal
     .filter((r) => r.carouselFastFood)
     .sort(
@@ -81,12 +67,39 @@ function buildCarouselsFromList(restaurants: HomepageRestaurant[]): {
         (a.carouselFastFoodSort ?? 0) - (b.carouselFastFoodSort ?? 0) ||
         (b.rating ?? 0) - (a.rating ?? 0),
     );
+
+  const nationalFallbackPool =
+    fastExplicit.length > 0
+      ? normal.filter((r) => !(r.carouselFastFood && !r.carouselNational))
+      : normal;
+  const fastFallbackPool =
+    nationalExplicit.length > 0
+      ? normal.filter((r) => !(r.carouselNational && !r.carouselFastFood))
+      : normal;
+
+  let nationalCarousel: HomepageRestaurant[];
+  if (nationalExplicit.length > 0) {
+    nationalCarousel = nationalExplicit;
+  } else {
+    const poolByRating = [...nationalFallbackPool].sort((a, b) => (b.rating ?? 0) - (a.rating ?? 0));
+    const featured = nationalFallbackPool
+      .filter((r) => r.isFeatured)
+      .sort(
+        (a, b) =>
+          (a.featuredSortOrder ?? 0) - (b.featuredSortOrder ?? 0) ||
+          (b.rating ?? 0) - (a.rating ?? 0),
+      );
+    nationalCarousel = featured.length > 0 ? featured : poolByRating.slice(0, 8);
+  }
+
   const fastFoodCarousel =
     fastExplicit.length > 0
       ? fastExplicit
-      : byRating.length > 8
-        ? byRating.slice(8, 16)
-        : byRating.slice(0, 8);
+      : (() => {
+          const poolByRating = [...fastFallbackPool].sort((a, b) => (b.rating ?? 0) - (a.rating ?? 0));
+          return poolByRating.length > 8 ? poolByRating.slice(8, 16) : poolByRating.slice(0, 8);
+        })();
+
   return { nationalCarousel, fastFoodCarousel };
 }
 
