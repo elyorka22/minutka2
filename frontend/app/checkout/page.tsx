@@ -1,9 +1,22 @@
 "use client";
 
 import { FormEvent, useState, useEffect } from "react";
+import dynamic from "next/dynamic";
 import { useCart } from "../../components/CartContext";
 import { BackLink } from "../../components/BackLink";
 import { api } from "../../lib/api";
+import { CHUST_DEFAULT_COORDS } from "../../lib/map-defaults";
+
+const CheckoutMapPicker = dynamic(
+  () => import("../../components/CheckoutMapPicker").then((m) => m.CheckoutMapPicker),
+  {
+    ssr: false,
+    loading: () => <p className="fd-checkout-meta">Xarita yuklanmoqda…</p>,
+  },
+);
+
+const STREET_FROM_MAP = "Xaritada belgilangan nuqta";
+const STREET_FROM_GEO = "Geolokatsiya orqali";
 
 export default function CheckoutPage() {
   const { items, total, clear, changeQuantity, restaurantId } = useCart();
@@ -11,14 +24,14 @@ export default function CheckoutPage() {
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
-  const [street, setStreet] = useState("");
   const [phone, setPhone] = useState("");
-  const [lat, setLat] = useState<string>("");
-  const [lng, setLng] = useState<string>("");
+  const [lat, setLat] = useState<string>(CHUST_DEFAULT_COORDS.lat.toFixed(6));
+  const [lng, setLng] = useState<string>(CHUST_DEFAULT_COORDS.lng.toFixed(6));
   const [paymentMethod] = useState<"CARD" | "CASH">("CASH");
-  const [addressMode, setAddressMode] = useState<"manual" | "auto">("manual");
-  const [autoAddressConfirmed, setAutoAddressConfirmed] = useState(false);
+  /** map — xaritada belgi; geo — brauzer geolokatsiyasi */
+  const [addressMode, setAddressMode] = useState<"map" | "geo">("map");
   const [geoStatus, setGeoStatus] = useState<"idle" | "success" | "error">("idle");
+  const [mapFlyTrigger, setMapFlyTrigger] = useState(0);
 
   const needRestaurant = items.length > 0 && !restaurantId;
 
@@ -28,16 +41,21 @@ export default function CheckoutPage() {
     }
   }, [needRestaurant, items.length, clear]);
 
+  function setCoords(latitude: number, longitude: number) {
+    setLat(latitude.toFixed(6));
+    setLng(longitude.toFixed(6));
+  }
+
   function handleGeoClick() {
     if (typeof navigator === "undefined" || !navigator.geolocation) {
       setGeoStatus("error");
       return;
     }
+    setGeoStatus("idle");
     navigator.geolocation.getCurrentPosition(
       (pos) => {
-        setLat(pos.coords.latitude.toFixed(6));
-        setLng(pos.coords.longitude.toFixed(6));
-        setAutoAddressConfirmed(true);
+        setCoords(pos.coords.latitude, pos.coords.longitude);
+        setMapFlyTrigger((n) => n + 1);
         setGeoStatus("success");
       },
       () => {
@@ -46,6 +64,12 @@ export default function CheckoutPage() {
     );
   }
 
+  useEffect(() => {
+    if (addressMode === "geo") {
+      setGeoStatus("idle");
+    }
+  }, [addressMode]);
+
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
     setSubmitError(null);
@@ -53,9 +77,15 @@ export default function CheckoutPage() {
       setSubmitError("Savat bo‘sh yoki restoran aniqlanmadi. Taomlarni qayta qo‘shing.");
       return;
     }
-    const streetVal = addressMode === "auto" ? "Geolokatsiya orqali" : street.trim();
-    if (!streetVal) {
-      setSubmitError("Manzilni kiriting yoki geolokatsiyani ishlating.");
+    if (addressMode === "geo" && geoStatus !== "success") {
+      setSubmitError("Avval «Mening joylashuvim» tugmasi orqali geolokatsiyani aniqlang.");
+      return;
+    }
+    const streetVal = addressMode === "map" ? STREET_FROM_MAP : STREET_FROM_GEO;
+    const latNum = Number(lat);
+    const lngNum = Number(lng);
+    if (!Number.isFinite(latNum) || !Number.isFinite(lngNum)) {
+      setSubmitError("Manzil koordinatalari noto‘g‘ri.");
       return;
     }
     if (phone.length !== 9) {
@@ -70,8 +100,8 @@ export default function CheckoutPage() {
           street: streetVal,
           city: "Chust",
           details: phone.length === 9 ? `Tel: +998${phone}` : undefined,
-          latitude: lat ? Number(lat) : 0,
-          longitude: lng ? Number(lng) : 0,
+          latitude: latNum,
+          longitude: lngNum,
         },
         items: items.map((i) => ({ dishId: i.dish.id, quantity: i.quantity })),
         comment: phone.length === 9 ? `Tel: +998${phone}` : undefined,
@@ -86,12 +116,9 @@ export default function CheckoutPage() {
     }
   }
 
-  const hasCoords = lat && lng;
   const latNum = Number(lat);
   const lngNum = Number(lng);
-  const bbox = hasCoords
-    ? `${lngNum - 0.01},${latNum - 0.01},${lngNum + 0.01},${latNum + 0.01}`
-    : "";
+  const coordsReady = Number.isFinite(latNum) && Number.isFinite(lngNum);
 
   return (
     <div className="fd-shell fd-checkout">
@@ -153,49 +180,61 @@ export default function CheckoutPage() {
           ) : (
             <form onSubmit={handleSubmit} className="fd-form">
               <div className="fd-field">
-                <span>Manzilni ko‘rsatish usuli</span>
+                <span>Manzilni aniqlash</span>
                 <fieldset>
                   <div className="fd-radio-group">
                     <label>
                       <input
                         type="radio"
-                        checked={addressMode === "manual"}
-                        onChange={() => setAddressMode("manual")}
+                        checked={addressMode === "map"}
+                        onChange={() => setAddressMode("map")}
                       />
-                      <span>Manzilni qo‘lda kiritaman</span>
+                      <span>Xaritada belgi qo‘yaman</span>
                     </label>
                     <label>
                       <input
                         type="radio"
-                        checked={addressMode === "auto"}
-                        onChange={() => setAddressMode("auto")}
+                        checked={addressMode === "geo"}
+                        onChange={() => setAddressMode("geo")}
                       />
-                      <span>Manzilni geolokatsiya orqali aniqlash</span>
+                      <span>Geolokatsiya orqali (avtomatik)</span>
                     </label>
                   </div>
                 </fieldset>
               </div>
 
-              {addressMode === "manual" && (
-                <>
-                  <label className="fd-field">
-                    <span>Ko‘cha va uy</span>
-                    <input
-                      required
-                      placeholder="Masalan: Chilonzor, 1"
-                      value={street}
-                      onChange={(e) => setStreet(e.target.value)}
+              {addressMode === "map" && (
+                <div className="fd-field">
+                  <span>Yetkazib berish nuqtasi</span>
+                  <p className="fd-checkout-meta" style={{ marginBottom: 8 }}>
+                    Xaritada kerakli joyni bosing yoki belgini sudrang. Matn manzil kiritilmaydi —
+                    faqat koordinatalar yuboriladi.
+                  </p>
+                  {coordsReady && (
+                    <CheckoutMapPicker
+                      lat={latNum}
+                      lng={lngNum}
+                      onChange={setCoords}
+                      height={280}
+                      flyTrigger={mapFlyTrigger}
                     />
-                  </label>
-                </>
+                  )}
+                  <p className="fd-checkout-meta" style={{ marginTop: 8 }}>
+                    Koordinatalar: {lat}, {lng}
+                  </p>
+                </div>
               )}
 
-              {addressMode === "auto" && (
+              {addressMode === "geo" && (
                 <div className="fd-field">
                   <span>Geolokatsiya</span>
+                  <p className="fd-checkout-meta" style={{ marginBottom: 8 }}>
+                    Qurilma joylashuvini aniqlash uchun tugmani bosing. Keyin xaritada nuqtani
+                    aniqalashtirishingiz mumkin.
+                  </p>
                   <button
                     type="button"
-                    className="fd-btn fd-geo-btn"
+                    className="fd-btn fd-btn-primary fd-geo-btn"
                     style={
                       geoStatus === "success"
                         ? { backgroundColor: "#16a34a", borderColor: "#16a34a" }
@@ -208,29 +247,32 @@ export default function CheckoutPage() {
                     {geoStatus === "success"
                       ? "Geolokatsiya aniqlangan"
                       : geoStatus === "error"
-                        ? "Geolokatsiya xatosi"
-                        : "Mening geolokatsiyamni ishlatish"}
+                        ? "Qayta urinib ko‘ring"
+                        : "Mening joylashuvimni aniqlash"}
                   </button>
-                  {autoAddressConfirmed && (
-                    <p className="fd-checkout-meta">
-                      Manzilingiz geolokatsiya orqali aniqlanadi va kuryer bilan aniqlashtiriladi.
-                    </p>
-                  )}
                   {geoStatus === "error" && (
                     <p className="fd-checkout-meta">
-                      Geolokatsiyani aniqlashning imkoni bo‘lmadi. Manzilni qo‘lda kiriting.
+                      Ruxsat berilmadi yoki joylashuv aniqlanmadi. «Xaritada belgi» rejimiga
+                      o‘ting.
                     </p>
                   )}
-                </div>
-              )}
-
-              {addressMode === "manual" && hasCoords && (
-                <div className="fd-map-wrap">
-                  <iframe
-                    title="Карта доставки"
-                    loading="lazy"
-                    src={`https://www.openstreetmap.org/export/embed.html?bbox=${bbox}&layer=mapnik&marker=${latNum},${lngNum}`}
-                  />
+                  {geoStatus === "success" && coordsReady && (
+                    <>
+                      <p className="fd-checkout-meta" style={{ marginTop: 12, marginBottom: 8 }}>
+                        Xaritada belgini sudrash orqali nuqtani aniqlashtiring (ixtiyoriy).
+                      </p>
+                      <CheckoutMapPicker
+                        lat={latNum}
+                        lng={lngNum}
+                        onChange={setCoords}
+                        height={260}
+                        flyTrigger={mapFlyTrigger}
+                      />
+                      <p className="fd-checkout-meta" style={{ marginTop: 8 }}>
+                        Koordinatalar: {lat}, {lng}
+                      </p>
+                    </>
+                  )}
                 </div>
               )}
 
