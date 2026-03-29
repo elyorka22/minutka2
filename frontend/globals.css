@@ -660,34 +660,17 @@ body {
 .fd-home-stores {
   margin-top: 16px;
   display: flex;
-  gap: 10px;
+  gap: 12px;
   overflow-x: auto;
   padding-bottom: 4px;
   scroll-snap-type: x mandatory;
 }
 
 .fd-home-stores > .fd-card {
-  min-width: 96px;
-  max-width: 108px;
+  min-width: 110px;
+  max-width: 120px;
+  aspect-ratio: 1 / 1;
   scroll-snap-align: start;
-  flex-shrink: 0;
-}
-
-/* Faqat rasm (Milliy / Fast food / do‘konlar) — kvadrat o‘rniga pastroq (3:2) */
-.fd-home-stores > .fd-card:not(:has(.fd-card-body)) {
-  aspect-ratio: 3 / 2;
-}
-
-/* Mahsulot toifalari: nom ostida — umumiy balandlikni boshqarish */
-.fd-home-stores > .fd-card:has(.fd-card-body) {
-  aspect-ratio: auto;
-  min-width: 96px;
-  max-width: 112px;
-}
-
-.fd-home-stores > .fd-card:has(.fd-card-body) .fd-product-cat-image-wrap {
-  aspect-ratio: 3 / 2;
-  height: auto;
   flex-shrink: 0;
 }
 
@@ -704,6 +687,33 @@ body {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
   gap: 20px;
+}
+
+/* Bosh sahifa: «Barcha restoranlar» ostidagi grid — vertikal kompakt */
+.fd-grid--barcha-home .fd-card-image {
+  width: 100%;
+  aspect-ratio: 2 / 1;
+  object-fit: cover;
+  display: block;
+}
+
+.fd-grid--barcha-home .fd-card-body {
+  padding: 12px 14px;
+}
+
+.fd-grid--barcha-home .fd-card-title-row h3 {
+  font-size: 1rem;
+  line-height: 1.25;
+}
+
+.fd-grid--barcha-home .fd-card-desc {
+  margin-top: 4px;
+  font-size: 0.8125rem;
+  line-height: 1.35;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
 }
 
 .fd-grid--2 {
