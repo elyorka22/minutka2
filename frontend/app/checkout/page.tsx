@@ -31,7 +31,6 @@ export default function CheckoutPage() {
   /** map — xaritada belgi; geo — brauzer geolokatsiyasi */
   const [addressMode, setAddressMode] = useState<"map" | "geo">("map");
   const [geoStatus, setGeoStatus] = useState<"idle" | "success" | "error">("idle");
-  const [mapFlyTrigger, setMapFlyTrigger] = useState(0);
 
   const needRestaurant = items.length > 0 && !restaurantId;
 
@@ -55,7 +54,6 @@ export default function CheckoutPage() {
     navigator.geolocation.getCurrentPosition(
       (pos) => {
         setCoords(pos.coords.latitude, pos.coords.longitude);
-        setMapFlyTrigger((n) => n + 1);
         setGeoStatus("success");
       },
       () => {
@@ -67,6 +65,13 @@ export default function CheckoutPage() {
   useEffect(() => {
     if (addressMode === "geo") {
       setGeoStatus("idle");
+    }
+  }, [addressMode]);
+
+  /** «Xaritada belgi» tanlanganda xarita har doim shu shaharga (Chust) markazlanadi */
+  useEffect(() => {
+    if (addressMode === "map") {
+      setCoords(CHUST_DEFAULT_COORDS.lat, CHUST_DEFAULT_COORDS.lng);
     }
   }, [addressMode]);
 
@@ -207,8 +212,8 @@ export default function CheckoutPage() {
                 <div className="fd-field">
                   <span>Yetkazib berish nuqtasi</span>
                   <p className="fd-checkout-meta" style={{ marginBottom: 8 }}>
-                    Xaritada kerakli joyni bosing yoki belgini sudrang. Matn manzil kiritilmaydi —
-                    faqat koordinatalar yuboriladi.
+                    Xarita Chust atrofida ochiladi (40°59′52″ shimoli, 71°14′25″ sharqi). Kerakli
+                    joyni bosing yoki belgini sudrang — faqat koordinatalar yuboriladi.
                   </p>
                   {coordsReady && (
                     <CheckoutMapPicker
@@ -216,7 +221,6 @@ export default function CheckoutPage() {
                       lng={lngNum}
                       onChange={setCoords}
                       height={280}
-                      flyTrigger={mapFlyTrigger}
                     />
                   )}
                   <p className="fd-checkout-meta" style={{ marginTop: 8 }}>
@@ -229,8 +233,8 @@ export default function CheckoutPage() {
                 <div className="fd-field">
                   <span>Geolokatsiya</span>
                   <p className="fd-checkout-meta" style={{ marginBottom: 8 }}>
-                    Qurilma joylashuvini aniqlash uchun tugmani bosing. Keyin xaritada nuqtani
-                    aniqalashtirishingiz mumkin.
+                    Qurilma joylashuvini aniqlash uchun tugmani bosing. Xarita ko‘rsatilmaydi —
+                    faqat koordinatalar saqlanadi.
                   </p>
                   <button
                     type="button"
@@ -256,22 +260,10 @@ export default function CheckoutPage() {
                       o‘ting.
                     </p>
                   )}
-                  {geoStatus === "success" && coordsReady && (
-                    <>
-                      <p className="fd-checkout-meta" style={{ marginTop: 12, marginBottom: 8 }}>
-                        Xaritada belgini sudrash orqali nuqtani aniqlashtiring (ixtiyoriy).
-                      </p>
-                      <CheckoutMapPicker
-                        lat={latNum}
-                        lng={lngNum}
-                        onChange={setCoords}
-                        height={260}
-                        flyTrigger={mapFlyTrigger}
-                      />
-                      <p className="fd-checkout-meta" style={{ marginTop: 8 }}>
-                        Koordinatalar: {lat}, {lng}
-                      </p>
-                    </>
+                  {geoStatus === "success" && (
+                    <p className="fd-checkout-meta" style={{ marginTop: 12 }}>
+                      Joylashuv aniqlangan: {lat}, {lng}
+                    </p>
                   )}
                 </div>
               )}
