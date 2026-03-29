@@ -689,10 +689,38 @@ body {
   gap: 20px;
 }
 
-/* Bosh sahifa «Barcha restoranlar»: har qatorda 2 ta karta */
+/* Bosh sahifa «Barcha restoranlar»: har qatorda 2 ta karta; katta rasm, ixcham matn */
 .fd-grid.fd-grid--barcha-home {
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 12px;
+}
+
+.fd-grid.fd-grid--barcha-home .fd-card-body {
+  padding: 8px 10px 10px;
+}
+
+.fd-grid.fd-grid--barcha-home .fd-card-title-row {
+  gap: 6px;
+  align-items: flex-start;
+}
+
+.fd-grid.fd-grid--barcha-home .fd-card-title-row h3 {
+  font-size: 0.875rem;
+  font-weight: 600;
+  line-height: 1.2;
+  letter-spacing: -0.01em;
+}
+
+.fd-grid.fd-grid--barcha-home .fd-card-title-row .fd-badge {
+  font-size: 0.6875rem;
+  padding: 2px 6px;
+  flex-shrink: 0;
+}
+
+.fd-grid.fd-grid--barcha-home .fd-card-desc {
+  margin: 3px 0 0;
+  font-size: 0.75rem;
+  line-height: 1.3;
 }
 
 .fd-grid--2 {

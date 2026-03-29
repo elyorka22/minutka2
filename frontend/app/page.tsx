@@ -318,8 +318,8 @@ export default async function HomePage() {
                 src={(r.coverUrl || r.logoUrl) ? imageUrl(r.coverUrl || r.logoUrl) : ""}
                 alt=""
                 className="fd-card-image"
-                style={{ width: "100%", aspectRatio: "16/10", objectFit: "cover" }}
-                fallbackStyle={{ height: 160 }}
+                style={{ width: "100%", aspectRatio: "4/3", objectFit: "cover" }}
+                fallbackStyle={{ height: 140 }}
                 sizes="(max-width: 640px) 50vw, 320px"
               />
               <div className="fd-card-body">
