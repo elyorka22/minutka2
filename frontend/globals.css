@@ -689,12 +689,35 @@ body {
   gap: 20px;
 }
 
-/* Bosh sahifa: «Barcha restoranlar» ostidagi grid — vertikal kompakt */
-.fd-grid--barcha-home .fd-card-image {
+/* Bosh sahifa: «Barcha restoranlar» — rasm/logotip to‘liq ko‘rinsin (contain), qirqilmasin */
+.fd-grid--barcha-home .fd-card-media--barcha {
   width: 100%;
   aspect-ratio: 2 / 1;
-  object-fit: cover;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 10px 12px;
+  box-sizing: border-box;
+  background: var(--color-bg);
+  min-height: 0;
+}
+
+.fd-grid--barcha-home .fd-card-media--barcha .fd-card-image--barcha,
+.fd-grid--barcha-home .fd-card-media--barcha img {
+  max-width: 100%;
+  max-height: 100%;
+  width: auto;
+  height: auto;
+  object-fit: contain;
+  object-position: center;
   display: block;
+}
+
+.fd-grid--barcha-home .fd-card-media--barcha > .fd-card-image--placeholder {
+  width: 100%;
+  height: 100%;
+  min-height: 72px;
+  flex: 1 1 auto;
 }
 
 .fd-grid--barcha-home .fd-card-body {
