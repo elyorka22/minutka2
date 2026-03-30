@@ -36,7 +36,7 @@ function mapRestaurant(r: HomepageRestaurant) {
 function mapBanner(b: HomepageBanner) {
   return {
     id: String(b.id),
-    title: String(b.title),
+    title: b.title?.trim() ? String(b.title) : null,
     text: b.text ?? null,
     imageUrl: b.imageUrl ?? null,
     ctaLabel: b.ctaLabel ?? null,
@@ -142,7 +142,7 @@ export default async function HomePage() {
           ].join(" ");
           const textBlock = (
             <>
-              <div className="fd-banner-title">{b.title}</div>
+              {b.title ? <div className="fd-banner-title">{b.title}</div> : null}
               {b.text && <p className="fd-banner-text">{b.text}</p>}
               {b.ctaLabel && (
                 <button type="button" className="fd-btn fd-btn-primary fd-banner-btn">

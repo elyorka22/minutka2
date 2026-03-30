@@ -332,7 +332,7 @@ export const adminApi = {
       method: "GET",
     }),
   createBanner: (body: {
-    title: string;
+    title?: string;
     text?: string;
     imageUrl?: string;
     ctaLabel?: string;

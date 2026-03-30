@@ -1088,7 +1088,7 @@ export class AdminController {
   async createBanner(
     @Body()
     body: {
-      title: string;
+      title?: string;
       text?: string;
       imageUrl?: string;
       ctaLabel?: string;
@@ -1101,12 +1101,12 @@ export class AdminController {
     if (req.user?.role !== 'PLATFORM_ADMIN') {
       throw new ForbiddenException('Only platform admin allowed');
     }
-    if (!body.title || typeof body.title !== 'string') {
-      throw new BadRequestException('title is required');
-    }
     const banner = await this.prisma.banner.create({
       data: {
-        title: body.title.trim(),
+        title:
+          typeof body.title === 'string' && body.title.trim()
+            ? body.title.trim()
+            : null,
         text: body.text?.trim() ?? null,
         imageUrl: body.imageUrl?.trim() ?? null,
         ctaLabel: body.ctaLabel?.trim() ?? null,
@@ -1140,7 +1140,9 @@ export class AdminController {
     const banner = await this.prisma.banner.update({
       where: { id },
       data: {
-        ...(body.title !== undefined && { title: body.title.trim() }),
+        ...(body.title !== undefined && {
+          title: body.title?.trim() ? body.title.trim() : null,
+        }),
         ...(body.text !== undefined && { text: body.text?.trim() ?? null }),
         ...(body.imageUrl !== undefined && { imageUrl: body.imageUrl?.trim() ?? null }),
         ...(body.ctaLabel !== undefined && { ctaLabel: body.ctaLabel?.trim() ?? null }),

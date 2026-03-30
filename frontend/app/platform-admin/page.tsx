@@ -540,14 +540,10 @@ export default function PlatformAdminPage() {
   async function handleCreateBanner(e: React.FormEvent) {
     e.preventDefault();
     setBannerError(null);
-    if (!bannerTitle.trim()) {
-      setBannerError("Sarlavha kiritilishi shart");
-      return;
-    }
     setBannerSubmitting(true);
     try {
       const created = await adminApi.createBanner({
-        title: bannerTitle.trim(),
+        ...(bannerTitle.trim() ? { title: bannerTitle.trim() } : {}),
         text: bannerText.trim() || undefined,
         imageUrl: bannerImageUrl.trim() || undefined,
         ctaLabel: bannerCtaLabel.trim() || undefined,
@@ -1558,18 +1554,17 @@ export default function PlatformAdminPage() {
                   <h3>Bosh sahifa bannerlari</h3>
                   <p className="fd-checkout-meta">
                     Bu yerda kategoriya tugmalarining ostida ko‘rinadigan reklama bannerlarini
-                    boshqarishingiz mumkin. Rasm ixtiyoriy — sarlavha va matn rasm bilan birga
+                    boshqarishingiz mumkin. Rasm va sarlavha ixtiyoriy — matn rasm bilan birga
                     ko‘rinadi.
                   </p>
 
                   <form onSubmit={handleCreateBanner} className="fd-form" style={{ marginTop: 16 }}>
                     <label className="fd-field">
-                      <span>Sarlavha *</span>
+                      <span>Sarlavha (ixtiyoriy)</span>
                       <input
                         value={bannerTitle}
                         onChange={(e) => setBannerTitle(e.target.value)}
                         placeholder="Masalan: Chegirma 30%"
-                        required
                       />
                     </label>
                     <label className="fd-field">
@@ -1671,7 +1666,7 @@ export default function PlatformAdminPage() {
                     {banners.map((b) => (
                       <div key={b.id} className="fd-admin-kpi">
                         <div className="fd-admin-kpi-label">ID: {b.id.slice(0, 8)}</div>
-                        <div className="fd-admin-kpi-value">{b.title}</div>
+                        <div className="fd-admin-kpi-value">{b.title?.trim() ? b.title : "—"}</div>
                         {b.text && (
                           <div className="fd-admin-kpi-sub">{b.text}</div>
                         )}

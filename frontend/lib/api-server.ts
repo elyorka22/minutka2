@@ -24,7 +24,7 @@ export type HomepageRestaurant = {
 
 export type HomepageBanner = {
   id: string;
-  title: string;
+  title?: string | null;
   text?: string | null;
   imageUrl?: string | null;
   ctaLabel?: string | null;
