@@ -3,7 +3,6 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { BackLink } from "../../components/BackLink";
 import { adminApi } from "../../lib/adminApi";
 import { API_BASE } from "../../lib/api";
 import { decodeJwtPayload, type JwtPayload } from "../../lib/jwt";
@@ -226,143 +225,122 @@ export default function ProfilePage() {
   const isPlatformAdmin = role === "PLATFORM_ADMIN";
   const isRestaurantAdmin = role === "RESTAURANT_ADMIN";
   const isCourier = role === "COURIER" || courierAccess;
+  const displayName = payload?.email ? payload.email.split("@")[0] : "Mehmon foydalanuvchi";
+  const adminAccess = isPlatformAdmin || isRestaurantAdmin || isCourier;
+  const myMenuItems = [
+    { icon: "📦", label: "Buyurtmalarim", href: "/checkout" },
+    { icon: "❤️", label: "Sevimlilar", href: "/restaurants" },
+    { icon: "📍", label: "Manzillarim", href: "/checkout" },
+    { icon: "💳", label: "To'lovlar", href: "/checkout" },
+  ];
+  const serviceItems = [
+    { icon: "🎁", label: "Promokodlar", href: "/checkout" },
+    { icon: "🎧", label: "Yordam", href: "/profile" },
+    { icon: "⭐", label: "Ilovaga baho berish", href: "/" },
+  ];
 
   return (
-    <div className="fd-shell fd-section">
-      <BackLink href="/" />
-      <h1 className="fd-section-title">Profil</h1>
-
-      {!hasToken && (
-        <div className="fd-card" style={{ padding: 16 }}>
-          <p className="fd-card-desc">
-            Oddiy foydalanuvchi sifatida buyurtma berishingiz mumkin. Alohida avtorizatsiya talab
-            qilinmaydi.
-          </p>
-          <p className="fd-card-desc">
-            Agar siz restoran yoki platforma administratori bo&apos;lsangiz, quyidagi tugma orqali
-            tizimga kirib, admin panellariga o&apos;tishingiz mumkin.
-          </p>
-          <div style={{ marginTop: 12, display: "flex", gap: 8, flexWrap: "wrap" }}>
-            <Link href="/login" className="fd-btn fd-btn-primary">
-              Kirish (adminlar uchun)
-            </Link>
-            <Link href="/register" className="fd-btn">
-              Ro‘yxatdan o‘tish (adminlar uchun)
-            </Link>
-          </div>
-
-          <div style={{ marginTop: 12 }}>
-            <button
-              type="button"
-              className="fd-btn fd-btn-primary"
-              onClick={handleEnablePush}
-              disabled={pushBusy}
-            >
-              {pushBusy ? "Yoqilmoqda…" : "Bildirishnomalarni yoqish"}
-            </button>
-            {pushStatus && (
-              <p className="fd-card-desc" style={{ marginTop: 8, fontSize: "0.875rem" }}>
-                {pushStatus}
-              </p>
-            )}
+    <div className="fd-shell fd-section fd-profile-page">
+      <section className="fd-profile-hero">
+        <div className="fd-profile-avatar" aria-hidden="true">👤</div>
+        <div className="fd-profile-hero-body">
+          <div className="fd-profile-hero-name">{displayName}</div>
+          <div className="fd-profile-hero-sub">
+            {hasToken ? (payload?.email ?? "Foydalanuvchi") : "Telefon orqali tez kirish"}
           </div>
         </div>
-      )}
-
-      {hasToken && (
-        <div className="fd-card" style={{ padding: 16, marginTop: 8 }}>
-          <p className="fd-card-desc">Email: {payload?.email ?? "nomalum"}</p>
-          <p className="fd-card-desc">Rol: {role ?? "CUSTOMER"}</p>
-
-          <button
-            type="button"
-            className="fd-btn fd-btn-primary"
-            style={{ marginTop: 8, marginRight: 8 }}
-            onClick={handleEnablePush}
-            disabled={pushBusy}
-          >
-            {pushBusy ? "Yoqilmoqda…" : "Bildirishnomalarni yoqish"}
-          </button>
-
-          <button
-            type="button"
-            className="fd-btn"
-            style={{ marginTop: 8 }}
-            onClick={handleLogout}
-          >
+        {!hasToken ? (
+          <Link href="/login" className="fd-profile-login-btn">
+            📞 Telefon orqali kirish
+          </Link>
+        ) : (
+          <button type="button" className="fd-profile-login-btn" onClick={handleLogout}>
             Chiqish
           </button>
+        )}
+      </section>
 
-          {pushStatus && (
-            <p className="fd-card-desc" style={{ marginTop: 8, fontSize: "0.875rem" }}>
-              {pushStatus}
-            </p>
-          )}
-
-          {isPlatformAdmin && (
-            <div style={{ marginTop: 12, display: "flex", gap: 8, flexWrap: "wrap" }}>
-              <Link href="/platform-admin" className="fd-btn fd-btn-primary">
-                Platforma admin paneli
-              </Link>
-            </div>
-          )}
-
-          {isCourier && (
-            <div style={{ marginTop: 12, display: "flex", gap: 8, flexWrap: "wrap" }}>
-              <Link
-                href="/courier"
-                className="fd-btn fd-btn-primary"
-                style={{ textDecoration: "none" }}
-              >
-                Kuryer paneli — barcha buyurtmalar
-              </Link>
-            </div>
-          )}
-
-          {isRestaurantAdmin && (
-            <div style={{ marginTop: 12 }}>
-              {myRestaurantsLoading && (
-                <p className="fd-card-desc">Restoranlar yuklanmoqda…</p>
-              )}
-              {!myRestaurantsLoading && myRestaurantsError && (
-                <p className="fd-card-desc" style={{ color: "var(--color-orange)" }}>
-                  Sessiya tugadi yoki xatolik. <strong>Chiqish</strong> tugmasini bosing va qayta kiring.
-                </p>
-              )}
-              {!myRestaurantsLoading && !myRestaurantsError && myRestaurants.length === 0 && (
-                <p className="fd-card-desc" style={{ color: "var(--color-muted)" }}>
-                  Sizga hozircha restoran yoki do‘kon tayinlanmagan. Platforma adminiga murojaat qiling.
-                </p>
-              )}
-              {!myRestaurantsLoading && !myRestaurantsError && myRestaurants.length > 0 && (
-                <>
-                  <p className="fd-card-desc" style={{ marginBottom: 8 }}>
-                    Sizning restoran/do‘konlaringiz — admin paneliga o‘ting:
-                  </p>
-                  <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-                    {myRestaurants.map((r) => (
-                      <Link
-                        key={r.id}
-                        href={`/restaurant-admin/${r.id}`}
-                        className="fd-btn fd-btn-primary"
-                        style={{ textDecoration: "none", textAlign: "center" }}
-                      >
-                        {r.name} — buyurtmalar
-                      </Link>
-                    ))}
-                  </div>
-                </>
-              )}
-            </div>
-          )}
-
-          {!isPlatformAdmin && !isRestaurantAdmin && !isCourier && (
-            <p className="fd-card-desc" style={{ marginTop: 12 }}>
-              Siz oddiy mijoz sifatida buyurtma berishingiz mumkin, admin paneli faqat maxsus
-              rollar uchun ochiladi.
-            </p>
-          )}
+      <section className="fd-profile-group">
+        <h2 className="fd-profile-group-title">Mening menyum</h2>
+        <div className="fd-profile-list">
+          {myMenuItems.map((item) => (
+            <Link key={item.label} href={item.href} className="fd-profile-item">
+              <span className="fd-profile-item-icon">{item.icon}</span>
+              <span className="fd-profile-item-label">{item.label}</span>
+              <span className="fd-profile-item-arrow">›</span>
+            </Link>
+          ))}
         </div>
+      </section>
+
+      <section className="fd-profile-group">
+        <h2 className="fd-profile-group-title">Xizmatlar</h2>
+        <div className="fd-profile-list">
+          {serviceItems.map((item) => (
+            <Link key={item.label} href={item.href} className="fd-profile-item">
+              <span className="fd-profile-item-icon">{item.icon}</span>
+              <span className="fd-profile-item-label">{item.label}</span>
+              <span className="fd-profile-item-arrow">›</span>
+            </Link>
+          ))}
+        </div>
+      </section>
+
+      <section className="fd-profile-group">
+        <h2 className="fd-profile-group-title">Xavfsizlik va ilova</h2>
+        <div className="fd-profile-list">
+          <button type="button" className="fd-profile-item fd-profile-item-btn" onClick={handleEnablePush} disabled={pushBusy}>
+            <span className="fd-profile-item-icon">🔔</span>
+            <span className="fd-profile-item-label">{pushBusy ? "Yoqilmoqda…" : "Bildirishnomalarni yoqish"}</span>
+            <span className="fd-profile-item-arrow">›</span>
+          </button>
+          {!hasToken && (
+            <Link href="/register" className="fd-profile-item">
+              <span className="fd-profile-item-icon">📝</span>
+              <span className="fd-profile-item-label">Admin uchun ro‘yxatdan o‘tish</span>
+              <span className="fd-profile-item-arrow">›</span>
+            </Link>
+          )}
+          {pushStatus && <p className="fd-profile-note">{pushStatus}</p>}
+        </div>
+      </section>
+
+      {adminAccess && (
+        <section className="fd-profile-group">
+          <h2 className="fd-profile-group-title">Admin bo‘limi</h2>
+          <div className="fd-profile-list">
+            {isPlatformAdmin && (
+              <Link href="/platform-admin" className="fd-profile-item">
+                <span className="fd-profile-item-icon">🛠️</span>
+                <span className="fd-profile-item-label">Platforma admin paneli</span>
+                <span className="fd-profile-item-arrow">›</span>
+              </Link>
+            )}
+            {isCourier && (
+              <Link href="/courier" className="fd-profile-item">
+                <span className="fd-profile-item-icon">🛵</span>
+                <span className="fd-profile-item-label">Kuryer paneli</span>
+                <span className="fd-profile-item-arrow">›</span>
+              </Link>
+            )}
+            {isRestaurantAdmin && myRestaurants.map((r) => (
+              <Link key={r.id} href={`/restaurant-admin/${r.id}`} className="fd-profile-item">
+                <span className="fd-profile-item-icon">🏬</span>
+                <span className="fd-profile-item-label">{r.name} — admin panel</span>
+                <span className="fd-profile-item-arrow">›</span>
+              </Link>
+            ))}
+            {isRestaurantAdmin && myRestaurantsLoading && (
+              <p className="fd-profile-note">Restoranlar yuklanmoqda…</p>
+            )}
+            {isRestaurantAdmin && !myRestaurantsLoading && myRestaurantsError && (
+              <p className="fd-profile-note">Restoranlar ro‘yxatini yuklashda xatolik.</p>
+            )}
+            {isRestaurantAdmin && !myRestaurantsLoading && !myRestaurantsError && myRestaurants.length === 0 && (
+              <p className="fd-profile-note">Sizga hozircha restoran biriktirilmagan.</p>
+            )}
+          </div>
+        </section>
       )}
     </div>
   );

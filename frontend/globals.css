@@ -1225,6 +1225,137 @@ body {
   padding-bottom: 24px;
 }
 
+.fd-profile-page {
+  padding-top: 8px;
+  padding-bottom: 18px;
+}
+
+.fd-profile-hero {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: #fff;
+  border: 1px solid var(--color-border);
+  border-radius: 20px;
+  padding: 14px;
+  box-shadow: var(--shadow-sm);
+}
+
+.fd-profile-avatar {
+  width: 58px;
+  height: 58px;
+  border-radius: 50%;
+  background: #f0f2f5;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 30px;
+}
+
+.fd-profile-hero-body {
+  min-width: 0;
+  flex: 1;
+}
+
+.fd-profile-hero-name {
+  font-size: 1.3rem;
+  font-weight: 700;
+  line-height: 1.15;
+}
+
+.fd-profile-hero-sub {
+  margin-top: 2px;
+  color: var(--color-text-secondary);
+  font-size: 0.96rem;
+}
+
+.fd-profile-login-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  white-space: nowrap;
+  background: var(--color-orange);
+  color: #fff;
+  border-radius: 9999px;
+  padding: 10px 14px;
+  font-size: 0.92rem;
+  font-weight: 600;
+  text-decoration: none;
+  border: none;
+}
+
+.fd-profile-group {
+  margin-top: 14px;
+}
+
+.fd-profile-group-title {
+  font-size: 1.05rem;
+  font-weight: 700;
+  margin: 0 0 8px 2px;
+}
+
+.fd-profile-list {
+  background: #fff;
+  border: 1px solid var(--color-border);
+  border-radius: 16px;
+  box-shadow: var(--shadow-sm);
+  overflow: hidden;
+}
+
+.fd-profile-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 14px;
+  color: inherit;
+  text-decoration: none;
+  border-bottom: 1px solid #f1f1f1;
+}
+
+.fd-profile-item:last-child {
+  border-bottom: none;
+}
+
+.fd-profile-item-icon {
+  width: 30px;
+  text-align: center;
+  font-size: 1.2rem;
+}
+
+.fd-profile-item-label {
+  flex: 1;
+  min-width: 0;
+  font-size: 1.03rem;
+  font-weight: 600;
+}
+
+.fd-profile-item-arrow {
+  color: var(--color-text-secondary);
+  font-size: 1.45rem;
+  line-height: 1;
+}
+
+.fd-profile-item-btn {
+  width: 100%;
+  background: transparent;
+  border-left: none;
+  border-right: none;
+  border-top: none;
+  cursor: pointer;
+  text-align: left;
+}
+
+.fd-profile-item-btn:disabled {
+  opacity: 0.8;
+  cursor: default;
+}
+
+.fd-profile-note {
+  margin: 8px 14px 12px;
+  color: var(--color-text-secondary);
+  font-size: 0.86rem;
+}
+
 .fd-admin-header {
   display: flex;
   align-items: center;
