@@ -6,24 +6,7 @@ import { useRouter } from "next/navigation";
 import { BackLink } from "../../components/BackLink";
 import { adminApi } from "../../lib/adminApi";
 import { API_BASE } from "../../lib/api";
-
-type JwtPayload = {
-  sub?: string;
-  email?: string;
-  role?: string;
-};
-
-function decodeToken(token: string): JwtPayload | null {
-  try {
-    const [, payload] = token.split(".");
-    if (!payload) return null;
-    const base64 = payload.replace(/-/g, "+").replace(/_/g, "/");
-    const json = atob(base64);
-    return JSON.parse(json) as JwtPayload;
-  } catch {
-    return null;
-  }
-}
+import { decodeJwtPayload, type JwtPayload } from "../../lib/jwt";
 
 type MyRestaurant = { id: string; name: string };
 
@@ -43,7 +26,7 @@ export default function ProfilePage() {
     const token = window.localStorage.getItem("token");
     if (!token) return;
     setHasToken(true);
-    setPayload(decodeToken(token));
+    setPayload(decodeJwtPayload(token));
   }, []);
 
   useEffect(() => {

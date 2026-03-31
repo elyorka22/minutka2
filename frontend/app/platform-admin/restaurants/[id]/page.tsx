@@ -5,13 +5,14 @@ import { useRouter, useParams } from "next/navigation";
 import { adminApi } from "../../../../lib/adminApi";
 import { imageUrl } from "../../../../lib/api";
 import { BackLink } from "../../../../components/BackLink";
+import { decodeJwtPayload } from "../../../../lib/jwt";
 
 export default function PlatformAdminRestaurantMenuPage() {
   const params = useParams();
   const id = params?.id as string;
   const router = useRouter();
   const [restaurant, setRestaurant] = useState<any | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const [catName, setCatName] = useState("");
@@ -34,6 +35,7 @@ export default function PlatformAdminRestaurantMenuPage() {
   const [editError, setEditError] = useState<string | null>(null);
   const [editLogoUploading, setEditLogoUploading] = useState(false);
   const [editCoverUploading, setEditCoverUploading] = useState(false);
+  const [menuGate, setMenuGate] = useState<"checking" | "allowed" | "redirected">("checking");
 
   async function handleUploadLogo(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
@@ -83,6 +85,42 @@ export default function PlatformAdminRestaurantMenuPage() {
 
   useEffect(() => {
     if (!id) return;
+    if (typeof window === "undefined") return;
+    const token = window.localStorage.getItem("token");
+    if (!token) {
+      router.replace("/login?next=/platform-admin/restaurants/" + id);
+      setMenuGate("redirected");
+      return;
+    }
+    const payload = decodeJwtPayload(token);
+    const role = payload?.role;
+    if (role === "PLATFORM_ADMIN") {
+      setMenuGate("allowed");
+      return;
+    }
+    if (role === "RESTAURANT_ADMIN") {
+      adminApi
+        .getMyRestaurants()
+        .then((list) => {
+          const ids = new Set((Array.isArray(list) ? list : []).map((r: any) => r.id));
+          if (ids.has(id)) {
+            router.replace(`/restaurant-admin/${id}`);
+          } else {
+            router.replace("/profile");
+          }
+        })
+        .catch(() => {
+          router.replace("/profile");
+        });
+      setMenuGate("redirected");
+      return;
+    }
+    router.replace("/profile");
+    setMenuGate("redirected");
+  }, [id, router]);
+
+  useEffect(() => {
+    if (!id || menuGate !== "allowed") return;
     let active = true;
     async function load() {
       try {
@@ -97,7 +135,12 @@ export default function PlatformAdminRestaurantMenuPage() {
         }
       } catch (err: any) {
         if (!active) return;
-        if (err?.message?.includes("401") || err?.message?.includes("403")) {
+        const msg = String(err?.message ?? "");
+        const authFail =
+          msg.includes("401") ||
+          msg.includes("403") ||
+          /forbidden|only platform admin/i.test(msg);
+        if (authFail) {
           if (typeof window !== "undefined") {
             window.localStorage.removeItem("token");
           }
@@ -113,7 +156,7 @@ export default function PlatformAdminRestaurantMenuPage() {
     return () => {
       active = false;
     };
-  }, [id, router]);
+  }, [id, router, menuGate]);
 
   useEffect(() => {
     if (restaurant?.categories?.length && !dishCategoryId) {
@@ -200,6 +243,13 @@ export default function PlatformAdminRestaurantMenuPage() {
   }
 
   if (!id) return null;
+  if (menuGate === "checking" || menuGate === "redirected") {
+    return (
+      <div className="fd-shell fd-section">
+        <p>Yuklanmoqda...</p>
+      </div>
+    );
+  }
   if (loading) return <div className="fd-shell fd-section"><p>Yuklanmoqda...</p></div>;
   if (error) return <div className="fd-shell fd-section"><p className="fd-empty">{error}</p></div>;
   if (!restaurant) return <div className="fd-shell fd-section"><p className="fd-empty">Restoran topilmadi.</p></div>;

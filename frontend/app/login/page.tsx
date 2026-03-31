@@ -3,6 +3,8 @@
 import { FormEvent, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { BackLink } from "../../components/BackLink";
+import { decodeJwtPayload } from "../../lib/jwt";
+import { adminApi } from "../../lib/adminApi";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:4000";
 
@@ -52,8 +54,40 @@ export default function LoginPage() {
       window.localStorage.setItem("token", data.accessToken);
       setToken(data.accessToken);
 
+      const payload = decodeJwtPayload(data.accessToken);
+      const role = payload?.role;
+
       if (next) {
-        router.push(next);
+        const wantsPlatform = next.startsWith("/platform-admin");
+        if (wantsPlatform && role !== "PLATFORM_ADMIN") {
+          if (role === "RESTAURANT_ADMIN") {
+            try {
+              const list = await adminApi.getMyRestaurants();
+              const first = Array.isArray(list) && list.length > 0 ? list[0] : null;
+              router.push(first?.id ? `/restaurant-admin/${first.id}` : "/profile");
+            } catch {
+              router.push("/profile");
+            }
+          } else if (role === "COURIER") {
+            router.push("/courier");
+          } else {
+            router.push("/profile");
+          }
+        } else {
+          router.push(next);
+        }
+      } else if (role === "PLATFORM_ADMIN") {
+        router.push("/platform-admin");
+      } else if (role === "RESTAURANT_ADMIN") {
+        try {
+          const list = await adminApi.getMyRestaurants();
+          const first = Array.isArray(list) && list.length > 0 ? list[0] : null;
+          router.push(first?.id ? `/restaurant-admin/${first.id}` : "/profile");
+        } catch {
+          router.push("/profile");
+        }
+      } else if (role === "COURIER") {
+        router.push("/courier");
       } else {
         router.push("/profile");
       }

@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { adminApi } from "../../lib/adminApi";
 import { imageUrl } from "../../lib/api";
+import { decodeJwtPayload } from "../../lib/jwt";
 type TabId =
   | "stats"
   | "users"
@@ -114,6 +115,9 @@ export default function PlatformAdminPage() {
   }>>([]);
   const [pushSubscribersLoading, setPushSubscribersLoading] = useState(false);
   const router = useRouter();
+  const [platformGate, setPlatformGate] = useState<"checking" | "allowed" | "redirected">(
+    "checking",
+  );
   const basePushPages: Array<{ url: string; label: string }> = [
     { url: "/", label: "Bosh sahifa (/)" },
     { url: "/restaurants", label: "Restoranlar (/restaurants)" },
@@ -169,6 +173,47 @@ export default function PlatformAdminPage() {
   }
 
   useEffect(() => {
+    if (typeof window === "undefined") return;
+    const token = window.localStorage.getItem("token");
+    if (!token) {
+      router.replace("/login?next=/platform-admin");
+      setPlatformGate("redirected");
+      return;
+    }
+    const payload = decodeJwtPayload(token);
+    const role = payload?.role;
+    if (role === "PLATFORM_ADMIN") {
+      setPlatformGate("allowed");
+      return;
+    }
+    if (role === "RESTAURANT_ADMIN") {
+      adminApi
+        .getMyRestaurants()
+        .then((list) => {
+          const first = Array.isArray(list) && list.length > 0 ? list[0] : null;
+          if (first?.id) {
+            router.replace(`/restaurant-admin/${first.id}`);
+          } else {
+            router.replace("/profile");
+          }
+        })
+        .catch(() => {
+          router.replace("/profile");
+        });
+      setPlatformGate("redirected");
+      return;
+    }
+    if (role === "COURIER") {
+      router.replace("/courier");
+      setPlatformGate("redirected");
+      return;
+    }
+    router.replace("/profile");
+    setPlatformGate("redirected");
+  }, [router]);
+
+  useEffect(() => {
+    if (platformGate !== "allowed") return;
     let active = true;
     async function load() {
       try {
@@ -189,7 +234,7 @@ export default function PlatformAdminPage() {
     return () => {
       active = false;
     };
-  }, []);
+  }, [platformGate]);
 
   useEffect(() => {
     if (activeTab !== "users") return;
@@ -255,10 +300,12 @@ export default function PlatformAdminPage() {
       return { stats, restaurants, users, recentOrders, banners, productCategories } as any;
     } catch (e: any) {
       const msg = String(e?.message ?? "");
+      const looksForbidden =
+        msg.includes("403") || /forbidden|only platform admin/i.test(msg);
       if (msg.includes("401")) {
         if (typeof window !== "undefined") window.localStorage.removeItem("token");
         router.push("/login?next=/profile");
-      } else if (msg.includes("403")) {
+      } else if (looksForbidden) {
         router.push("/profile");
       }
       throw e;
@@ -595,6 +642,14 @@ export default function PlatformAdminPage() {
     window.addEventListener("keydown", onEscape);
     return () => window.removeEventListener("keydown", onEscape);
   }, [tabsOpen]);
+
+  if (platformGate === "checking" || platformGate === "redirected") {
+    return (
+      <div className="fd-shell fd-section fd-platform-admin-page">
+        <p>Yuklanmoqda...</p>
+      </div>
+    );
+  }
 
   return (
     <div className="fd-shell fd-section fd-platform-admin-page">
