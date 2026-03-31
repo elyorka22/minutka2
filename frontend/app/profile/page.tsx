@@ -71,6 +71,14 @@ export default function ProfilePage() {
   }, [hasToken, payload?.role]);
 
   const role = payload?.role;
+  const roleLabel =
+    role === "PLATFORM_ADMIN"
+      ? "Platforma admin"
+      : role === "RESTAURANT_ADMIN"
+        ? "Restoran admin"
+        : role === "COURIER"
+          ? "Kuryer"
+          : "Foydalanuvchi";
 
   async function handleEnablePush() {
     if (pushBusy) return;
@@ -246,8 +254,11 @@ export default function ProfilePage() {
         <div className="fd-profile-hero-body">
           <div className="fd-profile-hero-name">{displayName}</div>
           <div className="fd-profile-hero-sub">
-            {hasToken ? (payload?.email ?? "Foydalanuvchi") : "Telefon orqali tez kirish"}
+            {hasToken ? roleLabel : "Telefon orqali tez kirish"}
           </div>
+          {hasToken && payload?.email ? (
+            <div className="fd-profile-hero-meta">{payload.email}</div>
+          ) : null}
         </div>
         {!hasToken ? (
           <Link href="/login" className="fd-profile-login-btn">
