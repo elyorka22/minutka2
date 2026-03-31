@@ -1121,6 +1121,14 @@ body {
   backdrop-filter: blur(12px);
 }
 
+/* Checkout map should stay under fixed bottom navigation */
+.fd-checkout .leaflet-container,
+.fd-checkout .leaflet-pane,
+.fd-checkout .leaflet-top,
+.fd-checkout .leaflet-bottom {
+  z-index: 1 !important;
+}
+
 .fd-bottom-item {
   flex: 1;
   display: flex;

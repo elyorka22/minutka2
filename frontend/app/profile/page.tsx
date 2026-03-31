@@ -237,14 +237,12 @@ export default function ProfilePage() {
   const adminAccess = isPlatformAdmin || isRestaurantAdmin || isCourier;
   const myMenuItems = [
     { icon: "📦", label: "Buyurtmalarim", href: "/checkout" },
-    { icon: "❤️", label: "Sevimlilar", href: "/restaurants" },
     { icon: "📍", label: "Manzillarim", href: "/checkout" },
     { icon: "💳", label: "To'lovlar", href: "/checkout" },
   ];
   const serviceItems = [
     { icon: "🎁", label: "Promokodlar", href: "/checkout" },
     { icon: "🎧", label: "Yordam", href: "/profile" },
-    { icon: "⭐", label: "Ilovaga baho berish", href: "/" },
   ];
 
   return (
@@ -305,13 +303,6 @@ export default function ProfilePage() {
             <span className="fd-profile-item-label">{pushBusy ? "Yoqilmoqda…" : "Bildirishnomalarni yoqish"}</span>
             <span className="fd-profile-item-arrow">›</span>
           </button>
-          {!hasToken && (
-            <Link href="/register" className="fd-profile-item">
-              <span className="fd-profile-item-icon">📝</span>
-              <span className="fd-profile-item-label">Admin uchun ro‘yxatdan o‘tish</span>
-              <span className="fd-profile-item-arrow">›</span>
-            </Link>
-          )}
           {pushStatus && <p className="fd-profile-note">{pushStatus}</p>}
         </div>
       </section>
