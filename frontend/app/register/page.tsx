@@ -1,6 +1,7 @@
 "use client";
 
 import { FormEvent, useState } from "react";
+import Link from "next/link";
 import { BackLink } from "../../components/BackLink";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:4000";
@@ -86,6 +87,12 @@ export default function RegisterPage() {
         <button className="fd-btn fd-btn-primary" type="submit">
           Ro‘yxatdan o‘tish
         </button>
+        <p className="fd-checkout-meta" style={{ marginTop: 10, fontSize: "0.9rem" }}>
+          Menda akkaunt bor.{" "}
+          <Link href="/login" style={{ textDecoration: "underline" }}>
+            Kirish
+          </Link>
+        </p>
       </form>
     </div>
   );

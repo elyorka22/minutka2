@@ -259,8 +259,8 @@ export default function ProfilePage() {
           ) : null}
         </div>
         {!hasToken ? (
-          <Link href="/register" className="fd-profile-login-btn">
-            Ro‘yxatdan o‘tish
+          <Link href="/login" className="fd-profile-login-btn">
+            Kirish
           </Link>
         ) : (
           <button type="button" className="fd-profile-login-btn" onClick={handleLogout}>

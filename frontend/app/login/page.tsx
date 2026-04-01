@@ -1,6 +1,7 @@
 "use client";
 
 import { FormEvent, useEffect, useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { BackLink } from "../../components/BackLink";
 import { decodeJwtPayload } from "../../lib/jwt";
@@ -127,6 +128,12 @@ export default function LoginPage() {
         <button className="fd-btn fd-btn-primary" type="submit">
           Kirish
         </button>
+        <p className="fd-checkout-meta" style={{ marginTop: 10, fontSize: "0.9rem" }}>
+          Men ro‘yxatdan o‘tmaganman.{" "}
+          <Link href="/register" style={{ textDecoration: "underline" }}>
+            Ro‘yxatdan o‘tish
+          </Link>
+        </p>
       </form>
       <p className="fd-checkout-meta" style={{ marginTop: 16, maxWidth: 360, fontSize: "0.875rem" }}>
         Agar brauzer &quot;parol oshkor bo‘lgan&quot; deb ogohlantirsa — bu Google xabari. Parolni <strong>OK</strong> dan keyin kirish ishlashi mumkin; yoki maxfiy rejimda / boshqa brauzerda kirib ko‘ring. Yangi parol o‘rnatish uchun platforma adminiga murojaat qiling.
