@@ -774,6 +774,44 @@ export class OrdersService {
     };
   }
 
+  /**
+   * DONE orders for this courier, grouped by calendar day in Asia/Tashkent (last update ≈ delivery).
+   */
+  async getCourierDeliveredByDay(
+    courierUserId: string,
+    days?: number,
+  ): Promise<{ days: number; total: number; byDay: Array<{ date: string; count: number }> }> {
+    const capped = Math.min(Math.max(Math.trunc(Number(days)) || 60, 1), 366);
+    const courier = await this.prisma.courier.findUnique({
+      where: { userId: courierUserId },
+      select: { id: true },
+    });
+    if (!courier) {
+      return { days: capped, total: 0, byDay: [] };
+    }
+
+    const rows = await this.prisma.$queryRaw<Array<{ day: string; count: number }>>`
+      SELECT
+        to_char(date_trunc('day', o."updatedAt" AT TIME ZONE 'Asia/Tashkent'), 'YYYY-MM-DD') AS day,
+        COUNT(*)::int AS count
+      FROM "Order" o
+      WHERE o."courierId" = ${courier.id}
+        AND o.status = 'DONE'
+        AND o."updatedAt" >= (
+          date_trunc(
+            'day',
+            (CURRENT_TIMESTAMP AT TIME ZONE 'Asia/Tashkent') - (${capped}::int * INTERVAL '1 day')
+          ) AT TIME ZONE 'Asia/Tashkent'
+        )
+      GROUP BY date_trunc('day', o."updatedAt" AT TIME ZONE 'Asia/Tashkent')
+      ORDER BY day DESC
+    `;
+
+    const byDay = rows.map((r) => ({ date: r.day, count: Number(r.count) }));
+    const total = byDay.reduce((s, r) => s + r.count, 0);
+    return { days: capped, total, byDay };
+  }
+
   async deleteOrdersOlderThanDays(days: number): Promise<number> {
     const safeDays = Math.min(Math.max(Math.trunc(days), 7), 3650);
     const cutoff = new Date();

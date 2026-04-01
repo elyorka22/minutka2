@@ -137,6 +137,15 @@ export const adminApi = {
       { method: "GET" },
     );
   },
+  getCourierDeliveredByDay: (opts?: { days?: number }) => {
+    const qs = new URLSearchParams();
+    if (typeof opts?.days === "number" && Number.isFinite(opts.days)) qs.set("days", String(opts.days));
+    const query = qs.toString();
+    return adminRequest<{ days: number; total: number; byDay: Array<{ date: string; count: number }> }>(
+      `/courier/stats/delivered-by-day${query ? `?${query}` : ""}`,
+      { method: "GET" },
+    );
+  },
   getRestaurantSettings: (id: string) =>
     adminRequest<{ telegramChatId: string }>(`/restaurants/${id}/settings`),
   updateRestaurantSettings: (id: string, body: { telegramChatId?: string }) =>

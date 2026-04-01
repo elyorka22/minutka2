@@ -128,6 +128,18 @@ export class CourierOrdersController {
       sinceIso: since,
     });
   }
+
+  @Get('stats/delivered-by-day')
+  @UseGuards(JwtAuthGuard)
+  async deliveredByDay(@Req() req: RequestWithUser, @Query('days') days?: string) {
+    if (req.user?.role !== 'COURIER') {
+      throw new ForbiddenException('Faqat kuryerlar uchun');
+    }
+    const userId = req.user?.id;
+    if (!userId) throw new BadRequestException('Unauthorized');
+    const n = days !== undefined && days !== '' ? Number(days) : undefined;
+    return this.ordersService.getCourierDeliveredByDay(userId, Number.isFinite(n) ? n : undefined);
+  }
 }
 
 interface RequestWithUser {

@@ -381,6 +381,9 @@ export default function CourierPage() {
         <Link href="/profile" className="fd-btn" style={{ textDecoration: "none" }}>
           Profil
         </Link>
+        <Link href="/courier/stats" className="fd-btn" style={{ textDecoration: "none" }}>
+          Statistika
+        </Link>
       </div>
       <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 16 }}>
         <button
