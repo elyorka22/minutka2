@@ -3,6 +3,7 @@ import { AuthService } from './auth.service';
 import { UsersService } from '../users/users.service';
 import { LoginDto } from './dto/login.dto';
 import { RegisterDto } from './dto/register.dto';
+import { RefreshTokenDto } from './dto/refresh-token.dto';
 
 @Controller('auth')
 @UsePipes(
@@ -35,6 +36,16 @@ export class AuthController {
     const email = dto.email.trim();
     const user = await this.authService.validateUser(email, dto.password);
     return this.authService.login(user);
+  }
+
+  @Post('refresh')
+  async refresh(@Body() dto: RefreshTokenDto) {
+    return this.authService.refresh(dto.refreshToken.trim());
+  }
+
+  @Post('logout')
+  async logout(@Body() dto: RefreshTokenDto) {
+    return this.authService.logout(dto.refreshToken.trim());
   }
 }
 

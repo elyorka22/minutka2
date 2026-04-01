@@ -1,7 +1,9 @@
 import { Injectable, UnauthorizedException } from '@nestjs/common';
 import * as jwt from 'jsonwebtoken';
 import * as bcrypt from 'bcrypt';
+import { createHash, randomBytes } from 'crypto';
 import { UsersService, UserEntity } from '../users/users.service';
+import { PrismaService } from '../prisma.service';
 
 interface JwtPayload {
   sub: string;
@@ -10,9 +12,13 @@ interface JwtPayload {
 
 @Injectable()
 export class AuthService {
-  private accessTokenTtlSeconds = 60 * 60 * 24 * 7; // 7 kun
+  private defaultAccessTokenTtlSeconds = 60 * 15; // 15 min
+  private defaultRefreshTokenTtlSeconds = 60 * 60 * 24 * 30; // 30 days
 
-  constructor(private readonly usersService: UsersService) {}
+  constructor(
+    private readonly usersService: UsersService,
+    private readonly prisma: PrismaService,
+  ) {}
 
   private getJwtSecret(): string {
     const secret = process.env.JWT_SECRET;
@@ -36,16 +42,99 @@ export class AuthService {
     return user;
   }
 
-  async login(user: UserEntity) {
-    const payload: JwtPayload = { sub: user.id, role: user.role };
+  private getAccessTokenTtlSeconds(): number {
+    const raw = Number(process.env.ACCESS_TOKEN_TTL_SECONDS ?? this.defaultAccessTokenTtlSeconds);
+    if (!Number.isFinite(raw)) return this.defaultAccessTokenTtlSeconds;
+    return Math.min(Math.max(Math.floor(raw), 60), 60 * 60 * 24);
+  }
 
-    const token = jwt.sign(payload, this.getJwtSecret(), {
-      expiresIn: this.accessTokenTtlSeconds,
+  private getRefreshTokenTtlSeconds(): number {
+    const raw = Number(process.env.REFRESH_TOKEN_TTL_SECONDS ?? this.defaultRefreshTokenTtlSeconds);
+    if (!Number.isFinite(raw)) return this.defaultRefreshTokenTtlSeconds;
+    return Math.min(Math.max(Math.floor(raw), 60 * 60), 60 * 60 * 24 * 90);
+  }
+
+  private hashRefreshToken(token: string): string {
+    return createHash('sha256').update(token).digest('hex');
+  }
+
+  private generateRefreshToken(): string {
+    return randomBytes(48).toString('hex');
+  }
+
+  private generateRecordId(): string {
+    return randomBytes(16).toString('hex');
+  }
+
+  private async saveRefreshToken(userId: string, refreshToken: string, expiresAt: Date): Promise<void> {
+    const tokenHash = this.hashRefreshToken(refreshToken);
+    const id = this.generateRecordId();
+    await this.prisma.$executeRaw`
+      INSERT INTO "RefreshToken" ("id", "createdAt", "updatedAt", "tokenHash", "expiresAt", "userId")
+      VALUES (${id}, NOW(), NOW(), ${tokenHash}, ${expiresAt}, ${userId})
+    `;
+  }
+
+  private async revokeRefreshToken(refreshToken: string): Promise<void> {
+    const tokenHash = this.hashRefreshToken(refreshToken);
+    await this.prisma.$executeRaw`
+      UPDATE "RefreshToken"
+      SET "revokedAt" = NOW(), "updatedAt" = NOW()
+      WHERE "tokenHash" = ${tokenHash} AND "revokedAt" IS NULL
+    `;
+  }
+
+  private async issueTokenPair(user: UserEntity) {
+    const payload: JwtPayload = { sub: user.id, role: user.role };
+    const accessTokenExpiresIn = this.getAccessTokenTtlSeconds();
+
+    const accessToken = jwt.sign(payload, this.getJwtSecret(), {
+      expiresIn: accessTokenExpiresIn,
     });
+    const refreshToken = this.generateRefreshToken();
+    const refreshTokenExpiresIn = this.getRefreshTokenTtlSeconds();
+    const expiresAt = new Date(Date.now() + refreshTokenExpiresIn * 1000);
+    await this.saveRefreshToken(user.id, refreshToken, expiresAt);
 
     return {
-      accessToken: token,
+      accessToken,
+      refreshToken,
+      accessTokenExpiresIn,
+      refreshTokenExpiresIn,
     };
+  }
+
+  async login(user: UserEntity) {
+    return this.issueTokenPair(user);
+  }
+
+  async refresh(refreshToken: string) {
+    const tokenHash = this.hashRefreshToken(refreshToken);
+    const rows = (await this.prisma.$queryRaw<
+      Array<{ id: string; userId: string; expiresAt: Date; revokedAt: Date | null }>
+    >`
+      SELECT "id", "userId", "expiresAt", "revokedAt"
+      FROM "RefreshToken"
+      WHERE "tokenHash" = ${tokenHash}
+      LIMIT 1
+    `) ?? [];
+    const found = rows[0];
+    if (!found || found.revokedAt || found.expiresAt.getTime() <= Date.now()) {
+      throw new UnauthorizedException('Invalid refresh token');
+    }
+
+    const user = await this.usersService.findById(found.userId);
+    if (!user) {
+      throw new UnauthorizedException('Invalid refresh token');
+    }
+
+    await this.revokeRefreshToken(refreshToken);
+    return this.issueTokenPair(user);
+  }
+
+  async logout(refreshToken: string) {
+    await this.revokeRefreshToken(refreshToken);
+    return { ok: true };
   }
 
   verifyToken(token: string): JwtPayload {

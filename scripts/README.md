@@ -24,6 +24,10 @@ This folder contains one-time SQL patches, bootstrap SQL files, and utility scri
   - Legacy patch for old databases only.
   - New databases already get this table from the baseline schema/migration.
 
+- `supabase-add-refresh-tokens.sql`
+  - One-off patch for environments created before refresh token migration.
+  - Skip if `prisma migrate deploy` already applied migration `0002_auth_refresh_tokens`.
+
 ## Standard deploy flow (staging/prod)
 
 From `backend/`:

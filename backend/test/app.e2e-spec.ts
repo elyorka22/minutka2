@@ -38,4 +38,8 @@ describe('Smoke (e2e)', () => {
   it('POST /auth/login validates payload', () => {
     return request(app.getHttpServer()).post('/auth/login').send({}).expect(400);
   });
+
+  it('POST /auth/refresh validates payload', () => {
+    return request(app.getHttpServer()).post('/auth/refresh').send({}).expect(400);
+  });
 });

@@ -129,4 +129,8 @@ export class PrismaService implements OnModuleInit, OnModuleDestroy {
   $queryRaw<T = unknown>(query: TemplateStringsArray, ...values: any[]): Promise<T> {
     return (this.client as any).$queryRaw(query, ...values);
   }
+
+  $executeRaw(query: TemplateStringsArray, ...values: any[]): Promise<number> {
+    return (this.client as any).$executeRaw(query, ...values);
+  }
 }

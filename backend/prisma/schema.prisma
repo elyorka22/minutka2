@@ -31,6 +31,7 @@ model User {
   courier     Courier?
 
   pushSubscriptions PushSubscription[]
+  refreshTokens     RefreshToken[]
 }
 
 model Address {
@@ -306,6 +307,21 @@ model PartnershipApplication {
   businessType  String?
   details       String?
   contactMethod String?
+}
+
+model RefreshToken {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  tokenHash String   @unique
+  expiresAt DateTime
+  revokedAt DateTime?
+
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId String
+
+  @@index([userId])
+  @@index([expiresAt])
 }
 
 model PromoCode {
