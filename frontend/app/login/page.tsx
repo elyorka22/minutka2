@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { BackLink } from "../../components/BackLink";
 import { decodeJwtPayload } from "../../lib/jwt";
 import { adminApi } from "../../lib/adminApi";
+import { getAccessToken, setAuthTokens } from "../../lib/auth-tokens";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:4000";
 
@@ -14,7 +15,7 @@ export default function LoginPage() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [token, setToken] = useState<string | null>(
-    typeof window === "undefined" ? null : window.localStorage.getItem("token"),
+    typeof window === "undefined" ? null : getAccessToken(),
   );
   const [next, setNext] = useState<string | null>(null);
   const router = useRouter();
@@ -51,8 +52,12 @@ export default function LoginPage() {
         }
         throw new Error(msg);
       }
-      const data = (await res.json()) as { accessToken: string };
-      window.localStorage.setItem("token", data.accessToken);
+      const data = (await res.json()) as { accessToken: string; refreshToken?: string };
+      if (data.refreshToken) {
+        setAuthTokens({ accessToken: data.accessToken, refreshToken: data.refreshToken });
+      } else {
+        window.localStorage.setItem("token", data.accessToken);
+      }
       setToken(data.accessToken);
 
       const payload = decodeJwtPayload(data.accessToken);

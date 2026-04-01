@@ -1,21 +1,29 @@
+import { clearAuthTokens, getAccessToken, refreshAccessToken } from "./auth-tokens";
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:4000";
 
-function getAuthHeaders(): Record<string, string> {
-  if (typeof window === "undefined") return {};
-  const token = window.localStorage.getItem("token");
-  if (!token) return {};
-  return { Authorization: `Bearer ${token}` };
-}
-
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
-  const res = await fetch(`${API_BASE}${path}`, {
-    ...init,
-    headers: {
-      "Content-Type": "application/json",
-      ...(init?.headers || {}),
-    },
-    cache: "no-store",
-  });
+  const makeRequest = async (tokenOverride?: string | null) =>
+    fetch(`${API_BASE}${path}`, {
+      ...init,
+      headers: {
+        "Content-Type": "application/json",
+        ...(init?.headers || {}),
+        ...(tokenOverride ? { Authorization: `Bearer ${tokenOverride}` } : {}),
+      },
+      cache: "no-store",
+    });
+
+  let res = await makeRequest();
+  if (res.status === 401 && typeof window !== "undefined") {
+    const refreshed = await refreshAccessToken();
+    if (refreshed) {
+      res = await makeRequest(refreshed);
+    }
+  }
+
+  if (res.status === 401) {
+    clearAuthTokens();
+  }
 
   if (!res.ok) {
     let message = `Request failed: ${res.status}`;
@@ -31,11 +39,21 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
   return (await res.json()) as T;
 }
 
-function adminRequest<T>(path: string, init?: RequestInit): Promise<T> {
-  return request<T>(path, {
+async function requestWithAuth<T>(path: string, init?: RequestInit): Promise<T> {
+  const token = getAccessToken();
+  const withAuth: RequestInit = {
     ...init,
-    headers: { ...getAuthHeaders(), ...(init?.headers || {}) },
-  });
+    headers: {
+      "Content-Type": "application/json",
+      ...(init?.headers || {}),
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    },
+  };
+  return request<T>(path, withAuth);
+}
+
+function adminRequest<T>(path: string, init?: RequestInit): Promise<T> {
+  return requestWithAuth<T>(path, init);
 }
 
 export const adminApi = {
@@ -71,7 +89,7 @@ export const adminApi = {
   },
   getRestaurants: () => request<any>("/restaurants"),
   getMyRestaurants: () =>
-    request<any[]>("/admin/my-restaurants", { headers: getAuthHeaders() }),
+    requestWithAuth<any[]>("/admin/my-restaurants"),
   getRestaurantWithOrders: (id: string) => request<any>(`/restaurants/${id}`),
   getRestaurantOrders: (
     id: string,
@@ -135,15 +153,13 @@ export const adminApi = {
     status: "NEW" | "ACCEPTED" | "READY" | "ON_THE_WAY" | "DONE" | "CANCELLED",
     cancelReason?: string,
   ) =>
-    request<any>(`/orders/${id}/status`, {
+    requestWithAuth<any>(`/orders/${id}/status`, {
       method: "PATCH",
-      headers: getAuthHeaders(),
       body: JSON.stringify({ status, ...(cancelReason ? { cancelReason } : {}) }),
     }),
   updateUserRole: (id: string, role: string) =>
-    request<any>(`/admin/users/${id}/role`, {
+    requestWithAuth<any>(`/admin/users/${id}/role`, {
       method: "PATCH",
-      headers: getAuthHeaders(),
       body: JSON.stringify({ role }),
     }),
   deleteUser: (id: string) =>
@@ -241,7 +257,7 @@ export const adminApi = {
   uploadImage: async (file: File): Promise<{ url: string }> => {
     const formData = new FormData();
     formData.append("file", file);
-    const token = typeof window !== "undefined" ? window.localStorage.getItem("token") : null;
+    const token = getAccessToken();
     const res = await fetch(`${API_BASE}/admin/upload`, {
       method: "POST",
       headers: token ? { Authorization: `Bearer ${token}` } : {},

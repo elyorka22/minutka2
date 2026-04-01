@@ -6,6 +6,7 @@ import Link from "next/link";
 import { adminApi } from "../../lib/adminApi";
 import { imageUrl } from "../../lib/api";
 import { decodeJwtPayload } from "../../lib/jwt";
+import { clearAuthTokens, getAccessToken, logoutWithRefreshToken } from "../../lib/auth-tokens";
 type TabId =
   | "stats"
   | "users"
@@ -188,7 +189,7 @@ export default function PlatformAdminPage() {
 
   useEffect(() => {
     if (typeof window === "undefined") return;
-    const token = window.localStorage.getItem("token");
+    const token = getAccessToken();
     if (!token) {
       router.replace("/login?next=/platform-admin");
       setPlatformGate("redirected");
@@ -327,7 +328,7 @@ export default function PlatformAdminPage() {
       const looksForbidden =
         msg.includes("403") || /forbidden|only platform admin/i.test(msg);
       if (msg.includes("401")) {
-        if (typeof window !== "undefined") window.localStorage.removeItem("token");
+        clearAuthTokens();
         router.push("/login?next=/profile");
       } else if (looksForbidden) {
         router.push("/profile");
@@ -717,8 +718,8 @@ export default function PlatformAdminPage() {
               <button
                 type="button"
                 className="fd-admin-sidebar-back-link fd-admin-sidebar-logout"
-                onClick={() => {
-                  if (typeof window !== "undefined") window.localStorage.removeItem("token");
+                onClick={async () => {
+                  await logoutWithRefreshToken();
                   setTabsOpen(false);
                   router.push("/login?next=/platform-admin");
                 }}

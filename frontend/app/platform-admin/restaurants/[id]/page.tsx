@@ -6,6 +6,7 @@ import { adminApi } from "../../../../lib/adminApi";
 import { imageUrl } from "../../../../lib/api";
 import { BackLink } from "../../../../components/BackLink";
 import { decodeJwtPayload } from "../../../../lib/jwt";
+import { clearAuthTokens, getAccessToken } from "../../../../lib/auth-tokens";
 
 export default function PlatformAdminRestaurantMenuPage() {
   const params = useParams();
@@ -86,7 +87,7 @@ export default function PlatformAdminRestaurantMenuPage() {
   useEffect(() => {
     if (!id) return;
     if (typeof window === "undefined") return;
-    const token = window.localStorage.getItem("token");
+    const token = getAccessToken();
     if (!token) {
       router.replace("/login?next=/platform-admin/restaurants/" + id);
       setMenuGate("redirected");
@@ -141,9 +142,7 @@ export default function PlatformAdminRestaurantMenuPage() {
           msg.includes("403") ||
           /forbidden|only platform admin/i.test(msg);
         if (authFail) {
-          if (typeof window !== "undefined") {
-            window.localStorage.removeItem("token");
-          }
+          clearAuthTokens();
           router.push("/login?next=/platform-admin/restaurants/" + id);
           return;
         }

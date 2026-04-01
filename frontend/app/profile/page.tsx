@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { adminApi } from "../../lib/adminApi";
 import { API_BASE } from "../../lib/api";
 import { decodeJwtPayload, type JwtPayload } from "../../lib/jwt";
+import { getAccessToken, logoutWithRefreshToken } from "../../lib/auth-tokens";
 
 type MyRestaurant = { id: string; name: string };
 
@@ -23,7 +24,7 @@ export default function ProfilePage() {
 
   useEffect(() => {
     if (typeof window === "undefined") return;
-    const token = window.localStorage.getItem("token");
+    const token = getAccessToken();
     if (!token) return;
     setHasToken(true);
     setPayload(decodeJwtPayload(token));
@@ -195,7 +196,7 @@ export default function ProfilePage() {
       const controller = new AbortController();
       const fetchTimeoutId = setTimeout(() => controller.abort(), 15000);
       try {
-        const token = window.localStorage.getItem("token");
+        const token = getAccessToken();
         const headers: Record<string, string> = { "Content-Type": "application/json" };
         if (token) headers.Authorization = `Bearer ${token}`;
         const res = await fetch(`${API_BASE.replace(/\/$/, "")}/push/subscribe`, {
@@ -229,10 +230,8 @@ export default function ProfilePage() {
     }
   }
 
-  function handleLogout() {
-    if (typeof window !== "undefined") {
-      window.localStorage.removeItem("token");
-    }
+  async function handleLogout() {
+    await logoutWithRefreshToken();
     setHasToken(false);
     setPayload(null);
     setMyRestaurants([]);
