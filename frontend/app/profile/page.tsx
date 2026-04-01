@@ -18,6 +18,7 @@ export default function ProfilePage() {
   const [courierAccess, setCourierAccess] = useState(false);
   const [pushStatus, setPushStatus] = useState<string | null>(null);
   const [pushBusy, setPushBusy] = useState(false);
+  const [pushEnabled, setPushEnabled] = useState<boolean | null>(null);
   const router = useRouter();
 
   useEffect(() => {
@@ -69,6 +70,25 @@ export default function ProfilePage() {
       active = false;
     };
   }, [hasToken, payload?.role]);
+
+  useEffect(() => {
+    if (!hasToken) {
+      setPushEnabled(null);
+      return;
+    }
+    let active = true;
+    adminApi
+      .getMyPushStatus()
+      .then((s) => {
+        if (active) setPushEnabled(!!s?.subscribed);
+      })
+      .catch(() => {
+        if (active) setPushEnabled(false);
+      });
+    return () => {
+      active = false;
+    };
+  }, [hasToken]);
 
   const role = payload?.role;
   const roleLabel =
@@ -193,6 +213,7 @@ export default function ProfilePage() {
       }
 
       setPushStatus("Bildirishnomalar muvaffaqiyatli yoqildi.");
+      setPushEnabled(true);
     } catch (e: any) {
       if (e?.name === "AbortError") {
         setPushStatus("Server javob bermadi (timeout). API_BASE noto‘g‘ri bo‘lishi mumkin.");
@@ -287,6 +308,13 @@ export default function ProfilePage() {
 
       <section className="fd-profile-group">
         <div className="fd-profile-list">
+          <div className="fd-profile-item" aria-live="polite">
+            <span className="fd-profile-item-icon">📡</span>
+            <span className="fd-profile-item-label">
+              Push holati:{" "}
+              {pushEnabled === null ? "Noma'lum" : pushEnabled ? "Yoqilgan" : "O‘chiq"}
+            </span>
+          </div>
           <button type="button" className="fd-profile-item fd-profile-item-btn" onClick={handleEnablePush} disabled={pushBusy}>
             <span className="fd-profile-item-icon">🔔</span>
             <span className="fd-profile-item-label">{pushBusy ? "Yoqilmoqda…" : "Bildirishnomalarni yoqish"}</span>
