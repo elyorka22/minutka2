@@ -148,20 +148,6 @@ export default function ProfilePage() {
         10000,
         "Push obuna tekshiruvi javob bermadi."
       );
-      if (existing) {
-        // Existing subscriptions can become stale on some devices/browsers.
-        // Re-create subscription to force a fresh endpoint and keys.
-        setPushStatus("Eski push obunasi yangilanmoqda…");
-        try {
-          await withTimeout(
-            existing.unsubscribe(),
-            10000,
-            "Eski push obunasini o'chirishda xatolik yuz berdi."
-          );
-        } catch {
-          // ignore and continue with creating a new subscription
-        }
-      }
       const urlBase64ToUint8Array = (base64: string) => {
         const padding = "=".repeat((4 - (base64.length % 4)) % 4);
         const base64Safe = (base64 + padding).replace(/-/g, "+").replace(/_/g, "/");
@@ -173,15 +159,17 @@ export default function ProfilePage() {
         return output;
       };
 
-      setPushStatus("Push obunasi yaratilmoqda…");
-      const sub = await withTimeout(
-        reg.pushManager.subscribe({
-          userVisibleOnly: true,
-          applicationServerKey: urlBase64ToUint8Array(publicKey),
-        }),
-        20000,
-        "Push obunasi yaratilmayapti. Brauzer push-ni qo‘llamasligi mumkin."
-      );
+      const sub = existing
+        ? existing
+        : await withTimeout(
+            reg.pushManager.subscribe({
+              userVisibleOnly: true,
+              applicationServerKey: urlBase64ToUint8Array(publicKey),
+            }),
+            20000,
+            "Push obunasi yaratilmayapti. Brauzer push-ni qo‘llamasligi mumkin."
+          );
+      setPushStatus(existing ? "Mavjud obuna ishlatilmoqda…" : "Push obunasi yaratilmoqda…");
 
       setPushStatus("Serverga saqlanmoqda…");
       const controller = new AbortController();
@@ -233,7 +221,12 @@ export default function ProfilePage() {
   const isPlatformAdmin = role === "PLATFORM_ADMIN";
   const isRestaurantAdmin = role === "RESTAURANT_ADMIN";
   const isCourier = role === "COURIER" || courierAccess;
-  const displayName = payload?.email ? payload.email.split("@")[0] : "Mehmon foydalanuvchi";
+  const displayName =
+    hasToken && role
+      ? roleLabel
+      : payload?.email
+        ? payload.email.split("@")[0]
+        : "Mehmon foydalanuvchi";
   const adminAccess = isPlatformAdmin || isRestaurantAdmin || isCourier;
   const myMenuItems = [
     { icon: "📍", label: "Manzillarim", href: "/checkout" },
