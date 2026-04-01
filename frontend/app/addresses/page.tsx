@@ -1,14 +1,24 @@
 "use client";
 
 import Link from "next/link";
+import dynamic from "next/dynamic";
 import { FormEvent, useMemo, useState } from "react";
 import { BackLink } from "../../components/BackLink";
 import { getAccessToken } from "../../lib/auth-tokens";
+import { getApproxCityCenter } from "../../lib/map-defaults";
 import {
   addSavedAddressForCurrentUser,
   getSavedAddressesForCurrentUser,
   removeSavedAddressForCurrentUser,
 } from "../../lib/saved-addresses";
+
+const AddressMapPicker = dynamic(
+  () => import("../../components/CheckoutMapPicker").then((m) => m.CheckoutMapPicker),
+  {
+    ssr: false,
+    loading: () => <p className="fd-checkout-meta">Xarita yuklanmoqda…</p>,
+  },
+);
 
 export default function AddressesPage() {
   const hasToken = typeof window !== "undefined" && !!getAccessToken();
@@ -16,8 +26,9 @@ export default function AddressesPage() {
   const [city, setCity] = useState("Chust");
   const [street, setStreet] = useState("");
   const [details, setDetails] = useState("");
-  const [latitude, setLatitude] = useState("");
-  const [longitude, setLongitude] = useState("");
+  const [pickLat, setPickLat] = useState(() => getApproxCityCenter("Chust").lat);
+  const [pickLng, setPickLng] = useState(() => getApproxCityCenter("Chust").lng);
+  const [mapNonce, setMapNonce] = useState(0);
   const [phone, setPhone] = useState("");
   const [note, setNote] = useState<string | null>(null);
   const [tick, setTick] = useState(0);
@@ -31,17 +42,27 @@ export default function AddressesPage() {
     setTick((x) => x + 1);
   }
 
+  function applyCityCenterToMap() {
+    const c = getApproxCityCenter(city);
+    setPickLat(c.lat);
+    setPickLng(c.lng);
+    setMapNonce((n) => n + 1);
+  }
+
+  function setPickCoords(latitude: number, longitude: number) {
+    setPickLat(latitude);
+    setPickLng(longitude);
+  }
+
   function handleSubmit(e: FormEvent) {
     e.preventDefault();
     setNote(null);
-    const lat = Number(latitude);
-    const lng = Number(longitude);
     if (!label.trim() || !city.trim() || !street.trim()) {
       setNote("Nomi, shahar va ko‘cha to‘ldirilishi shart.");
       return;
     }
-    if (!Number.isFinite(lat) || !Number.isFinite(lng)) {
-      setNote("Koordinatalar noto‘g‘ri.");
+    if (!Number.isFinite(pickLat) || !Number.isFinite(pickLng)) {
+      setNote("Xaritada yetkazib berish nuqtasini belgilang.");
       return;
     }
     const created = addSavedAddressForCurrentUser({
@@ -49,8 +70,8 @@ export default function AddressesPage() {
       city: city.trim(),
       street: street.trim(),
       details: details.trim() || undefined,
-      latitude: lat,
-      longitude: lng,
+      latitude: pickLat,
+      longitude: pickLng,
       phone: phone.trim() || undefined,
     });
     if (!created) {
@@ -60,8 +81,6 @@ export default function AddressesPage() {
     setLabel("");
     setStreet("");
     setDetails("");
-    setLatitude("");
-    setLongitude("");
     setPhone("");
     refresh();
     setNote("Manzil saqlandi.");
@@ -93,7 +112,12 @@ export default function AddressesPage() {
         </label>
         <label className="fd-field">
           <span>Shahar</span>
-          <input value={city} onChange={(e) => setCity(e.target.value)} required />
+          <input
+            value={city}
+            onChange={(e) => setCity(e.target.value)}
+            onBlur={applyCityCenterToMap}
+            required
+          />
         </label>
         <label className="fd-field">
           <span>Ko‘cha/manzil</span>
@@ -103,15 +127,19 @@ export default function AddressesPage() {
           <span>Qo‘shimcha</span>
           <input value={details} onChange={(e) => setDetails(e.target.value)} />
         </label>
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
-          <label className="fd-field">
-            <span>Latitude</span>
-            <input value={latitude} onChange={(e) => setLatitude(e.target.value)} required />
-          </label>
-          <label className="fd-field">
-            <span>Longitude</span>
-            <input value={longitude} onChange={(e) => setLongitude(e.target.value)} required />
-          </label>
+        <div className="fd-field">
+          <span>Yetkazib berish nuqtasi (xarita)</span>
+          <p className="fd-checkout-meta" style={{ marginBottom: 8 }}>
+            Shahar o‘zgarganda xarita markazi yangilanadi. Nuqtani bosing yoki belgini sudrang — joylashuv
+            saqlanadi, raqamlarni kiritish shart emas.
+          </p>
+          <AddressMapPicker
+            key={mapNonce}
+            lat={pickLat}
+            lng={pickLng}
+            onChange={setPickCoords}
+            height={280}
+          />
         </div>
         <label className="fd-field">
           <span>Telefon (9 raqam, ixtiyoriy)</span>
@@ -135,9 +163,6 @@ export default function AddressesPage() {
               <strong>{a.label}</strong>
               <div className="fd-checkout-meta">
                 {a.street}, {a.city}
-              </div>
-              <div className="fd-checkout-meta">
-                {a.latitude.toFixed(6)}, {a.longitude.toFixed(6)}
               </div>
               {a.phone && <div className="fd-checkout-meta">+998{a.phone}</div>}
             </div>
