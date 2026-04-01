@@ -110,14 +110,12 @@ function OrderCard({
           ))}
         </ul>
         <div style={{ marginTop: 8, fontSize: "0.875rem", color: "var(--color-muted)" }}>
-          <span>Subtotal: {Number(o.subtotal ?? 0).toLocaleString()} so&apos;m</span>
-          {Number(o.deliveryFee ?? 0) > 0 && (
-            <span> · Yetkazib berish: {Number(o.deliveryFee).toLocaleString()} so&apos;m</span>
-          )}
-          {Number(o.serviceFee ?? 0) > 0 && (
-            <span> · Xizmat: {Number(o.serviceFee).toLocaleString()} so&apos;m</span>
-          )}
-          <div style={{ fontWeight: 600, marginTop: 4 }}>Jami: {Number(o.total).toLocaleString()} so&apos;m</div>
+          <div style={{ fontWeight: 600 }}>
+            Taomlar jami: {Number(o.subtotal ?? 0).toLocaleString()} so&apos;m
+          </div>
+          <div style={{ marginTop: 4 }}>
+            Platforma ulushi: {Number(o.serviceFee ?? 0).toLocaleString()} so&apos;m
+          </div>
         </div>
       </div>
       {addr && (
