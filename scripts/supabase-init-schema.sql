@@ -158,6 +158,7 @@ CREATE TABLE IF NOT EXISTS "Dish" (
 -- CreateTable
 CREATE TABLE IF NOT EXISTS "Order" (
     "id" TEXT NOT NULL,
+    "shortCode" INTEGER NOT NULL,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
     "status" "OrderStatus" NOT NULL DEFAULT 'NEW',
@@ -367,6 +368,9 @@ CREATE INDEX IF NOT EXISTS "Order_restaurantId_updatedAt_idx" ON "Order"("restau
 
 -- CreateIndex
 CREATE INDEX IF NOT EXISTS "Order_courierId_updatedAt_idx" ON "Order"("courierId", "updatedAt" DESC);
+
+-- CreateIndex
+CREATE UNIQUE INDEX IF NOT EXISTS "Order_shortCode_key" ON "Order"("shortCode");
 
 -- CreateIndex
 CREATE INDEX IF NOT EXISTS "OrderItem_orderId_idx" ON "OrderItem"("orderId");

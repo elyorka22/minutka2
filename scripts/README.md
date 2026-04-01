@@ -28,6 +28,10 @@ This folder contains one-time SQL patches, bootstrap SQL files, and utility scri
   - One-off patch for environments created before refresh token migration.
   - Skip if `prisma migrate deploy` already applied migration `0002_auth_refresh_tokens`.
 
+- `supabase-add-order-short-code.sql`
+  - One-off patch to add 4-digit unique order code (`shortCode`) for faster verbal coordination.
+  - Skip if migration `0003_order_short_code` is already applied.
+
 ## Standard deploy flow (staging/prod)
 
 From `backend/`:

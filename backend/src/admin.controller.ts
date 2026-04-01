@@ -239,6 +239,7 @@ export class AdminController {
       skip: offset,
       select: {
         id: true,
+        shortCode: true,
         status: true,
         total: true,
         createdAt: true,

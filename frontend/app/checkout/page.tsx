@@ -6,6 +6,8 @@ import { useCart } from "../../components/CartContext";
 import { BackLink } from "../../components/BackLink";
 import { api } from "../../lib/api";
 import { CHUST_DEFAULT_COORDS } from "../../lib/map-defaults";
+import { getAccessToken } from "../../lib/auth-tokens";
+import { getSavedAddressesForCurrentUser, type SavedAddress } from "../../lib/saved-addresses";
 
 const CheckoutMapPicker = dynamic(
   () => import("../../components/CheckoutMapPicker").then((m) => m.CheckoutMapPicker),
@@ -31,6 +33,8 @@ export default function CheckoutPage() {
   /** map — xaritada belgi; geo — brauzer geolokatsiyasi */
   const [addressMode, setAddressMode] = useState<"map" | "geo">("map");
   const [geoStatus, setGeoStatus] = useState<"idle" | "success" | "error">("idle");
+  const [savedAddresses, setSavedAddresses] = useState<SavedAddress[]>([]);
+  const [selectedSavedAddressId, setSelectedSavedAddressId] = useState("");
 
   const needRestaurant = items.length > 0 && !restaurantId;
 
@@ -68,6 +72,23 @@ export default function CheckoutPage() {
     }
   }, [addressMode]);
 
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    if (!getAccessToken()) {
+      setSavedAddresses([]);
+      return;
+    }
+    setSavedAddresses(getSavedAddressesForCurrentUser());
+  }, []);
+
+  const selectedSavedAddress = savedAddresses.find((x) => x.id === selectedSavedAddressId) ?? null;
+
+  useEffect(() => {
+    if (!selectedSavedAddress) return;
+    setCoords(selectedSavedAddress.latitude, selectedSavedAddress.longitude);
+    if (selectedSavedAddress.phone) setPhone(selectedSavedAddress.phone);
+  }, [selectedSavedAddressId]);
+
   /** «Xaritada belgi» tanlanganda xarita har doim shu shaharga (Chust) markazlanadi */
   useEffect(() => {
     if (addressMode === "map") {
@@ -86,14 +107,21 @@ export default function CheckoutPage() {
       setSubmitError("Avval «Mening joylashuvim» tugmasi orqali geolokatsiyani aniqlang.");
       return;
     }
-    const streetVal = addressMode === "map" ? STREET_FROM_MAP : STREET_FROM_GEO;
+    const streetVal = selectedSavedAddress
+      ? selectedSavedAddress.street
+      : addressMode === "map"
+        ? STREET_FROM_MAP
+        : STREET_FROM_GEO;
+    const cityVal = selectedSavedAddress?.city || "Chust";
+    const detailsVal = selectedSavedAddress?.details;
+    const finalPhone = selectedSavedAddress?.phone || phone;
     const latNum = Number(lat);
     const lngNum = Number(lng);
     if (!Number.isFinite(latNum) || !Number.isFinite(lngNum)) {
       setSubmitError("Manzil koordinatalari noto‘g‘ri.");
       return;
     }
-    if (phone.length !== 9) {
+    if (finalPhone.length !== 9) {
       setSubmitError("Telefon raqami 9 ta raqamdan iborat bo‘lishi kerak (+998 dan keyin).");
       return;
     }
@@ -103,13 +131,15 @@ export default function CheckoutPage() {
         restaurantId,
         address: {
           street: streetVal,
-          city: "Chust",
-          details: phone.length === 9 ? `Tel: +998${phone}` : undefined,
+          city: cityVal,
+          details:
+            `${detailsVal ? `${detailsVal}. ` : ""}${finalPhone.length === 9 ? `Tel: +998${finalPhone}` : ""}`.trim() ||
+            undefined,
           latitude: latNum,
           longitude: lngNum,
         },
         items: items.map((i) => ({ dishId: i.dish.id, quantity: i.quantity })),
-        comment: phone.length === 9 ? `Tel: +998${phone}` : undefined,
+        comment: finalPhone.length === 9 ? `Tel: +998${finalPhone}` : undefined,
         paymentMethod,
       });
       clear();
@@ -186,6 +216,23 @@ export default function CheckoutPage() {
             <form onSubmit={handleSubmit} className="fd-form">
               <div className="fd-field">
                 <span>Manzilni aniqlash</span>
+                {savedAddresses.length > 0 && (
+                  <div style={{ marginBottom: 10 }}>
+                    <label className="fd-checkout-meta">Saqlangan manzil (tez tanlash)</label>
+                    <select
+                      value={selectedSavedAddressId}
+                      onChange={(e) => setSelectedSavedAddressId(e.target.value)}
+                      style={{ width: "100%", marginTop: 6 }}
+                    >
+                      <option value="">Tanlanmagan</option>
+                      {savedAddresses.map((x) => (
+                        <option key={x.id} value={x.id}>
+                          {x.label} - {x.street}, {x.city}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                )}
                 <fieldset>
                   <div className="fd-radio-group">
                     <label>

@@ -134,6 +134,7 @@ function FullOrderCard({
   onDone: (id: string) => Promise<void>;
   onError: (msg: string) => void;
 }) {
+  const displayCode = o?.shortCode != null ? String(o.shortCode).padStart(4, "0") : String(o.id).slice(0, 4);
   const lat = o.address?.latitude;
   const lng = o.address?.longitude;
   const mapUrl =
@@ -150,7 +151,7 @@ function FullOrderCard({
     <div className="fd-card" style={{ padding: 14 }}>
       <div style={{ display: "flex", justifyContent: "space-between", gap: 8, flexWrap: "wrap" }}>
         <div>
-          <strong>#{String(o.id).slice(0, 8)}</strong>
+          <strong>#{displayCode}</strong>
           <span className="fd-checkout-meta" style={{ marginLeft: 8 }}>
             {o.status}
           </span>

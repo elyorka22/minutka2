@@ -249,11 +249,11 @@ export default function ProfilePage() {
         : "Mehmon foydalanuvchi";
   const adminAccess = isPlatformAdmin || isRestaurantAdmin || isCourier;
   const myMenuItems = [
-    { icon: "📍", label: "Manzillarim", href: "/checkout" },
+    { icon: "📍", label: "Manzillarim", href: "/addresses" },
   ];
   const serviceItems = [
     { icon: "🤝", label: "Hamkorlik", href: "/hamkorlik" },
-    { icon: "🎁", label: "Promokodlar", href: "/checkout" },
+    { icon: "🎁", label: "Promokodlar", href: "/promocodes" },
     { icon: "🎧", label: "Yordam", href: "/profile" },
   ];
 

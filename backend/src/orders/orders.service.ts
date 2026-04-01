@@ -41,6 +41,22 @@ export class OrdersService {
     return Math.min(Math.max(Math.trunc(raw), 7), 3650);
   }
 
+  private formatOrderCode(shortCode: number): string {
+    return String(shortCode).padStart(4, '0');
+  }
+
+  private async generateUniqueOrderShortCode(tx: any): Promise<number> {
+    for (let attempt = 0; attempt < 40; attempt++) {
+      const candidate = 1000 + Math.floor(Math.random() * 9000);
+      const exists = await tx.order.findUnique({
+        where: { shortCode: candidate },
+        select: { id: true },
+      });
+      if (!exists) return candidate;
+    }
+    throw new BadRequestException('Order short code generation failed');
+  }
+
   async create(customerId: string | null, dto: CreateOrderDto) {
     let userId =
       customerId ?? (await this.usersService.findOrCreateGuestUser(dto.clientKey));
@@ -97,29 +113,44 @@ export class OrdersService {
         },
       });
 
-      const order = await tx.order.create({
-        data: {
-          customerId: userId,
-          restaurantId: dto.restaurantId,
-          addressId: address.id,
-          comment: dto.comment,
-          subtotal,
-          deliveryFee,
-          serviceFee,
-          total,
-          items: {
-            create: dto.items.map((item) => {
-              const p = dishById.get(item.dishId);
-              return {
-                dishId: item.dishId,
-                quantity: item.quantity,
-                price: p ?? 0,
-              };
-            }),
-          },
-        },
-        select: { id: true, total: true },
-      });
+      let order: { id: string; total: any } | null = null;
+      for (let attempt = 0; attempt < 10; attempt++) {
+        const shortCode = await this.generateUniqueOrderShortCode(tx);
+        try {
+          order = await tx.order.create({
+            data: {
+              shortCode,
+              customerId: userId,
+              restaurantId: dto.restaurantId,
+              addressId: address.id,
+              comment: dto.comment,
+              subtotal,
+              deliveryFee,
+              serviceFee,
+              total,
+              items: {
+                create: dto.items.map((item) => {
+                  const p = dishById.get(item.dishId);
+                  return {
+                    dishId: item.dishId,
+                    quantity: item.quantity,
+                    price: p ?? 0,
+                  };
+                }),
+              },
+            },
+            select: { id: true, total: true },
+          });
+          break;
+        } catch (e: any) {
+          const isUniqueConflict =
+            e?.code === 'P2002' &&
+            Array.isArray(e?.meta?.target) &&
+            e.meta.target.includes('shortCode');
+          if (!isUniqueConflict) throw e;
+        }
+      }
+      if (!order) throw new BadRequestException('Order short code generation failed');
 
       if (dto.paymentMethod === 'CARD') {
         await tx.payment.create({
@@ -140,6 +171,7 @@ export class OrdersService {
       where: { id: created.orderId },
       select: {
         id: true,
+        shortCode: true,
         total: true,
         createdAt: true,
         items: {
@@ -205,7 +237,7 @@ export class OrdersService {
 
       void this.sendPushToUserIds(adminUserIds, {
         title: 'Minutka',
-        message: `Yangi buyurtma #${order.id.slice(0, 8)}`,
+        message: `Yangi buyurtma #${this.formatOrderCode(order.shortCode)}`,
         url: `/restaurant-admin/${dto.restaurantId}`,
       }).catch((e) => {
         // eslint-disable-next-line no-console
@@ -345,7 +377,7 @@ export class OrdersService {
     return { subscriptionsFound: subs.length, success, failed };
   }
 
-  private async notifyAllCouriersReady(orderId: string, restaurantName?: string) {
+  private async notifyAllCouriersReady(orderCode: string, restaurantName?: string) {
     // Use users with role COURIER instead of Courier table,
     // otherwise couriers won't receive notifications until they open their panel.
     const courierUsers = await this.prisma.user.findMany({
@@ -355,13 +387,13 @@ export class OrdersService {
     const courierUserIds = courierUsers.map((u) => u.id);
     await this.sendPushToUserIds(courierUserIds, {
       title: 'Minutka',
-      message: `${restaurantName ? restaurantName + ': ' : ''}yangi READY buyurtma #${orderId.slice(0, 8)}`,
+      message: `${restaurantName ? restaurantName + ': ' : ''}yangi READY buyurtma #${orderCode}`,
       url: '/courier',
     });
   }
 
   private async notifyOtherCouriersOrderTaken(
-    orderId: string,
+    orderCode: string,
     takenByCourierUserId: string,
     restaurantName?: string,
   ) {
@@ -374,15 +406,15 @@ export class OrdersService {
       .filter((id: string) => id && id !== takenByCourierUserId);
     await this.sendPushToUserIds(courierUserIds, {
       title: 'Minutka',
-      message: `${restaurantName ? restaurantName + ': ' : ''}buyurtma allaqachon olindi #${orderId.slice(0, 8)}`,
+      message: `${restaurantName ? restaurantName + ': ' : ''}buyurtma allaqachon olindi #${orderCode}`,
       url: '/courier',
     });
   }
 
-  private async notifyCustomerOnTheWay(customerId: string, orderId: string) {
+  private async notifyCustomerOnTheWay(customerId: string, orderCode: string) {
     await this.sendPushToUserIds([customerId], {
       title: 'Minutka',
-      message: `Buyurtmangiz yo‘lda (#${orderId.slice(0, 8)})`,
+      message: `Buyurtmangiz yo‘lda (#${orderCode})`,
       url: '/profile',
     });
   }
@@ -448,7 +480,7 @@ export class OrdersService {
     });
 
     await this.notifyOtherCouriersOrderTaken(
-      orderId,
+      this.formatOrderCode((takenOrder as any)?.shortCode ?? 0),
       courierUserId,
       (takenOrder as any)?.restaurant?.name,
     );
@@ -465,7 +497,7 @@ export class OrdersService {
   ) {
     const order = await this.prisma.order.findUnique({
       where: { id },
-      select: { id: true, status: true, restaurantId: true, courierId: true, customerId: true },
+      select: { id: true, shortCode: true, status: true, restaurantId: true, courierId: true, customerId: true },
     });
 
     if (!order) throw new BadRequestException('Order not found');
@@ -545,11 +577,11 @@ export class OrdersService {
         where: { id: order!.restaurantId },
         select: { name: true },
       });
-      void this.notifyAllCouriersReady(id, restaurant?.name).catch(() => {});
+      void this.notifyAllCouriersReady(this.formatOrderCode(order.shortCode), restaurant?.name).catch(() => {});
     }
 
     if (status === 'ON_THE_WAY' && order?.customerId) {
-      void this.notifyCustomerOnTheWay(order.customerId, id).catch(() => {});
+      void this.notifyCustomerOnTheWay(order.customerId, this.formatOrderCode(order.shortCode)).catch(() => {});
     }
 
     return this.prisma.order.findUnique({

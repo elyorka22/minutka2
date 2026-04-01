@@ -17,6 +17,7 @@ function OrderCard({
   onArchive?: (order: any) => void;
   showStatusButtons?: boolean;
 }) {
+  const displayCode = o?.shortCode != null ? String(o.shortCode).padStart(4, "0") : String(o.id).slice(0, 4);
   const addr = o.address;
   const hasCoords =
     addr &&
@@ -41,7 +42,7 @@ function OrderCard({
         }}
       >
         <div>
-          <strong>#{o.id.slice(0, 8)}</strong>
+          <strong>#{displayCode}</strong>
           <span style={{ marginLeft: 8, fontSize: "0.875rem", color: "var(--color-muted)" }}>{o.status}</span>
         </div>
         {showStatusButtons && onStatusChange && (
