@@ -1,3 +1,8 @@
+-- Legacy one-off script for old environments.
+-- New environments already include this table in:
+--   scripts/supabase-init-schema.sql
+--   backend/prisma/migrations/0001_init/migration.sql
+
 CREATE TABLE IF NOT EXISTS "PartnershipApplication" (
     "id" TEXT NOT NULL,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,

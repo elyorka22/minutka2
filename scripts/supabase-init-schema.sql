@@ -1,13 +1,14 @@
 -- Minutka2 / Prisma schema — полная схема для пустой БД (PostgreSQL / Supabase).
--- Совпадает с backend/prisma/schema.prisma (сгенерировано: prisma migrate diff --from-empty --to-schema).
+-- Baseline-скрипт, синхронизированный с backend/prisma/migrations/0001_init/migration.sql.
 --
 -- Как применить в Supabase: SQL Editor → New query → вставить весь файл → Run.
--- Альтернатива (предпочтительно для синхронизации с кодом):
---   cd backend && DATABASE_URL="<supabase-direct>" npx prisma db push
+-- Для действующих окружений далее используйте Prisma Migrate:
+--   cd backend && npx prisma migrate deploy
+-- Подробный процесс: backend/MIGRATIONS.md
 --
 -- Idempotent: ENUM, jadval, indeks va FK mavjud bo‘lsa qayta yaratilmaydi.
 -- Eslatma: agar jadval allaqachon eski sxemada bo‘lsa, bu skript uni yangilamaydi —
--- yangi ustunlar uchun alohida SQL yoki `prisma db push` ishlating.
+-- yangi ustunlar uchun yangi migration yarating.
 
 -- CreateSchema
 CREATE SCHEMA IF NOT EXISTS "public";
