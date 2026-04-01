@@ -35,7 +35,7 @@ describe('Smoke (e2e)', () => {
     return request(app.getHttpServer()).get('/admin/overview').expect(401);
   });
 
-  it('GET /unknown-smoke-route returns 404', () => {
-    return request(app.getHttpServer()).get('/unknown-smoke-route').expect(404);
+  it('POST /auth/login validates payload', () => {
+    return request(app.getHttpServer()).post('/auth/login').send({}).expect(400);
   });
 });
