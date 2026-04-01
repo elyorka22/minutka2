@@ -31,6 +31,16 @@ function PoolOrderCard({
 }) {
   const name = o.restaurant?.name ?? "Restoran";
   const total = formatSum(Number(o.total));
+  const lat = o.address?.latitude;
+  const lng = o.address?.longitude;
+  const mapUrl =
+    typeof lat === "number" && typeof lng === "number"
+      ? `https://www.google.com/maps?q=${lat},${lng}`
+      : o.address?.street
+        ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(
+            [o.address.street, o.address.city].filter(Boolean).join(", "),
+          )}`
+        : null;
 
   return (
     <div className="fd-card" style={{ padding: 14 }}>
@@ -85,6 +95,17 @@ function PoolOrderCard({
         >
           Tugatildi
         </button>
+      )}
+      {!!o.courierId && mapUrl && (
+        <a
+          href={mapUrl}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="fd-btn"
+          style={{ width: "100%", marginTop: 8, display: "inline-block", textDecoration: "none" }}
+        >
+          Xaritani ochish
+        </a>
       )}
       <div style={{ marginTop: 10, fontWeight: 700, color: "var(--color-muted)" }}>{total}</div>
     </div>
