@@ -45,11 +45,12 @@ function OrderCard({
           <span style={{ marginLeft: 8, fontSize: "0.875rem", color: "var(--color-muted)" }}>{o.status}</span>
         </div>
         {showStatusButtons && onStatusChange && (
-          <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+          <div style={{ display: "flex", gap: 6, flexWrap: "wrap", justifyContent: "flex-end" }}>
             {o.status === "NEW" && (
               <button
                 className="fd-btn fd-btn-primary"
                 type="button"
+                style={{ fontSize: "0.82rem", padding: "6px 10px", lineHeight: 1.2 }}
                 onClick={() => onStatusChange(o.id, "ACCEPTED")}
               >
                 Qabul qilish
@@ -59,6 +60,7 @@ function OrderCard({
               <button
                 className="fd-btn fd-btn-primary"
                 type="button"
+                style={{ fontSize: "0.82rem", padding: "6px 10px", lineHeight: 1.2 }}
                 onClick={() => onStatusChange(o.id, "READY")}
               >
                 Tayyor
@@ -66,16 +68,21 @@ function OrderCard({
             )}
 
             {o.status === "READY" && (
-              <span className="fd-checkout-meta">Kuryer kutyapti</span>
+              <span className="fd-checkout-meta" style={{ width: "100%", textAlign: "right", fontSize: "0.78rem" }}>
+                Kuryer kutyapti
+              </span>
             )}
             {o.status === "ON_THE_WAY" && (
-              <span className="fd-checkout-meta">Yo‘lda</span>
+              <span className="fd-checkout-meta" style={{ width: "100%", textAlign: "right", fontSize: "0.78rem" }}>
+                Yo‘lda
+              </span>
             )}
 
             {o.status !== "CANCELLED" && o.status !== "DONE" && (
               <button
                 className="fd-btn fd-btn--secondary"
                 type="button"
+                style={{ fontSize: "0.82rem", padding: "6px 10px", lineHeight: 1.2 }}
                 onClick={() => {
                   const reason = prompt("Bekor qilish sababi?");
                   if (!reason) return;
@@ -89,6 +96,7 @@ function OrderCard({
               <button
                 className="fd-btn"
                 type="button"
+                style={{ fontSize: "0.82rem", padding: "6px 10px", lineHeight: 1.2 }}
                 onClick={() => onArchive(o)}
               >
                 Arxivga
