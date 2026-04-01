@@ -44,6 +44,31 @@ export class UsersService {
     });
   }
 
+  async findSafeById(id: string): Promise<{
+    id: string;
+    createdAt: Date;
+    updatedAt: Date;
+    email: string;
+    phone: string | null;
+    name: string;
+    role: string;
+    status: string;
+  } | null> {
+    return this.prisma.user.findUnique({
+      where: { id },
+      select: {
+        id: true,
+        createdAt: true,
+        updatedAt: true,
+        email: true,
+        phone: true,
+        name: true,
+        role: true,
+        status: true,
+      },
+    }) as any;
+  }
+
   private static readonly GUEST_EMAIL = 'guest@minutka.local';
 
   private guestEmailForClientKey(clientKey?: string): string {
