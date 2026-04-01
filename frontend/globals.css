@@ -959,7 +959,7 @@ body {
 .fd-card--dish .fd-card-media {
   aspect-ratio: 1 / 1;
   overflow: hidden;
-  background: var(--fd-bg-2, #f5f5f5);
+  background: #fff;
 }
 
 .fd-card--dish .fd-card-image {
