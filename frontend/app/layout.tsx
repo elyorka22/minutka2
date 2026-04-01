@@ -180,7 +180,7 @@ function BottomBar() {
         className={`fd-bottom-item ${activeKey === "supermarkets" ? "fd-bottom-item--active" : ""}`}
         aria-current={activeKey === "supermarkets" ? "page" : undefined}
       >
-        <span className="fd-bottom-icon material-symbols-rounded">store</span>
+        <span className="fd-bottom-icon material-symbols-rounded">storefront</span>
         <span className="fd-bottom-label">Do‘konlar</span>
       </Link>
       <Link
