@@ -135,9 +135,6 @@ export default function LoginPage() {
           </Link>
         </p>
       </form>
-      <p className="fd-checkout-meta" style={{ marginTop: 16, maxWidth: 360, fontSize: "0.875rem" }}>
-        Agar brauzer &quot;parol oshkor bo‘lgan&quot; deb ogohlantirsa — bu Google xabari. Parolni <strong>OK</strong> dan keyin kirish ishlashi mumkin; yoki maxfiy rejimda / boshqa brauzerda kirib ko‘ring. Yangi parol o‘rnatish uchun platforma adminiga murojaat qiling.
-      </p>
     </div>
   );
 }
