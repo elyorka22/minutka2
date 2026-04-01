@@ -236,9 +236,7 @@ export default function ProfilePage() {
   const displayName = payload?.email ? payload.email.split("@")[0] : "Mehmon foydalanuvchi";
   const adminAccess = isPlatformAdmin || isRestaurantAdmin || isCourier;
   const myMenuItems = [
-    { icon: "📦", label: "Buyurtmalarim", href: "/checkout" },
     { icon: "📍", label: "Manzillarim", href: "/checkout" },
-    { icon: "💳", label: "To'lovlar", href: "/checkout" },
   ];
   const serviceItems = [
     { icon: "🎁", label: "Promokodlar", href: "/checkout" },
@@ -283,7 +281,6 @@ export default function ProfilePage() {
       </section>
 
       <section className="fd-profile-group">
-        <h2 className="fd-profile-group-title">Xizmatlar</h2>
         <div className="fd-profile-list">
           {serviceItems.map((item) => (
             <Link key={item.label} href={item.href} className="fd-profile-item">
@@ -296,7 +293,6 @@ export default function ProfilePage() {
       </section>
 
       <section className="fd-profile-group">
-        <h2 className="fd-profile-group-title">Xavfsizlik va ilova</h2>
         <div className="fd-profile-list">
           <button type="button" className="fd-profile-item fd-profile-item-btn" onClick={handleEnablePush} disabled={pushBusy}>
             <span className="fd-profile-item-icon">🔔</span>
