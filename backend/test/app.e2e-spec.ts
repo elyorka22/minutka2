@@ -4,10 +4,10 @@ import request from 'supertest';
 import { App } from 'supertest/types';
 import { AppModule } from './../src/app.module';
 
-describe('AppController (e2e)', () => {
+describe('Smoke (e2e)', () => {
   let app: INestApplication<App>;
 
-  beforeEach(async () => {
+  beforeAll(async () => {
     const moduleFixture: TestingModule = await Test.createTestingModule({
       imports: [AppModule],
     }).compile();
@@ -16,10 +16,26 @@ describe('AppController (e2e)', () => {
     await app.init();
   });
 
-  it('/ (GET)', () => {
+  afterAll(async () => {
+    await app.close();
+  });
+
+  it('GET / returns basic service response', () => {
     return request(app.getHttpServer())
       .get('/')
       .expect(200)
       .expect('Hello World!');
+  });
+
+  it('GET /users/:id rejects anonymous access', () => {
+    return request(app.getHttpServer()).get('/users/smoke-user-id').expect(401);
+  });
+
+  it('GET /admin/overview rejects anonymous access', () => {
+    return request(app.getHttpServer()).get('/admin/overview').expect(401);
+  });
+
+  it('GET /unknown-smoke-route returns 404', () => {
+    return request(app.getHttpServer()).get('/unknown-smoke-route').expect(404);
   });
 });
