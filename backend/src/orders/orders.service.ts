@@ -34,6 +34,13 @@ export class OrdersService {
     }
   }
 
+  private getArchiveRetentionDays(): number {
+    const raw = Number(process.env.ARCHIVE_RETENTION_DAYS ?? 30);
+    if (!Number.isFinite(raw)) return 30;
+    // Reasonable safety bounds: keep at least a week, cap at 10 years.
+    return Math.min(Math.max(Math.trunc(raw), 7), 3650);
+  }
+
   async create(customerId: string | null, dto: CreateOrderDto) {
     let userId =
       customerId ?? (await this.usersService.findOrCreateGuestUser(dto.clientKey));
@@ -77,39 +84,60 @@ export class OrdersService {
     const serviceFee = Math.round(subtotal * serviceFeeRate * 100) / 100;
     const total = Math.round((subtotal + deliveryFee + serviceFee) * 100) / 100;
 
-    const address = await this.prisma.address.create({
-      data: {
-        userId,
-        label: dto.address.label,
-        street: dto.address.street,
-        city: dto.address.city,
-        details: dto.address.details,
-        latitude: dto.address.latitude,
-        longitude: dto.address.longitude,
-      },
+    const created = await this.prisma.transaction(async (tx) => {
+      const address = await tx.address.create({
+        data: {
+          userId,
+          label: dto.address.label,
+          street: dto.address.street,
+          city: dto.address.city,
+          details: dto.address.details,
+          latitude: dto.address.latitude,
+          longitude: dto.address.longitude,
+        },
+      });
+
+      const order = await tx.order.create({
+        data: {
+          customerId: userId,
+          restaurantId: dto.restaurantId,
+          addressId: address.id,
+          comment: dto.comment,
+          subtotal,
+          deliveryFee,
+          serviceFee,
+          total,
+          items: {
+            create: dto.items.map((item) => {
+              const p = dishById.get(item.dishId);
+              return {
+                dishId: item.dishId,
+                quantity: item.quantity,
+                price: p ?? 0,
+              };
+            }),
+          },
+        },
+        select: { id: true, total: true },
+      });
+
+      if (dto.paymentMethod === 'CARD') {
+        await tx.payment.create({
+          data: {
+            orderId: order.id,
+            provider: 'demo',
+            amount: order.total,
+            method: 'CARD',
+            status: 'SUCCEEDED',
+          },
+        });
+      }
+
+      return { orderId: order.id };
     });
 
-    const order = await this.prisma.order.create({
-      data: {
-        customerId: userId,
-        restaurantId: dto.restaurantId,
-        addressId: address.id,
-        comment: dto.comment,
-        subtotal,
-        deliveryFee,
-        serviceFee,
-        total,
-        items: {
-          create: dto.items.map((item) => {
-            const p = dishById.get(item.dishId);
-            return {
-              dishId: item.dishId,
-              quantity: item.quantity,
-              price: p ?? 0,
-            };
-          }),
-        },
-      },
+    const order = await this.prisma.order.findUnique({
+      where: { id: created.orderId },
       select: {
         id: true,
         total: true,
@@ -137,6 +165,9 @@ export class OrdersService {
         customer: { select: { name: true } },
       },
     });
+    if (!order) {
+      throw new BadRequestException('Order creation failed');
+    }
 
     const notifyUrl = process.env.TELEGRAM_BOT_NOTIFY_URL;
       const chatId = (restaurant as any).telegramChatId;
@@ -188,18 +219,6 @@ export class OrdersService {
       console.error('[push] restaurant-admins NEW order failed', {
         restaurantId: dto.restaurantId,
         error: e?.message ?? String(e),
-      });
-    }
-
-    if (dto.paymentMethod === 'CARD') {
-      await this.prisma.payment.create({
-        data: {
-          orderId: order.id,
-          provider: 'demo',
-          amount: order.total,
-          method: 'CARD',
-          status: 'SUCCEEDED',
-        },
       });
     }
 
@@ -724,8 +743,9 @@ export class OrdersService {
   }
 
   async deleteOrdersOlderThanDays(days: number): Promise<number> {
+    const safeDays = Math.min(Math.max(Math.trunc(days), 7), 3650);
     const cutoff = new Date();
-    cutoff.setDate(cutoff.getDate() - days);
+    cutoff.setDate(cutoff.getDate() - safeDays);
     const old = await this.prisma.order.findMany({
       where: { createdAt: { lt: cutoff } },
       select: { id: true },
@@ -751,9 +771,10 @@ export class OrdersService {
   }
 
   async findArchiveForRestaurant(restaurantId: string) {
-    this.scheduleArchiveCleanup(3);
+    const retentionDays = this.getArchiveRetentionDays();
+    this.scheduleArchiveCleanup(retentionDays);
     const since = new Date();
-    since.setDate(since.getDate() - 3);
+    since.setDate(since.getDate() - retentionDays);
     return this.prisma.order.findMany({
       where: {
         restaurantId,
