@@ -200,6 +200,31 @@ export const adminApi = {
     }),
   getMyPushStatus: () =>
     adminRequest<{ subscribed: boolean; count: number }>("/push/me"),
+  createPartnershipApplication: (body: {
+    name: string;
+    phone: string;
+    businessName: string;
+    businessType?: string;
+    details?: string;
+    contactMethod?: string;
+  }) =>
+    request<{ ok: boolean; id: string }>("/partnership/applications", {
+      method: "POST",
+      body: JSON.stringify(body),
+    }),
+  getPartnershipApplications: () =>
+    adminRequest<
+      Array<{
+        id: string;
+        createdAt: string;
+        name: string;
+        phone: string;
+        businessName: string;
+        businessType?: string | null;
+        details?: string | null;
+        contactMethod?: string | null;
+      }>
+    >("/admin/partnership-applications"),
   getPushSubscribersCustomers: () =>
     adminRequest<Array<{
       id: string;

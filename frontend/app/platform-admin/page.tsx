@@ -13,6 +13,7 @@ type TabId =
   | "supermarkets"
   | "restaurant-stats"
   | "visits"
+  | "applications"
   | "settings"
   | "push";
 
@@ -114,6 +115,19 @@ export default function PlatformAdminPage() {
     ordersCount: number;
   }>>([]);
   const [pushSubscribersLoading, setPushSubscribersLoading] = useState(false);
+  const [partnershipApplications, setPartnershipApplications] = useState<
+    Array<{
+      id: string;
+      createdAt: string;
+      name: string;
+      phone: string;
+      businessName: string;
+      businessType?: string | null;
+      details?: string | null;
+      contactMethod?: string | null;
+    }>
+  >([]);
+  const [partnershipApplicationsLoading, setPartnershipApplicationsLoading] = useState(false);
   const router = useRouter();
   const [platformGate, setPlatformGate] = useState<"checking" | "allowed" | "redirected">(
     "checking",
@@ -244,6 +258,16 @@ export default function PlatformAdminPage() {
       .then((list) => setPushSubscribersCustomers(Array.isArray(list) ? list : []))
       .catch(() => setPushSubscribersCustomers([]))
       .finally(() => setPushSubscribersLoading(false));
+  }, [activeTab]);
+
+  useEffect(() => {
+    if (activeTab !== "applications") return;
+    setPartnershipApplicationsLoading(true);
+    adminApi
+      .getPartnershipApplications()
+      .then((list) => setPartnershipApplications(Array.isArray(list) ? list : []))
+      .catch(() => setPartnershipApplications([]))
+      .finally(() => setPartnershipApplicationsLoading(false));
   }, [activeTab]);
 
   useEffect(() => {
@@ -628,6 +652,7 @@ export default function PlatformAdminPage() {
     { id: "supermarkets", label: "Supermarketlar" },
     { id: "restaurant-stats", label: "Statistika restoranlar" },
     { id: "visits", label: "Tashrifchilar" },
+    { id: "applications", label: "Arizalar" },
     { id: "push", label: "Push xabar yuborish" },
     { id: "settings", label: "Sozlamalar" },
   ];
@@ -1597,6 +1622,42 @@ export default function PlatformAdminPage() {
                     {pushSending ? "Yuborilmoqda…" : "Yuborish"}
                   </button>
                 </form>
+              </section>
+            </div>
+
+            <div
+              className={`fd-admin-panel ${activeTab === "applications" ? "fd-admin-panel-active" : ""}`}
+            >
+              <section>
+                <h2>Hamkorlik arizalari</h2>
+                {partnershipApplicationsLoading && <p>Yuklanmoqda...</p>}
+                {!partnershipApplicationsLoading && partnershipApplications.length === 0 && (
+                  <p className="fd-empty">Hozircha arizalar yo&apos;q.</p>
+                )}
+                {!partnershipApplicationsLoading &&
+                  partnershipApplications.map((a) => (
+                    <div key={a.id} className="fd-card" style={{ padding: 12, marginTop: 10 }}>
+                      <div style={{ fontWeight: 700 }}>{a.businessName}</div>
+                      <div className="fd-checkout-meta">
+                        {a.name} · {a.phone}
+                      </div>
+                      {(a.businessType || a.contactMethod) && (
+                        <div className="fd-checkout-meta" style={{ marginTop: 4 }}>
+                          {a.businessType ? `Turi: ${a.businessType}` : ""}
+                          {a.businessType && a.contactMethod ? " · " : ""}
+                          {a.contactMethod ? `Bog'lanish: ${a.contactMethod}` : ""}
+                        </div>
+                      )}
+                      {a.details && (
+                        <p className="fd-checkout-meta" style={{ marginTop: 6 }}>
+                          {a.details}
+                        </p>
+                      )}
+                      <div className="fd-checkout-meta" style={{ marginTop: 6 }}>
+                        {new Date(a.createdAt).toLocaleString()}
+                      </div>
+                    </div>
+                  ))}
               </section>
             </div>
 

@@ -296,6 +296,18 @@ model PushSubscription {
   @@index([userId])
 }
 
+model PartnershipApplication {
+  id            String   @id @default(cuid())
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  name          String
+  phone         String
+  businessName  String
+  businessType  String?
+  details       String?
+  contactMethod String?
+}
+
 model PromoCode {
   id        String   @id @default(cuid())
   createdAt DateTime @default(now())

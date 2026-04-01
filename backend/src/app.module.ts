@@ -19,6 +19,7 @@ import { CacheModule } from './cache.module';
 import { HomepageModule } from './homepage/homepage.module';
 import { HealthController } from './health/health.controller';
 import { StorageService } from './storage/storage.service';
+import { PartnershipController } from './partnership.controller';
 
 @Module({
   imports: [
@@ -51,6 +52,7 @@ import { StorageService } from './storage/storage.service';
     BannersController,
     ProductCategoriesController,
     PushController,
+    PartnershipController,
     HealthController,
   ],
   providers: [AppService, StorageService],

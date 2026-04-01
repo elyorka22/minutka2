@@ -284,6 +284,25 @@ export class AdminController {
     }));
   }
 
+  @Get('partnership-applications')
+  async getPartnershipApplications(@Req() req: RequestWithUser) {
+    this.assertPlatformAdmin(req);
+    return this.prisma.partnershipApplication.findMany({
+      orderBy: { createdAt: 'desc' },
+      take: 500,
+      select: {
+        id: true,
+        createdAt: true,
+        name: true,
+        phone: true,
+        businessName: true,
+        businessType: true,
+        details: true,
+        contactMethod: true,
+      },
+    });
+  }
+
   @Patch('users/:id/role')
   async updateUserRole(
     @Param('id') id: string,

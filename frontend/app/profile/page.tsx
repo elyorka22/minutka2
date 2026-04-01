@@ -253,6 +253,7 @@ export default function ProfilePage() {
     { icon: "📍", label: "Manzillarim", href: "/checkout" },
   ];
   const serviceItems = [
+    { icon: "🤝", label: "Hamkorlik", href: "/hamkorlik" },
     { icon: "🎁", label: "Promokodlar", href: "/checkout" },
     { icon: "🎧", label: "Yordam", href: "/profile" },
   ];
@@ -308,13 +309,6 @@ export default function ProfilePage() {
 
       <section className="fd-profile-group">
         <div className="fd-profile-list">
-          <div className="fd-profile-item" aria-live="polite">
-            <span className="fd-profile-item-icon">📡</span>
-            <span className="fd-profile-item-label">
-              Push holati:{" "}
-              {pushEnabled === null ? "Noma'lum" : pushEnabled ? "Yoqilgan" : "O‘chiq"}
-            </span>
-          </div>
           <button type="button" className="fd-profile-item fd-profile-item-btn" onClick={handleEnablePush} disabled={pushBusy}>
             <span className="fd-profile-item-icon">🔔</span>
             <span className="fd-profile-item-label">{pushBusy ? "Yoqilmoqda…" : "Bildirishnomalarni yoqish"}</span>
