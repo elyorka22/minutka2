@@ -1,4 +1,4 @@
-import { BadRequestException, Body, Controller, ForbiddenException, Get, Param, Patch, Post, Query, Req, UseGuards } from '@nestjs/common';
+import { BadRequestException, Body, Controller, ForbiddenException, Get, HttpCode, Logger, Param, Patch, Post, Query, Req, UseGuards } from '@nestjs/common';
 import { Throttle, ThrottlerGuard } from '@nestjs/throttler';
 import { OrdersService } from './orders.service';
 import { CreateOrderDto } from './dto/create-order.dto';
@@ -8,8 +8,15 @@ import { AuthService } from '../auth/auth.service';
 import { PrismaService } from '../prisma.service';
 import { OrdersQueue } from './orders.queue';
 
+function isTruthyEnv(v: unknown): boolean {
+  if (typeof v !== 'string') return false;
+  const s = v.trim().toLowerCase();
+  return s === 'true' || s === '1' || s === 'yes' || s === 'y';
+}
+
 @Controller('orders')
 export class OrdersController {
+  private readonly logger = new Logger(OrdersController.name);
   constructor(
     private readonly ordersService: OrdersService,
     private readonly authService: AuthService,
@@ -17,6 +24,7 @@ export class OrdersController {
   ) {}
 
   @Post()
+  @HttpCode(200)
   @UseGuards(ThrottlerGuard)
   @Throttle({
     default: {
@@ -38,9 +46,11 @@ export class OrdersController {
       }
     }
     try {
-      const queueEnabled = process.env.ORDERS_QUEUE_ENABLED === 'true';
+      const queueEnabled = isTruthyEnv(process.env.ORDERS_QUEUE_ENABLED);
       if (queueEnabled) {
+        this.logger.log(`[orders.create] QUEUE USED restaurantId=${dto.restaurantId}`);
         const queued = await this.ordersQueue.enqueueCreateOrder({ customerId, dto });
+        this.logger.log(`[orders.create] queued jobId=${queued.jobId}`);
         ok = true;
         return { status: 'queued', jobId: queued.jobId };
       } else {

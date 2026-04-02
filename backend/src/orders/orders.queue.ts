@@ -3,6 +3,20 @@ import { Queue, JobsOptions } from 'bullmq';
 import IORedis from 'ioredis';
 import { CreateOrderDto } from './dto/create-order.dto';
 
+let sharedRedisConnection: IORedis | null = null;
+
+function isTruthyEnv(v: unknown): boolean {
+  if (typeof v !== 'string') return false;
+  const s = v.trim().toLowerCase();
+  return s === 'true' || s === '1' || s === 'yes' || s === 'y';
+}
+
+export function getOrdersRedisConnection(redisUrl: string): IORedis {
+  if (sharedRedisConnection) return sharedRedisConnection;
+  sharedRedisConnection = new IORedis(redisUrl, { maxRetriesPerRequest: null });
+  return sharedRedisConnection;
+}
+
 type CreateOrderJobData = {
   customerId: string | null;
   dto: CreateOrderDto;
@@ -12,7 +26,6 @@ type CreateOrderJobData = {
 export class OrdersQueue implements OnModuleInit, OnModuleDestroy {
   private readonly logger = new Logger(OrdersQueue.name);
   private queue!: Queue<CreateOrderJobData>;
-  private connection!: IORedis;
 
   private get redisUrl(): string {
     const v = process.env.ORDERS_REDIS_URL || process.env.REDIS_URL;
@@ -21,32 +34,31 @@ export class OrdersQueue implements OnModuleInit, OnModuleDestroy {
   }
 
   async onModuleInit() {
-    const queueEnabled = process.env.ORDERS_QUEUE_ENABLED === 'true';
+    const queueEnabled = isTruthyEnv(process.env.ORDERS_QUEUE_ENABLED);
     if (!queueEnabled) {
       this.logger.log('OrdersQueue disabled (ORDERS_QUEUE_ENABLED != true)');
       return;
     }
 
-    // Upstash usually works via a single redis URL (may be rediss://).
-    this.connection = new IORedis(this.redisUrl, { maxRetriesPerRequest: null });
+    const connection = getOrdersRedisConnection(this.redisUrl);
     try {
-      await this.connection.ping();
+      await connection.ping();
       this.logger.log('Redis connected');
     } catch (e: any) {
       // eslint-disable-next-line no-console
       this.logger.warn(`Redis ping failed: ${e?.message ?? String(e)}`);
     }
-    this.queue = new Queue<CreateOrderJobData>('orders', { connection: this.connection });
-    this.logger.log('Orders queue initialized');
+
+    this.queue = new Queue<CreateOrderJobData>('orders', { connection });
+    this.queue.on('error', (e) => {
+      this.logger.error(`[orders.queue] error: ${e?.message ?? String(e)}`);
+    });
+
+    this.logger.log('Queue initialized');
   }
 
   async onModuleDestroy() {
     await this.queue?.close().catch(() => {});
-    try {
-      this.connection?.disconnect();
-    } catch {
-      // ignore
-    }
   }
 
   async enqueueCreateOrder(data: CreateOrderJobData): Promise<{ jobId: string }> {
@@ -64,6 +76,7 @@ export class OrdersQueue implements OnModuleInit, OnModuleDestroy {
 
     const job = await this.queue.add('createOrder', data, opts);
     if (!job.id) throw new Error('Failed to get BullMQ job id');
+    this.logger.log(`[orders.queue] job added name=createOrder id=${job.id}`);
     return { jobId: String(job.id) };
   }
 }

@@ -1,8 +1,14 @@
 import { Injectable, Logger, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
 import { Worker, Job } from 'bullmq';
-import IORedis from 'ioredis';
 import { OrdersService } from './orders.service';
 import { CreateOrderDto } from './dto/create-order.dto';
+import { getOrdersRedisConnection } from './orders.queue';
+
+function isTruthyEnv(v: unknown): boolean {
+  if (typeof v !== 'string') return false;
+  const s = v.trim().toLowerCase();
+  return s === 'true' || s === '1' || s === 'yes' || s === 'y';
+}
 
 type CreateOrderJobData = {
   customerId: string | null;
@@ -13,7 +19,6 @@ type CreateOrderJobData = {
 export class OrdersWorker implements OnModuleInit, OnModuleDestroy {
   private readonly logger = new Logger(OrdersWorker.name);
   private worker!: Worker<CreateOrderJobData>;
-  private connection!: IORedis;
 
   constructor(private readonly ordersService: OrdersService) {}
 
@@ -24,7 +29,7 @@ export class OrdersWorker implements OnModuleInit, OnModuleDestroy {
   }
 
   async onModuleInit() {
-    const queueEnabled = process.env.ORDERS_QUEUE_ENABLED === 'true';
+    const queueEnabled = isTruthyEnv(process.env.ORDERS_QUEUE_ENABLED);
     if (!queueEnabled) {
       this.logger.log('OrdersWorker disabled (ORDERS_QUEUE_ENABLED != true)');
       return;
@@ -35,9 +40,9 @@ export class OrdersWorker implements OnModuleInit, OnModuleDestroy {
       console.warn(`[orders.worker] bad concurrency=${process.env.ORDERS_WORKER_CONCURRENCY}, fallback to 2`);
     }
 
-    this.connection = new IORedis(this.redisUrl, { maxRetriesPerRequest: null });
+    const connection = getOrdersRedisConnection(this.redisUrl);
     try {
-      await this.connection.ping();
+      await connection.ping();
       this.logger.log('Redis connected');
     } catch (e: any) {
       // eslint-disable-next-line no-console
@@ -49,8 +54,11 @@ export class OrdersWorker implements OnModuleInit, OnModuleDestroy {
       async (job: Job<CreateOrderJobData>) => {
         const { customerId, dto } = job.data;
         const startedAt = Date.now();
+        this.logger.log(`[orders.worker] processing job id=${job.id} name=${job.name}`);
         try {
           await this.ordersService.create(customerId, dto);
+          const ms = Date.now() - startedAt;
+          this.logger.log(`[orders.worker] done job id=${job.id} durationMs=${ms}`);
           return { ok: true };
         } catch (err: any) {
           const ms = Date.now() - startedAt;
@@ -61,22 +69,26 @@ export class OrdersWorker implements OnModuleInit, OnModuleDestroy {
         }
       },
       {
-        connection: this.connection,
+        connection,
         concurrency: Number.isFinite(concurrency) && concurrency >= 1 ? concurrency : 2,
       },
     );
 
     this.logger.log('Worker started');
     this.logger.log(`OrdersWorker started with concurrency=${concurrency}`);
+
+    this.worker.on('failed', (job, err) => {
+      this.logger.error(
+        `[orders.worker] failed event id=${job?.id} err=${err?.message ?? String(err)}`,
+      );
+    });
+    this.worker.on('completed', (job) => {
+      this.logger.log(`[orders.worker] completed event id=${job?.id}`);
+    });
   }
 
   async onModuleDestroy() {
     await this.worker?.close().catch(() => {});
-    try {
-      this.connection?.disconnect();
-    } catch {
-      // ignore
-    }
   }
 }
 
