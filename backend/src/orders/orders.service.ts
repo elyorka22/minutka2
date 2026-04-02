@@ -649,6 +649,27 @@ export class OrdersService {
     const skip = typeof opts?.offset === 'number' ? opts.offset : 0;
 
     // Mening buyurtmalarim: faqat bu kuryerga biriktirilgan, faol yetkazib berish.
+    const courierOrderSelect = {
+      id: true,
+      shortCode: true,
+      status: true,
+      courierId: true,
+      total: true,
+      createdAt: true,
+      updatedAt: true,
+      items: {
+        select: {
+          id: true,
+          quantity: true,
+          price: true,
+          dish: { select: { name: true } },
+        },
+      },
+      address: true,
+      restaurant: { select: { name: true } },
+      customer: { select: { id: true, name: true, email: true, phone: true } },
+    } as const;
+
     if (opts?.scope === 'mine') {
       return this.prisma.order.findMany({
         where: {
@@ -659,19 +680,7 @@ export class OrdersService {
         orderBy: { createdAt: 'desc' },
         take,
         skip,
-        include: {
-          items: {
-            select: {
-              id: true,
-              quantity: true,
-              price: true,
-              dish: { select: { name: true } },
-            },
-          },
-          address: true,
-          restaurant: { select: { name: true } },
-          customer: { select: { id: true, name: true, email: true, phone: true } },
-        },
+        select: courierOrderSelect,
       });
     }
 
@@ -688,19 +697,7 @@ export class OrdersService {
       orderBy: { createdAt: 'desc' },
       take,
       skip,
-      include: {
-        items: {
-          select: {
-            id: true,
-            quantity: true,
-            price: true,
-            dish: { select: { name: true } },
-          },
-        },
-        address: true,
-        restaurant: { select: { name: true } },
-        customer: { select: { id: true, name: true, email: true, phone: true } },
-      },
+      select: courierOrderSelect,
     });
   }
 

@@ -10,6 +10,16 @@ function formatSum(n: number) {
   return `${new Intl.NumberFormat("uz-UZ").format(Math.round(n))} so'm`;
 }
 
+/** 4 xonali buyurtma kodi (#xxxx); shortCode bo‘lmasa — «----» */
+function courierOrderDisplayCode(o: { shortCode?: unknown }): string {
+  const sc = o?.shortCode;
+  if (sc != null && String(sc).trim() !== "") {
+    const n = Number(sc);
+    if (Number.isFinite(n)) return String(Math.trunc(n)).padStart(4, "0");
+  }
+  return "----";
+}
+
 type CourierTab = "yangi" | "mine";
 
 function PoolOrderCard({
@@ -42,8 +52,16 @@ function PoolOrderCard({
           )}`
         : null;
 
+  const displayCode = courierOrderDisplayCode(o);
+
   return (
     <div className="fd-card" style={{ padding: 14 }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: 8, flexWrap: "wrap", marginBottom: 8 }}>
+        <span style={{ fontSize: "1.25rem", fontWeight: 800, letterSpacing: "0.02em", color: "var(--color-text, #111)" }}>
+          #{displayCode}
+        </span>
+        <span className="fd-checkout-meta">{o.status}</span>
+      </div>
       <div style={{ fontWeight: 700, fontSize: "1.05rem", marginBottom: 10 }}>{name}</div>
       {o.status === "READY" && !o.courierId && (
         <button
@@ -134,7 +152,7 @@ function FullOrderCard({
   onDone: (id: string) => Promise<void>;
   onError: (msg: string) => void;
 }) {
-  const displayCode = o?.shortCode != null ? String(o.shortCode).padStart(4, "0") : String(o.id).slice(0, 4);
+  const displayCode = courierOrderDisplayCode(o);
   const lat = o.address?.latitude;
   const lng = o.address?.longitude;
   const mapUrl =
@@ -149,12 +167,12 @@ function FullOrderCard({
 
   return (
     <div className="fd-card" style={{ padding: 14 }}>
-      <div style={{ display: "flex", justifyContent: "space-between", gap: 8, flexWrap: "wrap" }}>
-        <div>
-          <strong>#{displayCode}</strong>
-          <span className="fd-checkout-meta" style={{ marginLeft: 8 }}>
-            {o.status}
+      <div style={{ display: "flex", justifyContent: "space-between", gap: 8, flexWrap: "wrap", alignItems: "baseline" }}>
+        <div style={{ display: "flex", alignItems: "baseline", gap: 8, flexWrap: "wrap" }}>
+          <span style={{ fontSize: "1.25rem", fontWeight: 800, letterSpacing: "0.02em", color: "var(--color-text, #111)" }}>
+            #{displayCode}
           </span>
+          <span className="fd-checkout-meta">{o.status}</span>
         </div>
         <div style={{ fontWeight: 700 }}>{formatSum(Number(o.total))}</div>
       </div>
@@ -371,8 +389,8 @@ export default function CourierPage() {
       )}
       <p className="fd-card-desc" style={{ marginBottom: 16 }}>
         {tab === "yangi"
-          ? "Umumiy ro‘yxat: faqat restoran, narx va buyurtmani olish. Batafsil — «Mening buyurtmalarim»."
-          : "Siz olgan buyurtmalar — manzil, taomlar va xarita shu yerda."}
+          ? "Har bir kartochkada #xxxx buyurtma kodi, restoran va narx. Batafsil ma’lumot — «Mening buyurtmalarim»."
+          : "Siz olgan buyurtmalar — kod, manzil, taomlar va xarita shu yerda."}
       </p>
       <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 16 }}>
         <button type="button" className="fd-btn fd-btn-primary" onClick={() => load()} disabled={loading}>
