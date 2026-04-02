@@ -15,6 +15,27 @@ type OrderStatus =
   | 'DONE'
   | 'CANCELLED';
 
+/** Kuryer: total/subtotal/serviceFee/deliveryFee yo‘q — faqat pozitsiyalar va narxlar (taom narxi). */
+const COURIER_ORDER_API_SELECT = {
+  id: true,
+  shortCode: true,
+  status: true,
+  courierId: true,
+  createdAt: true,
+  updatedAt: true,
+  items: {
+    select: {
+      id: true,
+      quantity: true,
+      price: true,
+      dish: { select: { name: true } },
+    },
+  },
+  address: true,
+  restaurant: { select: { name: true } },
+  customer: { select: { id: true, name: true, email: true, phone: true } },
+} as const;
+
 @Injectable()
 export class OrdersService {
   private lastArchiveCleanupAtMs = 0;
@@ -464,19 +485,7 @@ export class OrdersService {
 
     const takenOrder = await this.prisma.order.findUnique({
       where: { id: orderId },
-      include: {
-        items: {
-          select: {
-            id: true,
-            quantity: true,
-            price: true,
-            dish: { select: { name: true } },
-          },
-        },
-        address: true,
-        restaurant: { select: { id: true, name: true } },
-        customer: { select: { id: true, name: true, email: true, phone: true } },
-      },
+      select: COURIER_ORDER_API_SELECT,
     });
 
     await this.notifyOtherCouriersOrderTaken(
@@ -584,6 +593,13 @@ export class OrdersService {
       void this.notifyCustomerOnTheWay(order.customerId, this.formatOrderCode(order.shortCode)).catch(() => {});
     }
 
+    if (isCourier) {
+      return this.prisma.order.findUnique({
+        where: { id },
+        select: COURIER_ORDER_API_SELECT,
+      });
+    }
+
     return this.prisma.order.findUnique({
       where: { id },
       include: {
@@ -649,27 +665,6 @@ export class OrdersService {
     const skip = typeof opts?.offset === 'number' ? opts.offset : 0;
 
     // Mening buyurtmalarim: faqat bu kuryerga biriktirilgan, faol yetkazib berish.
-    const courierOrderSelect = {
-      id: true,
-      shortCode: true,
-      status: true,
-      courierId: true,
-      total: true,
-      createdAt: true,
-      updatedAt: true,
-      items: {
-        select: {
-          id: true,
-          quantity: true,
-          price: true,
-          dish: { select: { name: true } },
-        },
-      },
-      address: true,
-      restaurant: { select: { name: true } },
-      customer: { select: { id: true, name: true, email: true, phone: true } },
-    } as const;
-
     if (opts?.scope === 'mine') {
       return this.prisma.order.findMany({
         where: {
@@ -680,7 +675,7 @@ export class OrdersService {
         orderBy: { createdAt: 'desc' },
         take,
         skip,
-        select: courierOrderSelect,
+        select: COURIER_ORDER_API_SELECT,
       });
     }
 
@@ -697,7 +692,7 @@ export class OrdersService {
       orderBy: { createdAt: 'desc' },
       take,
       skip,
-      select: courierOrderSelect,
+      select: COURIER_ORDER_API_SELECT,
     });
   }
 

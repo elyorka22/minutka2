@@ -10,6 +10,43 @@ function formatSum(n: number) {
   return `${new Intl.NumberFormat("uz-UZ").format(Math.round(n))} so'm`;
 }
 
+/** Kuryer panelida yetkazib berish (hozircha standart, mijoz to‘lovi bilan bog‘liq emas) */
+const COURIER_DELIVERY_DISPLAY_UZS = 10_000;
+
+/**
+ * Faqat pozitsiyalar: dish narxi × miqdor. `subtotal`/`total` DB maydonlariga ishonmaymiz
+ * (ba’zi ma’lumotlarda noto‘g‘ri bo‘lishi mumkin) — platforma ulushi kuryerga umuman kirmaydi.
+ */
+function courierFoodTotalFromItems(o: { items?: Array<{ price?: unknown; quantity?: unknown }> }): number {
+  if (!Array.isArray(o.items)) return 0;
+  return Math.round(
+    o.items.reduce((acc, it) => acc + Number(it.price) * Number(it.quantity || 0), 0),
+  );
+}
+
+/** Olishdan oldin: faqat taomlar. Olgach / «Mening buyurtmalarim»: + yetkazib berish */
+function CourierPricingLines({
+  subtotalUz,
+  showDelivery,
+  tight,
+}: {
+  subtotalUz: number;
+  showDelivery: boolean;
+  /** true — kartochka sarlavhasida, pastki margin yo‘q */
+  tight?: boolean;
+}) {
+  return (
+    <div style={{ marginTop: tight ? 0 : 10 }}>
+      <div style={{ fontWeight: 700, color: "var(--color-text, #111)" }}>Taomlar: {formatSum(subtotalUz)}</div>
+      {showDelivery && (
+        <div className="fd-checkout-meta" style={{ marginTop: 4 }}>
+          Yetkazib berish: {formatSum(COURIER_DELIVERY_DISPLAY_UZS)}
+        </div>
+      )}
+    </div>
+  );
+}
+
 /** 4 xonali buyurtma kodi (#xxxx); shortCode bo‘lmasa — «----» */
 function courierOrderDisplayCode(o: { shortCode?: unknown }): string {
   const sc = o?.shortCode;
@@ -40,7 +77,8 @@ function PoolOrderCard({
   onError: (msg: string) => void;
 }) {
   const name = o.restaurant?.name ?? "Restoran";
-  const total = formatSum(Number(o.total));
+  const subtotalVal = courierFoodTotalFromItems(o);
+  const showDelivery = !(o.status === "READY" && !o.courierId);
   const lat = o.address?.latitude;
   const lng = o.address?.longitude;
   const mapUrl =
@@ -125,7 +163,7 @@ function PoolOrderCard({
           Xaritani ochish
         </a>
       )}
-      <div style={{ marginTop: 10, fontWeight: 700, color: "var(--color-muted)" }}>{total}</div>
+      <CourierPricingLines subtotalUz={subtotalVal} showDelivery={showDelivery} />
     </div>
   );
 }
@@ -153,6 +191,7 @@ function FullOrderCard({
   onError: (msg: string) => void;
 }) {
   const displayCode = courierOrderDisplayCode(o);
+  const subtotalVal = courierFoodTotalFromItems(o);
   const lat = o.address?.latitude;
   const lng = o.address?.longitude;
   const mapUrl =
@@ -174,7 +213,9 @@ function FullOrderCard({
           </span>
           <span className="fd-checkout-meta">{o.status}</span>
         </div>
-        <div style={{ fontWeight: 700 }}>{formatSum(Number(o.total))}</div>
+        <div style={{ textAlign: "right" }}>
+          <CourierPricingLines subtotalUz={subtotalVal} showDelivery tight />
+        </div>
       </div>
       <p className="fd-checkout-meta" style={{ margin: "8px 0 4px" }}>
         {o.restaurant?.name ?? "Restoran"}
@@ -206,7 +247,7 @@ function FullOrderCard({
         <ul className="fd-checkout-meta" style={{ margin: "10px 0 0", paddingLeft: 18 }}>
           {o.items.map((it: any) => (
             <li key={it.id}>
-              {it.dish?.name ?? "Taom"} × {it.quantity} — {formatSum(Number(it.price) * it.quantity)}
+              {it.dish?.name ?? "Taom"} × {it.quantity}
             </li>
           ))}
         </ul>
