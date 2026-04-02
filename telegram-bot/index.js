@@ -17,14 +17,48 @@ async function telegramRequest(method, body) {
   return res.ok ? res.json() : null;
 }
 
+function formatMoney(n) {
+  const x = Number(n);
+  if (!Number.isFinite(x)) return String(n ?? "0");
+  return x.toLocaleString("uz-UZ");
+}
+
+function formatOrderItemsBlock(order) {
+  const items = order.items;
+  if (!Array.isArray(items) || items.length === 0) return "";
+  let block = "\n\nTaomlar:\n";
+  for (const it of items) {
+    const name = String(it.name ?? "—").trim() || "—";
+    const qty = Number(it.quantity) || 0;
+    const line =
+      it.lineTotal != null && it.lineTotal !== ""
+        ? Number(it.lineTotal)
+        : (Number(it.unitPrice) || 0) * qty;
+    block += `• ${name} × ${qty} = ${formatMoney(line)} so'm\n`;
+  }
+  return block;
+}
+
 async function sendOrderNotification(chatId, order) {
   const code = order.shortCode != null && String(order.shortCode).length > 0 ? String(order.shortCode) : String(order.id).slice(0, 8);
-  const text =
+  let text =
     `Yangi buyurtma #${code}\n` +
     `Restoran: ${order.restaurantName}\n` +
-    `Jami: ${order.total} so'm\n` +
+    `Jami: ${formatMoney(order.total)} so'm\n` +
     `Mijoz: ${order.customerName || "-"}\n` +
     `Telefon: ${order.phone || "-"}`;
+
+  if (order.addressLine) {
+    text += `\nManzil: ${order.addressLine}`;
+  }
+  if (order.comment) {
+    text += `\nIzoh: ${order.comment}`;
+  }
+  text += formatOrderItemsBlock(order);
+
+  if (text.length > 4000) {
+    text = text.slice(0, 3997) + "...";
+  }
 
   await fetch(`${API}/sendMessage`, {
     method: "POST",

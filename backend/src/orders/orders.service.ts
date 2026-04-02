@@ -126,7 +126,7 @@ export class OrdersService {
       }),
       this.prisma.dish.findMany({
         where: { id: { in: requestedDishIds }, restaurantId: dto.restaurantId, isAvailable: true },
-        select: { id: true, price: true },
+        select: { id: true, price: true, name: true },
       }),
     ]);
 
@@ -142,6 +142,7 @@ export class OrdersService {
     let subtotal = 0;
 
     const dishById = new Map(dishes.map((d) => [d.id, Number(d.price)]));
+    const dishNameById = new Map(dishes.map((d) => [d.id, d.name]));
     for (const item of dto.items) {
       const price = dishById.get(item.dishId);
       if (price == null) throw new Error(`Dish ${item.dishId} not found`);
@@ -236,6 +237,15 @@ export class OrdersService {
       void (async () => {
         const base = notifyUrl.replace(/\/$/, '');
         const phone = dto.address?.details?.replace(/^Tel:\s*/i, '') ?? '';
+        const telegramItems = dto.items.map((item) => {
+          const unit = dishById.get(item.dishId) ?? 0;
+          return {
+            name: dishNameById.get(item.dishId) ?? '—',
+            quantity: item.quantity,
+            unitPrice: unit,
+            lineTotal: unit * item.quantity,
+          };
+        });
         const payload = {
           chatId,
           order: {
@@ -247,6 +257,9 @@ export class OrdersService {
             phone,
             lat: dto.address?.latitude,
             lng: dto.address?.longitude,
+            addressLine: [dto.address.street, dto.address.city].filter(Boolean).join(', ') || undefined,
+            comment: dto.comment?.trim() || undefined,
+            items: telegramItems,
           },
         };
         try {
