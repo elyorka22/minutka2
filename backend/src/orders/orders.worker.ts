@@ -8,7 +8,13 @@ import {
   ORDERS_QUEUE_NAME,
 } from './orders.constants';
 
-@Processor(ORDERS_QUEUE_NAME)
+const workerConcurrencyRaw = Number(process.env.ORDERS_WORKER_CONCURRENCY ?? 2);
+const workerConcurrency =
+  Number.isFinite(workerConcurrencyRaw) && workerConcurrencyRaw >= 1
+    ? workerConcurrencyRaw
+    : 2;
+
+@Processor(ORDERS_QUEUE_NAME, { concurrency: workerConcurrency })
 @Injectable()
 export class OrdersWorker extends WorkerHost implements OnModuleInit {
   private readonly logger = new Logger(OrdersWorker.name);
@@ -18,7 +24,7 @@ export class OrdersWorker extends WorkerHost implements OnModuleInit {
   }
 
   onModuleInit() {
-    this.logger.log('Worker started');
+    this.logger.log(`Worker started (concurrency=${workerConcurrency})`);
   }
 
   async process(job: Job<CreateOrderJobData>): Promise<{ ok: boolean }> {
