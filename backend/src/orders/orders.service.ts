@@ -158,11 +158,11 @@ export class OrdersService {
           createdOrder = await tx.order.create({
             data: {
               shortCode,
-              customerId: userId,
-              restaurantId: dto.restaurantId,
+              customer: { connect: { id: userId } },
+              restaurant: { connect: { id: dto.restaurantId } },
               address: {
                 create: {
-                  userId,
+                  user: { connect: { id: userId } },
                   label: dto.address.label,
                   street: dto.address.street,
                   city: dto.address.city,
@@ -180,7 +180,7 @@ export class OrdersService {
                 create: dto.items.map((item) => {
                   const p = dishById.get(item.dishId);
                   return {
-                    dishId: item.dishId,
+                    dish: { connect: { id: item.dishId } },
                     quantity: item.quantity,
                     price: p ?? 0,
                   };
