@@ -93,14 +93,16 @@ export const adminApi = {
   getRestaurantWithOrders: (id: string) => request<any>(`/restaurants/${id}`),
   getRestaurantOrders: (
     id: string,
-    opts?: { limit?: number; offset?: number; status?: string },
+    opts?: { limit?: number; offset?: number; status?: string; signal?: AbortSignal },
   ) => {
     const qs = new URLSearchParams();
     if (typeof opts?.limit === "number") qs.set("limit", String(opts.limit));
     if (typeof opts?.offset === "number") qs.set("offset", String(opts.offset));
     if (opts?.status) qs.set("status", opts.status);
     const query = qs.toString();
-    return adminRequest<any[]>(`/restaurants/${id}/orders${query ? `?${query}` : ""}`);
+    return adminRequest<any[]>(`/restaurants/${id}/orders${query ? `?${query}` : ""}`, {
+      ...(opts?.signal ? { signal: opts.signal } : {}),
+    });
   },
   getRestaurantOrdersChanges: (
     id: string,

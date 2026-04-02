@@ -187,8 +187,9 @@ export default function RestaurantAdminPage({
 
   const manualArchiveKey = `restaurant-admin-manual-archive:${restaurantId}`;
 
-  /** Ignore stale HTTP responses when two loadOrders() overlap (poll + refresh). */
-  const ordersFetchGenRef = useRef(0);
+  /** Foreground refresh aborts previous main + poll fetches; poll only aborts previous poll (never kills main load). */
+  const ordersMainAbortRef = useRef<AbortController | null>(null);
+  const ordersPollAbortRef = useRef<AbortController | null>(null);
   /** Polling must read latest cursor without resetting interval on every state tick. */
   const ordersLastSyncAtRef = useRef<string | null>(null);
   /** Latest hidden ids for filtering (avoids stale closure inside interval). */
@@ -227,16 +228,25 @@ export default function RestaurantAdminPage({
   const loadOrders = useCallback(
     (opts?: { background?: boolean }) => {
       const background = !!opts?.background;
-      const gen = ++ordersFetchGenRef.current;
+      const ac = new AbortController();
+      if (background) {
+        ordersPollAbortRef.current?.abort();
+        ordersPollAbortRef.current = ac;
+      } else {
+        ordersMainAbortRef.current?.abort();
+        ordersPollAbortRef.current?.abort();
+        ordersMainAbortRef.current = ac;
+      }
+
       if (!background) setLoading(true);
       setError(null);
       adminApi
         .getRestaurantOrders(restaurantId, {
           limit: 50,
           offset: 0,
+          signal: ac.signal,
         })
         .then((data) => {
-          if (gen !== ordersFetchGenRef.current) return;
           const list = Array.isArray(data) ? data : [];
           const hiddenIds = manualArchiveIdsRef.current;
           setOrders(list.filter((o: any) => !hiddenIds.has(o.id)));
@@ -251,11 +261,11 @@ export default function RestaurantAdminPage({
           }
         })
         .catch((err: any) => {
-          if (gen !== ordersFetchGenRef.current) return;
+          if (err?.name === "AbortError") return;
           setError(err?.message ?? "Xatolik");
         })
         .finally(() => {
-          if (gen !== ordersFetchGenRef.current) return;
+          if (ac.signal.aborted) return;
           if (!background) setLoading(false);
         });
     },
