@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { adminApi } from "../../../lib/adminApi";
 
@@ -187,6 +187,23 @@ export default function RestaurantAdminPage({
 
   const manualArchiveKey = `restaurant-admin-manual-archive:${restaurantId}`;
 
+  /** Ignore stale HTTP responses when two loadOrders() overlap (poll + refresh). */
+  const ordersFetchGenRef = useRef(0);
+  /** Polling must read latest cursor without resetting interval on every state tick. */
+  const ordersLastSyncAtRef = useRef<string | null>(null);
+  /** Latest hidden ids for filtering (avoids stale closure inside interval). */
+  const manualArchiveIdsRef = useRef<Set<string>>(new Set());
+
+  useEffect(() => {
+    ordersLastSyncAtRef.current = ordersLastSyncAt;
+  }, [ordersLastSyncAt]);
+
+  useEffect(() => {
+    manualArchiveIdsRef.current = new Set(
+      manualArchive.map((x: any) => x?.id).filter((id: unknown): id is string => typeof id === "string" && id.length > 0),
+    );
+  }, [manualArchive]);
+
   useEffect(() => {
     if (typeof window === "undefined") return;
     try {
@@ -207,31 +224,43 @@ export default function RestaurantAdminPage({
     }
   }, [manualArchive, manualArchiveKey]);
 
-  function loadOrders(opts?: { background?: boolean }) {
-    const background = !!opts?.background;
-    if (!background) setLoading(true);
-    setError(null);
-    adminApi
-      .getRestaurantOrders(restaurantId, {
-        limit: 50,
-        offset: 0,
-      })
-      .then((data) => {
-        const list = Array.isArray(data) ? data : [];
-        const hiddenIds = new Set(manualArchive.map((x: any) => x?.id));
-        setOrders(list.filter((o: any) => !hiddenIds.has(o.id)));
-        const latest = list
-          .map((o: any) => String(o?.updatedAt ?? o?.createdAt ?? ""))
-          .filter(Boolean)
-          .sort()
-          .pop();
-        if (latest) setOrdersLastSyncAt(latest);
-      })
-      .catch((err: any) => setError(err?.message ?? "Xatolik"))
-      .finally(() => {
-        if (!background) setLoading(false);
-      });
-  }
+  const loadOrders = useCallback(
+    (opts?: { background?: boolean }) => {
+      const background = !!opts?.background;
+      const gen = ++ordersFetchGenRef.current;
+      if (!background) setLoading(true);
+      setError(null);
+      adminApi
+        .getRestaurantOrders(restaurantId, {
+          limit: 50,
+          offset: 0,
+        })
+        .then((data) => {
+          if (gen !== ordersFetchGenRef.current) return;
+          const list = Array.isArray(data) ? data : [];
+          const hiddenIds = manualArchiveIdsRef.current;
+          setOrders(list.filter((o: any) => !hiddenIds.has(o.id)));
+          const latest = list
+            .map((o: any) => String(o?.updatedAt ?? o?.createdAt ?? ""))
+            .filter(Boolean)
+            .sort()
+            .pop();
+          if (latest) {
+            ordersLastSyncAtRef.current = latest;
+            setOrdersLastSyncAt(latest);
+          }
+        })
+        .catch((err: any) => {
+          if (gen !== ordersFetchGenRef.current) return;
+          setError(err?.message ?? "Xatolik");
+        })
+        .finally(() => {
+          if (gen !== ordersFetchGenRef.current) return;
+          if (!background) setLoading(false);
+        });
+    },
+    [restaurantId],
+  );
 
   function loadArchive() {
     setLoading(true);
@@ -282,30 +311,31 @@ export default function RestaurantAdminPage({
     if (activeTab === "orders") loadOrders();
     else if (activeTab === "archive") loadArchive();
     else if (activeTab === "stats") loadStats();
-
-  }, [restaurantId, activeTab, manualArchive]);
+  }, [restaurantId, activeTab, manualArchive, loadOrders]);
 
   useEffect(() => {
     if (activeTab !== "orders") return;
     let inFlight = false;
     const interval = setInterval(() => {
       if (typeof document !== "undefined" && document.hidden) return;
-      if (loading) return;
       if (inFlight) return;
       inFlight = true;
       adminApi
-        .getRestaurantOrdersChanges(restaurantId, { since: ordersLastSyncAt ?? undefined })
+        .getRestaurantOrdersChanges(restaurantId, { since: ordersLastSyncAtRef.current ?? undefined })
         .then((meta) => {
-          if (meta?.lastUpdatedAt) setOrdersLastSyncAt(meta.lastUpdatedAt);
+          if (meta?.lastUpdatedAt) {
+            ordersLastSyncAtRef.current = meta.lastUpdatedAt;
+            setOrdersLastSyncAt(meta.lastUpdatedAt);
+          }
           if (!meta?.changed) return;
-          return Promise.resolve(loadOrders({ background: true }));
+          loadOrders({ background: true });
         })
         .finally(() => {
           inFlight = false;
         });
     }, 12000);
     return () => clearInterval(interval);
-  }, [activeTab, loading, restaurantId, manualArchive, ordersLastSyncAt]);
+  }, [activeTab, restaurantId, loadOrders]);
 
   async function changeStatus(id: string, status: string, cancelReason?: string) {
     try {
