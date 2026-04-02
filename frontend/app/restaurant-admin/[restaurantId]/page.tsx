@@ -177,7 +177,10 @@ export default function RestaurantAdminPage({
     totalPlatformFee: number;
   } | null>(null);
   const [debtInfo, setDebtInfo] = useState<{ amount: number; percent: number } | null>(null);
-  const [loading, setLoading] = useState(true);
+  /** Per-tab loading avoids races (e.g. stats finishing and clearing loading while orders are still fetching). */
+  const [ordersLoading, setOrdersLoading] = useState(true);
+  const [archiveLoading, setArchiveLoading] = useState(false);
+  const [statsLoading, setStatsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [manualArchive, setManualArchive] = useState<any[]>([]);
   const [ordersLastSyncAt, setOrdersLastSyncAt] = useState<string | null>(null);
@@ -187,22 +190,17 @@ export default function RestaurantAdminPage({
 
   const manualArchiveKey = `restaurant-admin-manual-archive:${restaurantId}`;
 
-  /** Foreground refresh aborts previous main + poll fetches; poll only aborts previous poll (never kills main load). */
-  const ordersMainAbortRef = useRef<AbortController | null>(null);
-  const ordersPollAbortRef = useRef<AbortController | null>(null);
   /** Polling must read latest cursor without resetting interval on every state tick. */
   const ordersLastSyncAtRef = useRef<string | null>(null);
-  /** Latest hidden ids for filtering (avoids stale closure inside interval). */
-  const manualArchiveIdsRef = useRef<Set<string>>(new Set());
+  /** Mirrors manualArchive for use inside fetch callbacks (always current). */
+  const manualArchiveRef = useRef<any[]>([]);
 
   useEffect(() => {
     ordersLastSyncAtRef.current = ordersLastSyncAt;
   }, [ordersLastSyncAt]);
 
   useEffect(() => {
-    manualArchiveIdsRef.current = new Set(
-      manualArchive.map((x: any) => x?.id).filter((id: unknown): id is string => typeof id === "string" && id.length > 0),
-    );
+    manualArchiveRef.current = manualArchive;
   }, [manualArchive]);
 
   useEffect(() => {
@@ -225,65 +223,61 @@ export default function RestaurantAdminPage({
     }
   }, [manualArchive, manualArchiveKey]);
 
-  const loadOrders = useCallback(
-    (opts?: { background?: boolean }) => {
-      const background = !!opts?.background;
-      const ac = new AbortController();
-      if (background) {
-        ordersPollAbortRef.current?.abort();
-        ordersPollAbortRef.current = ac;
-      } else {
-        ordersMainAbortRef.current?.abort();
-        ordersPollAbortRef.current?.abort();
-        ordersMainAbortRef.current = ac;
-      }
-
-      if (!background) setLoading(true);
-      setError(null);
-      adminApi
-        .getRestaurantOrders(restaurantId, {
-          limit: 50,
-          offset: 0,
-          signal: ac.signal,
-        })
-        .then((data) => {
-          const list = Array.isArray(data) ? data : [];
-          const hiddenIds = manualArchiveIdsRef.current;
-          setOrders(list.filter((o: any) => !hiddenIds.has(o.id)));
-          const latest = list
-            .map((o: any) => String(o?.updatedAt ?? o?.createdAt ?? ""))
-            .filter(Boolean)
-            .sort()
-            .pop();
-          if (latest) {
-            ordersLastSyncAtRef.current = latest;
-            setOrdersLastSyncAt(latest);
-          }
-        })
-        .catch((err: any) => {
-          if (err?.name === "AbortError") return;
-          setError(err?.message ?? "Xatolik");
-        })
-        .finally(() => {
-          if (ac.signal.aborted) return;
-          if (!background) setLoading(false);
-        });
-    },
-    [restaurantId],
-  );
+  const loadOrders = useCallback((opts?: { background?: boolean }) => {
+    const background = !!opts?.background;
+    if (!background) setOrdersLoading(true);
+    setError(null);
+    adminApi
+      .getRestaurantOrders(restaurantId, { limit: 50, offset: 0 })
+      .then((data) => {
+        const list = Array.isArray(data) ? data : [];
+        const serverIds = new Set(
+          list.map((o: any) => o?.id).filter((id: unknown): id is string => typeof id === "string" && id.length > 0),
+        );
+        const prev = manualArchiveRef.current;
+        const pruned =
+          list.length === 0 ? prev : prev.filter((x: any) => serverIds.has(x?.id));
+        const prevIds = prev
+          .map((x: any) => x?.id)
+          .filter((id: unknown): id is string => typeof id === "string")
+          .join("|");
+        const prunedIds = pruned
+          .map((x: any) => x?.id)
+          .filter((id: unknown): id is string => typeof id === "string")
+          .join("|");
+        if (prevIds !== prunedIds) setManualArchive(pruned);
+        const hiddenIds = new Set(
+          pruned.map((x: any) => x?.id).filter((id: unknown): id is string => typeof id === "string" && id.length > 0),
+        );
+        setOrders(list.filter((o: any) => !hiddenIds.has(o.id)));
+        const latest = list
+          .map((o: any) => String(o?.updatedAt ?? o?.createdAt ?? ""))
+          .filter(Boolean)
+          .sort()
+          .pop();
+        if (latest) {
+          ordersLastSyncAtRef.current = latest;
+          setOrdersLastSyncAt(latest);
+        }
+      })
+      .catch((err: any) => setError(err?.message ?? "Xatolik"))
+      .finally(() => {
+        if (!background) setOrdersLoading(false);
+      });
+  }, [restaurantId]);
 
   function loadArchive() {
-    setLoading(true);
+    setArchiveLoading(true);
     setError(null);
     adminApi
       .getRestaurantOrdersArchive(restaurantId)
       .then((data) => setArchive(Array.isArray(data) ? data : []))
       .catch((err: any) => setError(err?.message ?? "Xatolik"))
-      .finally(() => setLoading(false));
+      .finally(() => setArchiveLoading(false));
   }
 
   function loadStats() {
-    setLoading(true);
+    setStatsLoading(true);
     setError(null);
     adminApi
       .getRestaurantStats(restaurantId)
@@ -295,7 +289,7 @@ export default function RestaurantAdminPage({
         });
       })
       .catch((err: any) => setError(err?.message ?? "Xatolik"))
-      .finally(() => setLoading(false));
+      .finally(() => setStatsLoading(false));
   }
 
   useEffect(() => {
@@ -448,7 +442,9 @@ export default function RestaurantAdminPage({
         ))}
       </div>
 
-      {loading && <p>Yuklanmoqda...</p>}
+      {((activeTab === "orders" && ordersLoading && orders.length === 0) ||
+        (activeTab === "archive" && archiveLoading) ||
+        (activeTab === "stats" && statsLoading && stats == null)) && <p>Yuklanmoqda...</p>}
       {error && (
         <div className="fd-empty">
           <p>{error}</p>
@@ -462,22 +458,40 @@ export default function RestaurantAdminPage({
         </div>
       )}
 
-      {activeTab === "orders" && !loading && (
+      {activeTab === "orders" && (
         <div className="fd-admin-orders">
+          {manualArchive.length > 0 && (
+            <div style={{ marginBottom: 12 }}>
+              <button
+                type="button"
+                className="fd-btn fd-btn--secondary"
+                style={{ fontSize: "0.82rem" }}
+                onClick={() => {
+                  setManualArchive([]);
+                  manualArchiveRef.current = [];
+                  loadOrders();
+                }}
+              >
+                Yashirilganlarni qayta ko&apos;rish ({manualArchive.length})
+              </button>
+            </div>
+          )}
           {orders.map((o) => (
-              <OrderCard
-                key={o.id}
-                o={o}
-                onStatusChange={changeStatus}
-                onArchive={archiveOrder}
-                showStatusButtons
-              />
+            <OrderCard
+              key={o.id}
+              o={o}
+              onStatusChange={changeStatus}
+              onArchive={archiveOrder}
+              showStatusButtons
+            />
           ))}
-          {orders.length === 0 && !error && <p className="fd-empty">Aktiv buyurtmalar yo‘q.</p>}
+          {orders.length === 0 && !ordersLoading && !error && (
+            <p className="fd-empty">Aktiv buyurtmalar yo‘q.</p>
+          )}
         </div>
       )}
 
-      {activeTab === "archive" && !loading && (
+      {activeTab === "archive" && !archiveLoading && (
         <div className="fd-admin-orders">
           <p className="fd-checkout-meta" style={{ marginBottom: 12 }}>
             Yetkazilgan va bekor qilingan buyurtmalar (oxirgi 3 kun). 3 kundan keyin avtomatik o‘chiriladi.
@@ -489,7 +503,7 @@ export default function RestaurantAdminPage({
         </div>
       )}
 
-      {activeTab === "stats" && !loading && stats != null && (
+      {activeTab === "stats" && !statsLoading && stats != null && (
         <div className="fd-card" style={{ padding: 16 }}>
           <p className="fd-card-desc">
             <strong>Aktiv buyurtmalar:</strong> {stats.activeOrdersCount}
