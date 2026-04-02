@@ -134,7 +134,10 @@ function PoolOrderCard({
         : null;
 
   const displayCode = courierOrderDisplayCode(o);
-  const clientPhone = normalizeUzPhone(o.customer?.phone);
+  // Ba’zan guest buyurtmalarda `customer.phone` null bo‘ladi,
+  // telefon `Address.details` ichida "Tel: +998..." ko‘rinishida saqlanadi.
+  const clientPhone =
+    normalizeUzPhone(o.customer?.phone) ?? normalizeUzPhone(o.address?.details);
   const clientTelHref = clientPhone ? `tel:${clientPhone.e164}` : null;
 
   return (
@@ -250,7 +253,8 @@ function FullOrderCard({
 }) {
   const displayCode = courierOrderDisplayCode(o);
   const subtotalVal = courierFoodTotalFromItems(o);
-  const clientPhone = normalizeUzPhone(o.customer?.phone);
+  const clientPhone =
+    normalizeUzPhone(o.customer?.phone) ?? normalizeUzPhone(o.address?.details);
   const clientTelHref = clientPhone ? `tel:${clientPhone.e164}` : null;
   const lat = o.address?.latitude;
   const lng = o.address?.longitude;
