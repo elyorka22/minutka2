@@ -80,44 +80,53 @@ export class OrdersService {
     return 100000 + Math.floor(Math.random() * 900000);
   }
 
-  async create(customerId: string | null, dto: CreateOrderDto) {
+  async create(
+    customerId: string | null,
+    dto: CreateOrderDto,
+    options?: { lightweight?: boolean; skipCustomerExistsCheck?: boolean },
+  ) {
     let userId =
       customerId ?? (await this.usersService.findOrCreateGuestUser(dto.clientKey));
     const disablePush = process.env.DISABLE_PUSH === 'true';
+    const lightweight = options?.lightweight === true;
+    const skipCustomerExistsCheck = options?.skipCustomerExistsCheck === true;
+    const requestedDishIds = Array.from(new Set(dto.items.map((i) => i.dishId)));
 
-    // If JWT points to a user that was deleted after token issuance,
-    // we must not create Address with an invalid FK.
-    // For guests (customerId === null) the user was just created/upserted,
-    // so we can skip this extra SELECT to reduce load.
-    if (customerId) {
-      const userExists = await this.prisma.user.findUnique({
-        where: { id: userId },
-        select: { id: true },
-      });
-      if (!userExists) {
-        userId = await this.usersService.findOrCreateGuestUser(dto.clientKey);
-      }
+    // Run independent reads in parallel to cut request/job latency.
+    const [userExists, restaurant, dishes] = await Promise.all([
+      customerId && !skipCustomerExistsCheck
+        ? this.prisma.user.findUnique({
+            where: { id: userId },
+            select: { id: true },
+          })
+        : Promise.resolve<{ id: string } | null>({ id: userId }),
+      this.prisma.restaurant.findUnique({
+        where: { id: dto.restaurantId, isActive: true },
+        select: {
+          id: true,
+          name: true,
+          deliveryFee: true,
+          telegramChatId: true,
+          admins: { select: { id: true } },
+        },
+      }),
+      this.prisma.dish.findMany({
+        where: { id: { in: requestedDishIds }, restaurantId: dto.restaurantId, isAvailable: true },
+        select: { id: true, price: true },
+      }),
+    ]);
+
+    // JWT user may be deleted after token issue; fallback to guest account.
+    if (customerId && !skipCustomerExistsCheck && !userExists) {
+      userId = await this.usersService.findOrCreateGuestUser(dto.clientKey);
     }
-    const restaurant = await this.prisma.restaurant.findUnique({
-      where: { id: dto.restaurantId, isActive: true },
-      select: {
-        id: true,
-        name: true,
-        deliveryFee: true,
-        telegramChatId: true,
-      },
-    });
+
     if (!restaurant) throw new Error('Restaurant not found');
 
     const deliveryFee = Number(restaurant.deliveryFee);
     const serviceFeeRate = 0.1;
     let subtotal = 0;
 
-    const requestedDishIds = Array.from(new Set(dto.items.map((i) => i.dishId)));
-    const dishes = await this.prisma.dish.findMany({
-      where: { id: { in: requestedDishIds }, restaurantId: dto.restaurantId, isAvailable: true },
-      select: { id: true, price: true },
-    });
     const dishById = new Map(dishes.map((d) => [d.id, Number(d.price)]));
     for (const item of dto.items) {
       const price = dishById.get(item.dishId);
@@ -128,7 +137,7 @@ export class OrdersService {
     const serviceFee = Math.round(subtotal * serviceFeeRate * 100) / 100;
     const total = Math.round((subtotal + deliveryFee + serviceFee) * 100) / 100;
 
-    const created = await this.prisma.transaction(async (tx) => {
+    const createdOrder = await this.prisma.transaction(async (tx) => {
       const address = await tx.address.create({
         data: {
           userId,
@@ -141,11 +150,17 @@ export class OrdersService {
         },
       });
 
-      let order: { id: string; total: any } | null = null;
+      let createdOrder: {
+        id: string;
+        shortCode: number;
+        total: unknown;
+        createdAt: Date;
+      } | null = null;
+
       for (let attempt = 0; attempt < 10; attempt++) {
         const shortCode = this.generateOrderShortCodeCandidate();
         try {
-          order = await tx.order.create({
+          createdOrder = await tx.order.create({
             data: {
               shortCode,
               customerId: userId,
@@ -167,7 +182,12 @@ export class OrdersService {
                 }),
               },
             },
-            select: { id: true, total: true },
+            select: {
+              id: true,
+              shortCode: true,
+              total: true,
+              createdAt: true,
+            },
           });
           break;
         } catch (e: any) {
@@ -178,25 +198,83 @@ export class OrdersService {
           if (!isUniqueConflict) throw e;
         }
       }
-      if (!order) throw new BadRequestException('Order short code generation failed');
+      if (!createdOrder) throw new BadRequestException('Order short code generation failed');
 
       if (dto.paymentMethod === 'CARD') {
         await tx.payment.create({
           data: {
-            orderId: order.id,
+            orderId: createdOrder.id,
             provider: 'demo',
-            amount: order.total,
+            amount: createdOrder.total,
             method: 'CARD',
             status: 'SUCCEEDED',
           },
         });
       }
 
-      return { orderId: order.id };
+      return createdOrder;
     });
 
+    const notifyUrl = process.env.TELEGRAM_BOT_NOTIFY_URL;
+    const chatId = (restaurant as any).telegramChatId;
+    if (!disablePush && notifyUrl && chatId) {
+      void (async () => {
+        const base = notifyUrl.replace(/\/$/, '');
+        const phone = dto.address?.details?.replace(/^Tel:\s*/i, '') ?? '';
+        const payload = {
+          chatId,
+          order: {
+            id: createdOrder.id,
+            restaurantName: restaurant.name,
+            total: Number(createdOrder.total),
+            customerName: '',
+            phone,
+            lat: dto.address?.latitude,
+            lng: dto.address?.longitude,
+          },
+        };
+        fetchWithRetry(`${base}/notify`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+        }).catch(() => {});
+      })();
+    }
+
+    // Web-push to restaurant admins about a new order.
+    // Never block order creation; but do not swallow errors silently.
+    if (!disablePush) {
+      void (async () => {
+        try {
+          const adminUserIds = restaurant.admins?.map((u) => u.id).filter(Boolean) ?? [];
+
+          void this.sendPushToUserIds(adminUserIds, {
+            title: 'Minutka',
+            message: `Yangi buyurtma #${this.formatOrderCode(createdOrder.shortCode)}`,
+            url: `/restaurant-admin/${dto.restaurantId}`,
+          }).catch((e) => {
+            // eslint-disable-next-line no-console
+            console.error('[push] restaurant-admins NEW order failed', {
+              restaurantId: dto.restaurantId,
+              error: e?.message ?? String(e),
+            });
+          });
+        } catch (e: any) {
+          // eslint-disable-next-line no-console
+          console.error('[push] restaurant-admins NEW order failed', {
+            restaurantId: dto.restaurantId,
+            error: e?.message ?? String(e),
+          });
+        }
+      })();
+    }
+
+    if (lightweight) {
+      return createdOrder as any;
+    }
+
     const order = await this.prisma.order.findUnique({
-      where: { id: created.orderId },
+      where: { id: createdOrder.id },
       select: {
         id: true,
         shortCode: true,
@@ -228,67 +306,6 @@ export class OrdersService {
     if (!order) {
       throw new BadRequestException('Order creation failed');
     }
-
-    const notifyUrl = process.env.TELEGRAM_BOT_NOTIFY_URL;
-    const chatId = (restaurant as any).telegramChatId;
-    if (!disablePush && notifyUrl && chatId) {
-      void (async () => {
-        const base = notifyUrl.replace(/\/$/, '');
-        const phone = order.address?.details?.replace(/^Tel:\s*/i, '') ?? '';
-        const payload = {
-          chatId,
-          order: {
-            id: order.id,
-            restaurantName: restaurant.name,
-            total: Number(order.total),
-            customerName: (order as any).customer?.name ?? '',
-            phone,
-            lat: order.address?.latitude,
-            lng: order.address?.longitude,
-          },
-        };
-        fetchWithRetry(`${base}/notify`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(payload),
-        }).catch(() => {});
-      })();
-    }
-
-    // Web-push to restaurant admins about a new order.
-    // Never block order creation; but do not swallow errors silently.
-    if (!disablePush) {
-      void (async () => {
-        try {
-          // Background: do not block POST /orders response on extra DB + webpush work.
-          const restaurantWithAdmins = await this.prisma.restaurant.findUnique({
-            where: { id: dto.restaurantId },
-            select: { admins: { select: { id: true, role: true } } },
-          });
-          const adminUserIds =
-            restaurantWithAdmins?.admins?.map((u) => u.id).filter(Boolean) ?? [];
-
-          void this.sendPushToUserIds(adminUserIds, {
-            title: 'Minutka',
-            message: `Yangi buyurtma #${this.formatOrderCode(order.shortCode)}`,
-            url: `/restaurant-admin/${dto.restaurantId}`,
-          }).catch((e) => {
-            // eslint-disable-next-line no-console
-            console.error('[push] restaurant-admins NEW order failed', {
-              restaurantId: dto.restaurantId,
-              error: e?.message ?? String(e),
-            });
-          });
-        } catch (e: any) {
-          // eslint-disable-next-line no-console
-          console.error('[push] restaurant-admins NEW order failed', {
-            restaurantId: dto.restaurantId,
-            error: e?.message ?? String(e),
-          });
-        }
-      })();
-    }
-
     return order;
   }
 
