@@ -57,6 +57,49 @@ function courierOrderDisplayCode(o: { shortCode?: unknown }): string {
   return "----";
 }
 
+type NormalizedPhone = { digits: string; e164: string; display: string };
+
+/**
+ * Mijoz telefoni uchun +998... formatini tayyorlaydi.
+ * Qo‘llab-quvvatlanadigan kirishlar: `901234567`, `998901234567`, `+998901234567`, `0XXXXXXXXX`.
+ */
+function normalizeUzPhone(phone: unknown): NormalizedPhone | null {
+  const raw = phone == null ? "" : String(phone).trim();
+  if (!raw) return null;
+
+  const digits = raw.replace(/\D/g, "");
+  if (!digits) return null;
+
+  // +998... (lekin +siz ko‘rinish) — 12 ta raqam, masalan 998901234567
+  if (digits.length === 12 && digits.startsWith("998")) {
+    const e164 = `+${digits}`;
+    return { digits, e164, display: e164 };
+  }
+
+  // 9 ta raqam: 901234567
+  if (digits.length === 9) {
+    const e164 = `+998${digits}`;
+    return { digits, e164, display: e164 };
+  }
+
+  // 0xxxxxxxxx: 09xxxxxxxx (10 ta)
+  if (digits.length === 10 && digits.startsWith("0")) {
+    const tail = digits.slice(1);
+    if (tail.length === 9) {
+      const e164 = `+998${tail}`;
+      return { digits: tail, e164, display: e164 };
+    }
+  }
+
+  // fallback: 998 bilan boshlangan bo‘lsa, + qo‘shamiz
+  if (digits.startsWith("998")) {
+    const e164 = `+${digits}`;
+    return { digits, e164, display: e164 };
+  }
+
+  return null;
+}
+
 type CourierTab = "yangi" | "mine";
 
 function PoolOrderCard({
@@ -91,6 +134,8 @@ function PoolOrderCard({
         : null;
 
   const displayCode = courierOrderDisplayCode(o);
+  const clientPhone = normalizeUzPhone(o.customer?.phone);
+  const clientTelHref = clientPhone ? `tel:${clientPhone.e164}` : null;
 
   return (
     <div className="fd-card" style={{ padding: 14 }}>
@@ -100,7 +145,20 @@ function PoolOrderCard({
         </span>
         <span className="fd-checkout-meta">{o.status}</span>
       </div>
-      <div style={{ fontWeight: 700, fontSize: "1.05rem", marginBottom: 10 }}>{name}</div>
+      <div style={{ fontWeight: 700, fontSize: "1.05rem", marginBottom: 6 }}>{name}</div>
+      <p className="fd-checkout-meta" style={{ margin: "6px 0 10px" }}>
+        Mijoz: {o.customer?.name ?? "—"}
+        {clientPhone ? ` · ${clientPhone.display}` : ""}
+      </p>
+      {clientTelHref && (
+        <a
+          href={clientTelHref}
+          className="fd-btn fd-btn-primary"
+          style={{ width: "100%", textDecoration: "none", display: "inline-block", marginBottom: 10 }}
+        >
+          Telefon qilish
+        </a>
+      )}
       {o.status === "READY" && !o.courierId && (
         <button
           type="button"
@@ -192,6 +250,8 @@ function FullOrderCard({
 }) {
   const displayCode = courierOrderDisplayCode(o);
   const subtotalVal = courierFoodTotalFromItems(o);
+  const clientPhone = normalizeUzPhone(o.customer?.phone);
+  const clientTelHref = clientPhone ? `tel:${clientPhone.e164}` : null;
   const lat = o.address?.latitude;
   const lng = o.address?.longitude;
   const mapUrl =
@@ -222,8 +282,17 @@ function FullOrderCard({
       </p>
       <p className="fd-checkout-meta">
         Mijoz: {o.customer?.name ?? "—"}
-        {o.customer?.phone ? ` · ${o.customer.phone}` : ""}
+        {clientPhone ? ` · ${clientPhone.display}` : ""}
       </p>
+      {clientTelHref && (
+        <a
+          href={clientTelHref}
+          className="fd-btn fd-btn-primary"
+          style={{ width: "100%", textDecoration: "none", display: "inline-block", marginTop: 8 }}
+        >
+          Telefon qilish
+        </a>
+      )}
       {o.address?.details && (
         <p className="fd-checkout-meta" style={{ marginTop: 4 }}>
           {o.address.details}
