@@ -13,6 +13,13 @@ const workerConcurrency =
   Number.isFinite(workerConcurrencyRaw) && workerConcurrencyRaw >= 1
     ? workerConcurrencyRaw
     : 2;
+const workerSkipNotificationsRaw =
+  (process.env.ORDERS_WORKER_SKIP_NOTIFICATIONS ?? '').trim().toLowerCase();
+const workerSkipNotifications =
+  workerSkipNotificationsRaw === 'true' ||
+  workerSkipNotificationsRaw === '1' ||
+  workerSkipNotificationsRaw === 'yes' ||
+  workerSkipNotificationsRaw === 'y';
 
 @Processor(ORDERS_QUEUE_NAME, { concurrency: workerConcurrency })
 @Injectable()
@@ -24,7 +31,9 @@ export class OrdersWorker extends WorkerHost implements OnModuleInit {
   }
 
   onModuleInit() {
-    this.logger.log(`Worker started (concurrency=${workerConcurrency})`);
+    this.logger.log(
+      `Worker started (concurrency=${workerConcurrency}, skipNotifications=${workerSkipNotifications})`,
+    );
   }
 
   async process(job: Job<CreateOrderJobData>): Promise<{ ok: boolean }> {
@@ -39,7 +48,7 @@ export class OrdersWorker extends WorkerHost implements OnModuleInit {
     await this.ordersService.create(customerId, dto, {
       lightweight: true,
       skipCustomerExistsCheck: true,
-      skipNotifications: true,
+      skipNotifications: workerSkipNotifications,
     });
     const duration = Date.now() - start;
     // eslint-disable-next-line no-console

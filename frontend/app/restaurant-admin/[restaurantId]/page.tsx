@@ -181,6 +181,9 @@ export default function RestaurantAdminPage({
   const [error, setError] = useState<string | null>(null);
   const [manualArchive, setManualArchive] = useState<any[]>([]);
   const [ordersLastSyncAt, setOrdersLastSyncAt] = useState<string | null>(null);
+  const [telegramChatId, setTelegramChatId] = useState("");
+  const [settingsSaving, setSettingsSaving] = useState(false);
+  const [settingsMessage, setSettingsMessage] = useState<string | null>(null);
 
   const manualArchiveKey = `restaurant-admin-manual-archive:${restaurantId}`;
 
@@ -269,6 +272,13 @@ export default function RestaurantAdminPage({
   }, [restaurantId]);
 
   useEffect(() => {
+    adminApi
+      .getRestaurantSettings(restaurantId)
+      .then((s) => setTelegramChatId(String(s?.telegramChatId ?? "")))
+      .catch(() => setTelegramChatId(""));
+  }, [restaurantId]);
+
+  useEffect(() => {
     if (activeTab === "orders") loadOrders();
     else if (activeTab === "archive") loadArchive();
     else if (activeTab === "stats") loadStats();
@@ -316,6 +326,22 @@ export default function RestaurantAdminPage({
     });
   }
 
+  async function saveTelegramSettings() {
+    setSettingsSaving(true);
+    setSettingsMessage(null);
+    try {
+      const saved = await adminApi.updateRestaurantSettings(restaurantId, {
+        telegramChatId: telegramChatId.trim(),
+      });
+      setTelegramChatId(String(saved?.telegramChatId ?? ""));
+      setSettingsMessage("Telegram chat ID saqlandi.");
+    } catch (err: any) {
+      setSettingsMessage(err?.message ?? "Sozlamani saqlashda xatolik.");
+    } finally {
+      setSettingsSaving(false);
+    }
+  }
+
   const tabs: { id: TabId; label: string }[] = [
     { id: "orders", label: "Buyurtmalar" },
     { id: "archive", label: "Arxiv" },
@@ -336,6 +362,37 @@ export default function RestaurantAdminPage({
         </button>
       </div>
       <h1 className="fd-section-title">Restoran boshqaruvi</h1>
+      <div className="fd-card" style={{ padding: 16, marginBottom: 14 }}>
+        <div className="fd-card-desc" style={{ fontWeight: 700, marginBottom: 10 }}>
+          Telegram bot sozlamalari
+        </div>
+        <p className="fd-card-desc" style={{ marginTop: 0 }}>
+          Yangi buyurtmalar bo‘yicha Telegram xabarnoma olish uchun chat ID kiriting.
+        </p>
+        <label className="fd-label" htmlFor="telegram-chat-id" style={{ marginBottom: 6, display: "block" }}>
+          Telegram chat ID
+        </label>
+        <input
+          id="telegram-chat-id"
+          className="fd-input"
+          value={telegramChatId}
+          onChange={(e) => setTelegramChatId(e.target.value)}
+          placeholder="-1001234567890"
+        />
+        <div style={{ marginTop: 10, display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
+          <button
+            type="button"
+            className="fd-btn fd-btn-primary"
+            onClick={saveTelegramSettings}
+            disabled={settingsSaving}
+          >
+            {settingsSaving ? "Saqlanmoqda..." : "Saqlash"}
+          </button>
+          {settingsMessage && (
+            <span className="fd-checkout-meta">{settingsMessage}</span>
+          )}
+        </div>
+      </div>
 
       <div style={{ display: "flex", gap: 6, flexWrap: "nowrap", overflowX: "auto", marginBottom: 16, paddingBottom: 2 }}>
         {tabs.map((t) => (
