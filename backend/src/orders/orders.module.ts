@@ -13,6 +13,12 @@ import { OrdersQueue } from './orders.queue';
 import { OrdersWorker } from './orders.worker';
 import { ORDERS_QUEUE_NAME } from './orders.constants';
 
+/** If false, do not run BullMQ consumer in this process (use a dedicated Railway worker service). Default: run worker in API. */
+function ordersWorkerInThisProcess(): boolean {
+  const v = (process.env.ORDERS_WORKER_IN_API ?? 'true').trim().toLowerCase();
+  return v !== 'false' && v !== '0' && v !== 'no';
+}
+
 @Module({
   imports: [
     AuthModule,
@@ -26,7 +32,11 @@ import { ORDERS_QUEUE_NAME } from './orders.constants';
       name: ORDERS_QUEUE_NAME,
     }),
   ],
-  providers: [OrdersService, OrdersQueue, OrdersWorker],
+  providers: [
+    OrdersService,
+    OrdersQueue,
+    ...(ordersWorkerInThisProcess() ? [OrdersWorker] : []),
+  ],
   controllers: [
     OrdersController,
     CourierOrdersController,
