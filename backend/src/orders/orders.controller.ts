@@ -1,4 +1,4 @@
-import { BadRequestException, Body, Controller, ForbiddenException, Get, HttpCode, Logger, Param, Patch, Post, Query, Req, UseGuards } from '@nestjs/common';
+import { BadRequestException, Body, Controller, ForbiddenException, Get, HttpCode, HttpException, Logger, Param, Patch, Post, Query, Req, ServiceUnavailableException, UseGuards } from '@nestjs/common';
 import { Throttle, ThrottlerGuard } from '@nestjs/throttler';
 import { OrdersService } from './orders.service';
 import { CreateOrderDto } from './dto/create-order.dto';
@@ -47,18 +47,16 @@ export class OrdersController {
     }
     try {
       const queueEnabled = isTruthyEnv(process.env.ORDERS_QUEUE_ENABLED);
-      if (queueEnabled) {
-        this.logger.log(`[orders.create] QUEUE USED restaurantId=${dto.restaurantId}`);
-        const queued = await this.ordersQueue.enqueueCreateOrder({ customerId, dto });
-        this.logger.log(`[orders.create] queued jobId=${queued.jobId}`);
-        ok = true;
-        return { status: 'queued', jobId: queued.jobId };
-      } else {
-        const result = await this.ordersService.create(customerId, dto);
-        ok = true;
-        return result;
+      if (!queueEnabled) {
+        throw new ServiceUnavailableException('Orders queue is disabled');
       }
+      this.logger.log(`[orders.create] QUEUE USED restaurantId=${dto.restaurantId}`);
+      const queued = await this.ordersQueue.enqueueCreateOrder({ customerId, dto });
+      this.logger.log(`[orders.create] queued jobId=${queued.jobId}`);
+      ok = true;
+      return { status: 'queued', jobId: queued.jobId };
     } catch (e: any) {
+      if (e instanceof HttpException) throw e;
       const message = e?.message ? String(e.message) : 'Order creation failed';
       throw new BadRequestException(message);
     } finally {
