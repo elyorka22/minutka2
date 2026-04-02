@@ -18,8 +18,9 @@ async function telegramRequest(method, body) {
 }
 
 async function sendOrderNotification(chatId, order) {
+  const code = order.shortCode != null && String(order.shortCode).length > 0 ? String(order.shortCode) : String(order.id).slice(0, 8);
   const text =
-    `Yangi buyurtma #${order.id}\n` +
+    `Yangi buyurtma #${code}\n` +
     `Restoran: ${order.restaurantName}\n` +
     `Jami: ${order.total} so'm\n` +
     `Mijoz: ${order.customerName || "-"}\n` +

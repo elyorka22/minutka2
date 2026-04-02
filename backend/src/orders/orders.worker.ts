@@ -21,6 +21,15 @@ const workerSkipNotifications =
   workerSkipNotificationsRaw === 'yes' ||
   workerSkipNotificationsRaw === 'y';
 
+/** Web-push only; Telegram uses ORDERS_WORKER_SKIP_TELEGRAM / DISABLE_TELEGRAM_NOTIFY. */
+const workerSkipTelegramRaw =
+  (process.env.ORDERS_WORKER_SKIP_TELEGRAM ?? '').trim().toLowerCase();
+const workerSkipTelegram =
+  workerSkipTelegramRaw === 'true' ||
+  workerSkipTelegramRaw === '1' ||
+  workerSkipTelegramRaw === 'yes' ||
+  workerSkipTelegramRaw === 'y';
+
 @Processor(ORDERS_QUEUE_NAME, { concurrency: workerConcurrency })
 @Injectable()
 export class OrdersWorker extends WorkerHost implements OnModuleInit {
@@ -32,7 +41,7 @@ export class OrdersWorker extends WorkerHost implements OnModuleInit {
 
   onModuleInit() {
     this.logger.log(
-      `Worker started (concurrency=${workerConcurrency}, skipNotifications=${workerSkipNotifications})`,
+      `Worker started (concurrency=${workerConcurrency}, skipPush=${workerSkipNotifications}, skipTelegram=${workerSkipTelegram})`,
     );
   }
 
@@ -49,6 +58,7 @@ export class OrdersWorker extends WorkerHost implements OnModuleInit {
       lightweight: true,
       skipCustomerExistsCheck: true,
       skipNotifications: workerSkipNotifications,
+      skipTelegram: workerSkipTelegram,
     });
     const duration = Date.now() - start;
     // eslint-disable-next-line no-console

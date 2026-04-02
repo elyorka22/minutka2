@@ -1,4 +1,4 @@
-import { BadRequestException, ForbiddenException, Injectable } from '@nestjs/common';
+import { BadRequestException, ForbiddenException, Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from '../prisma.service';
 import { UsersService } from '../users/users.service';
 import { CreateOrderDto } from './dto/create-order.dto';
@@ -38,6 +38,7 @@ const COURIER_ORDER_API_SELECT = {
 
 @Injectable()
 export class OrdersService {
+  private readonly logger = new Logger(OrdersService.name);
   private lastArchiveCleanupAtMs = 0;
 
   constructor(
@@ -86,15 +87,21 @@ export class OrdersService {
     options?: {
       lightweight?: boolean;
       skipCustomerExistsCheck?: boolean;
+      /** Web-push to restaurant admins only (not Telegram). */
       skipNotifications?: boolean;
+      /** Telegram /notify to bot (separate from DISABLE_PUSH and skipNotifications). */
+      skipTelegram?: boolean;
     },
   ) {
     let userId =
       customerId ?? (await this.usersService.findOrCreateGuestUser(dto.clientKey));
     const disablePush = process.env.DISABLE_PUSH === 'true';
+    const disableTelegramEnv = process.env.DISABLE_TELEGRAM_NOTIFY === 'true';
     const lightweight = options?.lightweight === true;
     const skipCustomerExistsCheck = options?.skipCustomerExistsCheck === true;
-    const skipNotifications = options?.skipNotifications === true;
+    const skipPushNotifications = options?.skipNotifications === true;
+    const skipTelegram =
+      disableTelegramEnv || options?.skipTelegram === true;
     const requestedDishIds = Array.from(new Set(dto.items.map((i) => i.dishId)));
 
     // Run independent reads in parallel to cut request/job latency.
@@ -112,7 +119,7 @@ export class OrdersService {
           name: true,
           deliveryFee: true,
           telegramChatId: true,
-          ...(disablePush || skipNotifications
+          ...(disablePush || skipPushNotifications
             ? {}
             : { admins: { select: { id: true } } }),
         },
@@ -220,9 +227,12 @@ export class OrdersService {
       return createdOrder;
     });
 
-    const notifyUrl = process.env.TELEGRAM_BOT_NOTIFY_URL;
-    const chatId = (restaurant as any).telegramChatId;
-    if (!disablePush && !skipNotifications && notifyUrl && chatId) {
+    const notifyUrl = (process.env.TELEGRAM_BOT_NOTIFY_URL ?? '').trim();
+    const rawChatId = (restaurant as { telegramChatId?: string | null }).telegramChatId;
+    const chatId =
+      typeof rawChatId === 'string' ? rawChatId.trim() : rawChatId != null ? String(rawChatId).trim() : '';
+
+    if (!skipTelegram && notifyUrl && chatId) {
       void (async () => {
         const base = notifyUrl.replace(/\/$/, '');
         const phone = dto.address?.details?.replace(/^Tel:\s*/i, '') ?? '';
@@ -230,6 +240,7 @@ export class OrdersService {
           chatId,
           order: {
             id: createdOrder.id,
+            shortCode: this.formatOrderCode(createdOrder.shortCode),
             restaurantName: restaurant.name,
             total: Number(createdOrder.total),
             customerName: '',
@@ -238,17 +249,39 @@ export class OrdersService {
             lng: dto.address?.longitude,
           },
         };
-        fetchWithRetry(`${base}/notify`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(payload),
-        }).catch(() => {});
+        try {
+          const res = await fetchWithRetry(`${base}/notify`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload),
+          });
+          if (!res.ok) {
+            const text = await res.text().catch(() => '');
+            this.logger.warn(
+              `[telegram] /notify HTTP ${res.status} restaurantId=${dto.restaurantId} body=${text.slice(0, 200)}`,
+            );
+          }
+        } catch (e: unknown) {
+          this.logger.warn(
+            `[telegram] /notify failed restaurantId=${dto.restaurantId} err=${e instanceof Error ? e.message : String(e)}`,
+          );
+        }
       })();
+    } else if (!skipTelegram) {
+      if (!notifyUrl) {
+        this.logger.warn(
+          `[telegram] skip: TELEGRAM_BOT_NOTIFY_URL is empty (set it on API and worker to your bot service URL) order=${createdOrder.id}`,
+        );
+      } else if (!chatId) {
+        this.logger.warn(
+          `[telegram] skip: restaurant.telegramChatId empty restaurantId=${dto.restaurantId} order=${createdOrder.id}`,
+        );
+      }
     }
 
     // Web-push to restaurant admins about a new order.
     // Never block order creation; but do not swallow errors silently.
-    if (!disablePush && !skipNotifications) {
+    if (!disablePush && !skipPushNotifications) {
       void (async () => {
         try {
           const adminUserIds = (restaurant as any).admins?.map((u: { id: string }) => u.id).filter(Boolean) ?? [];
