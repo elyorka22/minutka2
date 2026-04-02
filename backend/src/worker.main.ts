@@ -1,22 +1,37 @@
 import { Logger } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
-import { AppModule } from './app.module';
 
 /**
  * Standalone process: same Nest modules as API, but no HTTP server.
- * BullMQ @Processor (OrdersWorker) still registers and consumes the queue.
+ * BullMQ @Processor (OrdersWorker) registers via BullRegistrar.onModuleInit.
  *
- * Railway: duplicate the backend service, set start command to `npm run start:worker`,
- * share env with API (DATABASE_URL, REDIS_URL / ORDERS_REDIS_URL, etc.).
- * On the API service set ORDERS_WORKER_IN_API=false so only this process consumes jobs.
+ * IMPORTANT: Do not static-import AppModule at the top — OrdersModule reads
+ * ORDERS_WORKER_IN_API before bootstrap() runs. Railway users often copy API env
+ * (ORDERS_WORKER_IN_API=false) onto the worker service, which would skip OrdersWorker.
+ * We set ORDERS_FORCE_WORKER before loading AppModule so the consumer always registers here.
  */
 async function bootstrap() {
+  process.env.ORDERS_FORCE_WORKER = '1';
+
+  const redisUrl = process.env.ORDERS_REDIS_URL || process.env.REDIS_URL;
+  if (!redisUrl || !String(redisUrl).trim()) {
+    const log = new Logger('WorkerMain');
+    log.error(
+      'Missing REDIS_URL or ORDERS_REDIS_URL. Add the same Redis URL as on the API service.',
+    );
+    process.exit(1);
+  }
+
+  const { AppModule } = await import('./app.module');
+
   const logger = new Logger('WorkerMain');
   const app = await NestFactory.createApplicationContext(AppModule, {
     logger: ['error', 'warn', 'log'],
   });
   app.enableShutdownHooks();
-  logger.log('Orders worker process up (no HTTP); BullMQ consumer runs in OrdersWorker.');
+  logger.log(
+    'Orders worker process up (no HTTP). Consuming queue "orders" (createOrder jobs).',
+  );
 }
 
 bootstrap().catch((err) => {
