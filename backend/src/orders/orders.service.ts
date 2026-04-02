@@ -83,13 +83,18 @@ export class OrdersService {
   async create(
     customerId: string | null,
     dto: CreateOrderDto,
-    options?: { lightweight?: boolean; skipCustomerExistsCheck?: boolean },
+    options?: {
+      lightweight?: boolean;
+      skipCustomerExistsCheck?: boolean;
+      skipNotifications?: boolean;
+    },
   ) {
     let userId =
       customerId ?? (await this.usersService.findOrCreateGuestUser(dto.clientKey));
     const disablePush = process.env.DISABLE_PUSH === 'true';
     const lightweight = options?.lightweight === true;
     const skipCustomerExistsCheck = options?.skipCustomerExistsCheck === true;
+    const skipNotifications = options?.skipNotifications === true;
     const requestedDishIds = Array.from(new Set(dto.items.map((i) => i.dishId)));
 
     // Run independent reads in parallel to cut request/job latency.
@@ -107,7 +112,9 @@ export class OrdersService {
           name: true,
           deliveryFee: true,
           telegramChatId: true,
-          admins: { select: { id: true } },
+          ...(disablePush || skipNotifications
+            ? {}
+            : { admins: { select: { id: true } } }),
         },
       }),
       this.prisma.dish.findMany({
@@ -138,18 +145,6 @@ export class OrdersService {
     const total = Math.round((subtotal + deliveryFee + serviceFee) * 100) / 100;
 
     const createdOrder = await this.prisma.transaction(async (tx) => {
-      const address = await tx.address.create({
-        data: {
-          userId,
-          label: dto.address.label,
-          street: dto.address.street,
-          city: dto.address.city,
-          details: dto.address.details,
-          latitude: dto.address.latitude,
-          longitude: dto.address.longitude,
-        },
-      });
-
       let createdOrder: {
         id: string;
         shortCode: number;
@@ -165,7 +160,17 @@ export class OrdersService {
               shortCode,
               customerId: userId,
               restaurantId: dto.restaurantId,
-              addressId: address.id,
+              address: {
+                create: {
+                  userId,
+                  label: dto.address.label,
+                  street: dto.address.street,
+                  city: dto.address.city,
+                  details: dto.address.details,
+                  latitude: dto.address.latitude,
+                  longitude: dto.address.longitude,
+                },
+              },
               comment: dto.comment,
               subtotal,
               deliveryFee,
@@ -217,7 +222,7 @@ export class OrdersService {
 
     const notifyUrl = process.env.TELEGRAM_BOT_NOTIFY_URL;
     const chatId = (restaurant as any).telegramChatId;
-    if (!disablePush && notifyUrl && chatId) {
+    if (!disablePush && !skipNotifications && notifyUrl && chatId) {
       void (async () => {
         const base = notifyUrl.replace(/\/$/, '');
         const phone = dto.address?.details?.replace(/^Tel:\s*/i, '') ?? '';
@@ -243,10 +248,10 @@ export class OrdersService {
 
     // Web-push to restaurant admins about a new order.
     // Never block order creation; but do not swallow errors silently.
-    if (!disablePush) {
+    if (!disablePush && !skipNotifications) {
       void (async () => {
         try {
-          const adminUserIds = restaurant.admins?.map((u) => u.id).filter(Boolean) ?? [];
+          const adminUserIds = (restaurant as any).admins?.map((u: { id: string }) => u.id).filter(Boolean) ?? [];
 
           void this.sendPushToUserIds(adminUserIds, {
             title: 'Minutka',

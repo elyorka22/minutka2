@@ -33,6 +33,7 @@ export class OrdersWorker extends WorkerHost implements OnModuleInit {
     await this.ordersService.create(customerId, dto, {
       lightweight: true,
       skipCustomerExistsCheck: true,
+      skipNotifications: true,
     });
     const duration = Date.now() - start;
     // eslint-disable-next-line no-console
