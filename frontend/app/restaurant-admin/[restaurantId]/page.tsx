@@ -183,21 +183,20 @@ export default function RestaurantAdminPage({
   const [statsLoading, setStatsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [manualArchive, setManualArchive] = useState<any[]>([]);
-  const [ordersLastSyncAt, setOrdersLastSyncAt] = useState<string | null>(null);
   const [telegramChatId, setTelegramChatId] = useState("");
   const [settingsSaving, setSettingsSaving] = useState(false);
   const [settingsMessage, setSettingsMessage] = useState<string | null>(null);
 
   const manualArchiveKey = `restaurant-admin-manual-archive:${restaurantId}`;
 
-  /** Polling must read latest cursor without resetting interval on every state tick. */
+  /**
+   * Cursor for GET .../orders/changes?since= — only advance from a successful full list fetch.
+   * Never set this from /changes meta before loadOrders finishes: if the DB has a new row but
+   * the list response is still empty (queue lag), advancing the cursor makes the next poll return changed=false.
+   */
   const ordersLastSyncAtRef = useRef<string | null>(null);
   /** Mirrors manualArchive for use inside fetch callbacks (always current). */
   const manualArchiveRef = useRef<any[]>([]);
-
-  useEffect(() => {
-    ordersLastSyncAtRef.current = ordersLastSyncAt;
-  }, [ordersLastSyncAt]);
 
   useEffect(() => {
     manualArchiveRef.current = manualArchive;
@@ -255,10 +254,8 @@ export default function RestaurantAdminPage({
           .filter(Boolean)
           .sort()
           .pop();
-        if (latest) {
-          ordersLastSyncAtRef.current = latest;
-          setOrdersLastSyncAt(latest);
-        }
+        if (latest) ordersLastSyncAtRef.current = latest;
+        else ordersLastSyncAtRef.current = null;
       })
       .catch((err: any) => setError(err?.message ?? "Xatolik"))
       .finally(() => {
@@ -320,25 +317,36 @@ export default function RestaurantAdminPage({
   useEffect(() => {
     if (activeTab !== "orders") return;
     let inFlight = false;
-    const interval = setInterval(() => {
+    let safetyTick = 0;
+    const tick = () => {
       if (typeof document !== "undefined" && document.hidden) return;
       if (inFlight) return;
       inFlight = true;
       adminApi
         .getRestaurantOrdersChanges(restaurantId, { since: ordersLastSyncAtRef.current ?? undefined })
         .then((meta) => {
-          if (meta?.lastUpdatedAt) {
-            ordersLastSyncAtRef.current = meta.lastUpdatedAt;
-            setOrdersLastSyncAt(meta.lastUpdatedAt);
-          }
-          if (!meta?.changed) return;
-          loadOrders({ background: true });
+          if (meta?.changed) loadOrders({ background: true });
         })
         .finally(() => {
           inFlight = false;
         });
-    }, 12000);
-    return () => clearInterval(interval);
+    };
+    const interval = setInterval(() => {
+      tick();
+      safetyTick += 1;
+      if (safetyTick >= 4) {
+        safetyTick = 0;
+        loadOrders({ background: true });
+      }
+    }, 8000);
+    const onVisible = () => {
+      if (typeof document !== "undefined" && !document.hidden) loadOrders({ background: true });
+    };
+    if (typeof document !== "undefined") document.addEventListener("visibilitychange", onVisible);
+    return () => {
+      clearInterval(interval);
+      if (typeof document !== "undefined") document.removeEventListener("visibilitychange", onVisible);
+    };
   }, [activeTab, restaurantId, loadOrders]);
 
   async function changeStatus(id: string, status: string, cancelReason?: string) {
