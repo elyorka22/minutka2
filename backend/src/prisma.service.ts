@@ -7,19 +7,36 @@ export class PrismaService implements OnModuleInit, OnModuleDestroy {
   private readonly logger = new Logger(PrismaService.name);
   private client: InstanceType<typeof PrismaClient>;
 
+  private withPoolParams(dsn: string): string {
+    // Railway/Supabase часто требует явных параметров пула.
+    // pg-параметры распознаются через querystring в connection string.
+    try {
+      const u = new URL(dsn);
+      u.searchParams.set('connection_limit', '5');
+      u.searchParams.set('pool_timeout', '20');
+      return u.toString();
+    } catch {
+      // Fallback: если URL-конструктор не смог распарсить DSN,
+      // просто дописываем параметры в конец.
+      const sep = dsn.includes('?') ? '&' : '?';
+      return `${dsn}${sep}connection_limit=5&pool_timeout=20`;
+    }
+  }
+
   constructor() {
     const url = process.env.DATABASE_URL;
     if (!url) {
       throw new Error('DATABASE_URL is not set');
     }
-    const adapter = new PrismaPg({ connectionString: url });
-    const slowMs = Number(process.env.PRISMA_SLOW_QUERY_MS ?? 0);
-    const log =
-      slowMs > 0 ? ([{ level: 'query' as const, emit: 'event' as const }] as { level: 'query'; emit: 'event' }[]) : [];
+    const pooledDsn = this.withPoolParams(url);
+    const adapter = new PrismaPg({ connectionString: pooledDsn });
+    // Просим Prisma логировать и query, и warn/error.
     this.client = new PrismaClient({
       adapter,
-      ...(log.length ? { log } : {}),
+      log: ['query', 'error', 'warn'],
     });
+
+    const slowMs = Number(process.env.PRISMA_SLOW_QUERY_MS ?? 0);
     if (slowMs > 0) {
       (this.client as { $on(event: 'query', cb: (e: { duration: number; query: string }) => void): void }).$on(
         'query',

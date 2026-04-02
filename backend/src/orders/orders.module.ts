@@ -8,10 +8,12 @@ import {
 } from './orders.controller';
 import { AuthModule } from '../auth/auth.module';
 import { UsersModule } from '../users/users.module';
+import { OrdersQueue } from './orders.queue';
+import { OrdersWorker } from './orders.worker';
 
 @Module({
   imports: [AuthModule, UsersModule],
-  providers: [OrdersService],
+  providers: [OrdersService, OrdersQueue, OrdersWorker],
   controllers: [
     OrdersController,
     CourierOrdersController,

@@ -17,7 +17,7 @@ function OrderCard({
   onArchive?: (order: any) => void;
   showStatusButtons?: boolean;
 }) {
-  const displayCode = o?.shortCode != null ? String(o.shortCode).padStart(4, "0") : String(o.id).slice(0, 4);
+  const displayCode = o?.shortCode != null ? String(o.shortCode).padStart(6, "0") : String(o.id).slice(0, 6);
   const addr = o.address;
   const hasCoords =
     addr &&

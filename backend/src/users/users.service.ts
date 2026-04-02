@@ -6,6 +6,16 @@ import type { User } from '../../generated/prisma/client';
 
 export type UserEntity = User;
 
+/**
+ * Guest users may be created very frequently (e.g. during load tests).
+ * bcrypt.hash(...) per guest is a CPU bottleneck.
+ *
+ * We reuse a single precomputed bcrypt hash for all guests created
+ * via `findOrCreateGuestUser()`. Authenticated users keep using
+ * `create()` with bcrypt.
+ */
+const GUEST_FIXED_BCRYPT_HASH = '$2b$10$nlFexvuyAgK9.ZBKIrszM.ZLDVULUYIZW0uamx9KgMS9R6G4Kbv/6';
+
 @Injectable()
 export class UsersService {
   constructor(private readonly prisma: PrismaService) {}
@@ -80,15 +90,19 @@ export class UsersService {
 
   async findOrCreateGuestUser(clientKey?: string): Promise<string> {
     const email = this.guestEmailForClientKey(clientKey);
-    let user = await this.findByEmail(email);
-    if (user) return user.id;
-    user = await this.create({
-      email,
-      name: 'Mehmon',
-      password: 'guest-' + Math.random().toString(36).slice(2),
-      role: 'CUSTOMER',
+    // Email уникальный — используем upsert, чтобы не делать отдельный findUnique перед create.
+    const createdOrExisting = await this.prisma.user.upsert({
+      where: { email },
+      update: { name: 'Mehmon', role: 'CUSTOMER' },
+      create: {
+        email,
+        name: 'Mehmon',
+        // Same bcrypt hash for all guests (avoid per-request bcrypt hashing).
+        password: GUEST_FIXED_BCRYPT_HASH,
+        role: 'CUSTOMER',
+      },
     });
-    return user.id;
+    return createdOrExisting.id;
   }
 }
 

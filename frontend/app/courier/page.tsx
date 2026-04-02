@@ -52,7 +52,7 @@ function courierOrderDisplayCode(o: { shortCode?: unknown }): string {
   const sc = o?.shortCode;
   if (sc != null && String(sc).trim() !== "") {
     const n = Number(sc);
-    if (Number.isFinite(n)) return String(Math.trunc(n)).padStart(4, "0");
+    if (Number.isFinite(n)) return String(Math.trunc(n)).padStart(6, "0");
   }
   return "----";
 }

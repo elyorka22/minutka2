@@ -778,7 +778,7 @@ export default function PlatformAdminPage() {
                 {data.recentOrders?.map((o: any) => (
                   <div key={o.id} className="fd-checkout-item">
                     <div>
-                      <div>#{o?.shortCode != null ? String(o.shortCode).padStart(4, "0") : String(o.id).slice(0, 4)}</div>
+                      <div>#{o?.shortCode != null ? String(o.shortCode).padStart(6, "0") : String(o.id).slice(0, 6)}</div>
                       <div className="fd-checkout-meta">
                         {o.restaurant?.name} · {o.customer?.email} · {o.status}
                       </div>

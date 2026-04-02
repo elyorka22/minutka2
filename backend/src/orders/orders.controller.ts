@@ -6,18 +6,27 @@ import { PatchOrderStatusDto } from './dto/patch-order-status.dto';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { AuthService } from '../auth/auth.service';
 import { PrismaService } from '../prisma.service';
+import { OrdersQueue } from './orders.queue';
 
 @Controller('orders')
 export class OrdersController {
   constructor(
     private readonly ordersService: OrdersService,
     private readonly authService: AuthService,
+    private readonly ordersQueue: OrdersQueue,
   ) {}
 
   @Post()
   @UseGuards(ThrottlerGuard)
-  @Throttle({ default: { limit: 15, ttl: 60000 } })
+  @Throttle({
+    default: {
+      limit: Number(process.env.ORDERS_THROTTLE_LIMIT ?? 15),
+      ttl: Number(process.env.ORDERS_THROTTLE_TTL_MS ?? 60000),
+    },
+  })
   async create(@Body() dto: CreateOrderDto, @Req() req: { headers?: { authorization?: string }; user?: { id: string } }) {
+    const startedAt = Date.now();
+    let ok = false;
     let customerId: string | null = null;
     const authHeader = req.headers?.authorization;
     if (authHeader?.startsWith('Bearer ')) {
@@ -29,10 +38,23 @@ export class OrdersController {
       }
     }
     try {
-      return await this.ordersService.create(customerId, dto);
+      const queueEnabled = process.env.ORDERS_QUEUE_ENABLED === 'true';
+      if (queueEnabled) {
+        const queued = await this.ordersQueue.enqueueCreateOrder({ customerId, dto });
+        ok = true;
+        return { status: 'queued', jobId: queued.jobId };
+      } else {
+        const result = await this.ordersService.create(customerId, dto);
+        ok = true;
+        return result;
+      }
     } catch (e: any) {
       const message = e?.message ? String(e.message) : 'Order creation failed';
       throw new BadRequestException(message);
+    } finally {
+      const ms = Date.now() - startedAt;
+      // eslint-disable-next-line no-console
+      console.log(`[orders.create] ok=${ok} durationMs=${ms} restaurantId=${dto.restaurantId}`);
     }
   }
 

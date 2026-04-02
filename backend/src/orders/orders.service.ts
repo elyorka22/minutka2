@@ -63,33 +63,40 @@ export class OrdersService {
   }
 
   private formatOrderCode(shortCode: number): string {
-    return String(shortCode).padStart(4, '0');
+    // Short code is used as a human-friendly order identifier.
+    // With load-test optimizations we increased the range to 6 digits.
+    return String(shortCode).padStart(6, '0');
   }
 
-  private async generateUniqueOrderShortCode(tx: any): Promise<number> {
-    for (let attempt = 0; attempt < 40; attempt++) {
-      const candidate = 1000 + Math.floor(Math.random() * 9000);
-      const exists = await tx.order.findUnique({
-        where: { shortCode: candidate },
-        select: { id: true },
-      });
-      if (!exists) return candidate;
-    }
-    throw new BadRequestException('Order short code generation failed');
+  /**
+   * Генерируем кандидат shortCode без предварительного SELECT.
+   * Уникальность проверяется на уровне INSERT через catch (P2002) в create().
+   *
+   * Это уменьшает нагрузку на Postgres: вместо (SELECT + INSERT) делаем только INSERT.
+   */
+  private generateOrderShortCodeCandidate(): number {
+    // 6-digit range to reduce collisions under concurrent load:
+    // [100000..999999] => 900,000 distinct values.
+    return 100000 + Math.floor(Math.random() * 900000);
   }
 
   async create(customerId: string | null, dto: CreateOrderDto) {
     let userId =
       customerId ?? (await this.usersService.findOrCreateGuestUser(dto.clientKey));
+    const disablePush = process.env.DISABLE_PUSH === 'true';
 
     // If JWT points to a user that was deleted after token issuance,
     // we must not create Address with an invalid FK.
-    const userExists = await this.prisma.user.findUnique({
-      where: { id: userId },
-      select: { id: true },
-    });
-    if (!userExists) {
-      userId = await this.usersService.findOrCreateGuestUser(dto.clientKey);
+    // For guests (customerId === null) the user was just created/upserted,
+    // so we can skip this extra SELECT to reduce load.
+    if (customerId) {
+      const userExists = await this.prisma.user.findUnique({
+        where: { id: userId },
+        select: { id: true },
+      });
+      if (!userExists) {
+        userId = await this.usersService.findOrCreateGuestUser(dto.clientKey);
+      }
     }
     const restaurant = await this.prisma.restaurant.findUnique({
       where: { id: dto.restaurantId, isActive: true },
@@ -136,7 +143,7 @@ export class OrdersService {
 
       let order: { id: string; total: any } | null = null;
       for (let attempt = 0; attempt < 10; attempt++) {
-        const shortCode = await this.generateUniqueOrderShortCode(tx);
+        const shortCode = this.generateOrderShortCodeCandidate();
         try {
           order = await tx.order.create({
             data: {
@@ -223,56 +230,63 @@ export class OrdersService {
     }
 
     const notifyUrl = process.env.TELEGRAM_BOT_NOTIFY_URL;
-      const chatId = (restaurant as any).telegramChatId;
-    if (notifyUrl && chatId) {
-      const base = notifyUrl.replace(/\/$/, '');
-      const phone = order.address?.details?.replace(/^Tel:\s*/i, '') ?? '';
-      const payload = {
-        chatId,
-        order: {
-          id: order.id,
-          restaurantName: restaurant.name,
-          total: Number(order.total),
-          customerName: (order as any).customer?.name ?? '',
-          phone,
-          lat: order.address?.latitude,
-          lng: order.address?.longitude,
-        },
-      };
-      fetchWithRetry(`${base}/notify`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
-      }).catch(() => {});
+    const chatId = (restaurant as any).telegramChatId;
+    if (!disablePush && notifyUrl && chatId) {
+      void (async () => {
+        const base = notifyUrl.replace(/\/$/, '');
+        const phone = order.address?.details?.replace(/^Tel:\s*/i, '') ?? '';
+        const payload = {
+          chatId,
+          order: {
+            id: order.id,
+            restaurantName: restaurant.name,
+            total: Number(order.total),
+            customerName: (order as any).customer?.name ?? '',
+            phone,
+            lat: order.address?.latitude,
+            lng: order.address?.longitude,
+          },
+        };
+        fetchWithRetry(`${base}/notify`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+        }).catch(() => {});
+      })();
     }
 
     // Web-push to restaurant admins about a new order.
     // Never block order creation; but do not swallow errors silently.
-    try {
-      const restaurantWithAdmins = await this.prisma.restaurant.findUnique({
-        where: { id: dto.restaurantId },
-        select: { admins: { select: { id: true, role: true } } },
-      });
-      const adminUserIds =
-        restaurantWithAdmins?.admins?.map((u) => u.id).filter(Boolean) ?? [];
+    if (!disablePush) {
+      void (async () => {
+        try {
+          // Background: do not block POST /orders response on extra DB + webpush work.
+          const restaurantWithAdmins = await this.prisma.restaurant.findUnique({
+            where: { id: dto.restaurantId },
+            select: { admins: { select: { id: true, role: true } } },
+          });
+          const adminUserIds =
+            restaurantWithAdmins?.admins?.map((u) => u.id).filter(Boolean) ?? [];
 
-      void this.sendPushToUserIds(adminUserIds, {
-        title: 'Minutka',
-        message: `Yangi buyurtma #${this.formatOrderCode(order.shortCode)}`,
-        url: `/restaurant-admin/${dto.restaurantId}`,
-      }).catch((e) => {
-        // eslint-disable-next-line no-console
-        console.error('[push] restaurant-admins NEW order failed', {
-          restaurantId: dto.restaurantId,
-          error: e?.message ?? String(e),
-        });
-      });
-    } catch (e: any) {
-      // eslint-disable-next-line no-console
-      console.error('[push] restaurant-admins NEW order failed', {
-        restaurantId: dto.restaurantId,
-        error: e?.message ?? String(e),
-      });
+          void this.sendPushToUserIds(adminUserIds, {
+            title: 'Minutka',
+            message: `Yangi buyurtma #${this.formatOrderCode(order.shortCode)}`,
+            url: `/restaurant-admin/${dto.restaurantId}`,
+          }).catch((e) => {
+            // eslint-disable-next-line no-console
+            console.error('[push] restaurant-admins NEW order failed', {
+              restaurantId: dto.restaurantId,
+              error: e?.message ?? String(e),
+            });
+          });
+        } catch (e: any) {
+          // eslint-disable-next-line no-console
+          console.error('[push] restaurant-admins NEW order failed', {
+            restaurantId: dto.restaurantId,
+            error: e?.message ?? String(e),
+          });
+        }
+      })();
     }
 
     return order;
@@ -344,6 +358,9 @@ export class OrdersService {
     userIds: string[],
     payload: { title: string; message: string; url: string },
   ): Promise<{ subscriptionsFound: number; success: number; failed: number }> {
+    if (process.env.DISABLE_PUSH === 'true') {
+      return { subscriptionsFound: 0, success: 0, failed: 0 };
+    }
     const unique = Array.from(new Set(userIds.filter(Boolean)));
     if (unique.length === 0) {
       return { subscriptionsFound: 0, success: 0, failed: 0 };
