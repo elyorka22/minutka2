@@ -17,6 +17,7 @@ function OrderCard({
   onArchive?: (order: any) => void;
   showStatusButtons?: boolean;
 }) {
+  const [addressOpen, setAddressOpen] = useState(false);
   const displayCode = o?.shortCode != null ? String(o.shortCode).padStart(6, "0") : String(o.id).slice(0, 6);
   const addr = o.address;
   const hasCoords =
@@ -167,32 +168,51 @@ function OrderCard({
       </div>
       {addr && (
         <div style={{ marginTop: 12 }}>
-          <div className="fd-card-desc" style={{ fontWeight: 600, marginBottom: 4 }}>
-            Manzil:
-          </div>
-          <p className="fd-card-desc" style={{ margin: 0 }}>
-            {addr.street}
-            {addr.city ? `, ${addr.city}` : ""}
-            {addr.details ? ` · ${addr.details}` : ""}
-          </p>
-          {o.comment && (
-            <p className="fd-card-desc" style={{ margin: "4px 0 0 0" }}>
-              Izoh: {o.comment}
-            </p>
-          )}
-          {mapUrl && (
-            <a
-              href={mapUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="fd-btn"
-              style={{ marginTop: 8, display: "inline-flex", alignItems: "center", gap: 6, textDecoration: "none" }}
-            >
-              <span className="material-symbols-rounded" style={{ fontSize: 18 }}>
-                location_on
-              </span>
-              Xaritada ko&apos;rish
-            </a>
+          <button
+            type="button"
+            className="fd-btn fd-btn--secondary"
+            onClick={() => setAddressOpen((v) => !v)}
+            style={{ fontSize: "0.82rem", padding: "6px 10px", lineHeight: 1.2 }}
+            aria-expanded={addressOpen}
+          >
+            {addressOpen ? "Manzilni yashirish" : "Manzil"}
+          </button>
+          {addressOpen && (
+            <div style={{ marginTop: 10 }}>
+              <div className="fd-card-desc" style={{ fontWeight: 600, marginBottom: 4 }}>
+                Manzil:
+              </div>
+              <p className="fd-card-desc" style={{ margin: 0 }}>
+                {addr.street}
+                {addr.city ? `, ${addr.city}` : ""}
+                {addr.details ? ` · ${addr.details}` : ""}
+              </p>
+              {o.comment && (
+                <p className="fd-card-desc" style={{ margin: "4px 0 0 0" }}>
+                  Izoh: {o.comment}
+                </p>
+              )}
+              {mapUrl && (
+                <a
+                  href={mapUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="fd-btn"
+                  style={{
+                    marginTop: 8,
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: 6,
+                    textDecoration: "none",
+                  }}
+                >
+                  <span className="material-symbols-rounded" style={{ fontSize: 18 }}>
+                    location_on
+                  </span>
+                  Xaritada ko&apos;rish
+                </a>
+              )}
+            </div>
           )}
         </div>
       )}
