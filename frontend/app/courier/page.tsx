@@ -241,11 +241,57 @@ function FullOrderCard({
   return (
     <div className="fd-card" style={{ padding: 14 }}>
       <div style={{ display: "flex", justifyContent: "space-between", gap: 8, flexWrap: "wrap", alignItems: "baseline" }}>
-        <div style={{ fontWeight: 700, fontSize: "1.05rem" }}>{o.restaurant?.name ?? "Restoran"}</div>
+        <div style={{ display: "flex", alignItems: "baseline", gap: 8, flexWrap: "wrap" }}>
+          <span style={{ fontSize: "1.25rem", fontWeight: 800, letterSpacing: "0.02em", color: "var(--color-text, #111)" }}>
+            #{displayCode}
+          </span>
+          <span className="fd-checkout-meta">{o.status}</span>
+        </div>
         <div style={{ textAlign: "right" }}>
           <CourierPricingLines subtotalUz={subtotalVal} showDelivery={false} tight />
         </div>
       </div>
+      <p className="fd-checkout-meta" style={{ margin: "8px 0 4px", fontWeight: 700 }}>
+        {o.restaurant?.name ?? "Restoran"}
+      </p>
+      {clientTelHref && (
+        <a
+          href={clientTelHref}
+          className="fd-btn fd-btn-primary"
+          style={{ width: "100%", textDecoration: "none", display: "inline-block", marginBottom: 10 }}
+        >
+          Telefon qilish
+        </a>
+      )}
+      {o.address?.details && (
+        <p className="fd-checkout-meta" style={{ marginTop: 4 }}>
+          {o.address.details}
+        </p>
+      )}
+      <p className="fd-checkout-meta" style={{ marginTop: 4 }}>
+        {o.address?.street ? String(o.address.street) : ""}
+        {o.address?.city ? `, ${o.address.city}` : ""}
+      </p>
+      {mapUrl && (
+        <a
+          href={mapUrl}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="fd-btn fd-btn-primary"
+          style={{ marginTop: 10, display: "inline-block", textDecoration: "none", width: "100%" }}
+        >
+          Xaritada ochish
+        </a>
+      )}
+      {Array.isArray(o.items) && o.items.length > 0 && (
+        <ul className="fd-checkout-meta" style={{ margin: "10px 0 0", paddingLeft: 18 }}>
+          {o.items.map((it: any) => (
+            <li key={it.id}>
+              {it.dish?.name ?? "Taom"} × {it.quantity}
+            </li>
+          ))}
+        </ul>
+      )}
       {showOnTheWayBtn && (
         <div style={{ marginTop: 14, paddingTop: 12, borderTop: "1px solid var(--color-border, #e8e8e8)" }}>
           <button
