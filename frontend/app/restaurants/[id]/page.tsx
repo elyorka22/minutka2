@@ -1,6 +1,10 @@
 import { fetchRestaurant } from "../../../lib/api-server";
 import { RestaurantPageClient } from "./RestaurantPageClient";
 
+// Cache (ISR) for a restaurant page per `id`.
+// This reduces "every navigation refetches menu" behavior.
+export const revalidate = 30;
+
 async function loadRestaurant(id: string) {
   const data = await fetchRestaurant(id);
   return data as any;
