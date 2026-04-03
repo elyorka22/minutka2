@@ -150,12 +150,23 @@ function OrderCard({
           Buyurtma (taomlar):
         </div>
         <ul style={{ margin: 0, paddingLeft: 20, fontSize: "0.9rem" }}>
-          {(o.items ?? []).map((oi: any, idx: number) => (
-            <li key={oi.id ?? idx}>
-              {oi.dish?.name ?? "—"} × {oi.quantity} ={" "}
-              {(Number(oi.price) * oi.quantity).toLocaleString()} so&apos;m
-            </li>
-          ))}
+          {(o.items ?? []).map((oi: any, idx: number) => {
+            const desc =
+              typeof oi.dish?.description === "string" ? oi.dish.description.trim() : "";
+            return (
+              <li key={oi.id ?? idx} style={{ marginBottom: 6 }}>
+                <div style={{ fontWeight: 600 }}>
+                  {oi.dish?.name ?? "—"} × {oi.quantity} ={" "}
+                  {(Number(oi.price) * oi.quantity).toLocaleString()} so&apos;m
+                </div>
+                {desc ? (
+                  <div className="fd-card-desc" style={{ marginTop: 2, fontSize: "0.85rem" }}>
+                    {desc}
+                  </div>
+                ) : null}
+              </li>
+            );
+          })}
         </ul>
         <div style={{ marginTop: 8, fontSize: "0.875rem", color: "var(--color-muted)" }}>
           <div style={{ fontWeight: 600 }}>

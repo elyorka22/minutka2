@@ -167,10 +167,13 @@ export default function CheckoutPage() {
             const id = item.dish.id;
             const lineTotal = (item.dish.price * item.quantity).toFixed(0);
 
+            const dishDesc =
+              typeof item.dish.description === "string" ? item.dish.description.trim() : "";
             return (
               <div key={id} className="fd-checkout-item">
                 <div>
                   <div>{item.dish.name}</div>
+                  {dishDesc ? <div className="fd-checkout-meta">{dishDesc}</div> : null}
                   <div className="fd-checkout-meta">
                     {item.dish.price.toFixed(0)} so&apos;m / dona
                   </div>
