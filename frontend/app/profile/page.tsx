@@ -1,12 +1,12 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useEffect, useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import { adminApi } from "../../lib/adminApi";
 import { API_BASE } from "../../lib/api";
 import { decodeJwtPayload, type JwtPayload } from "../../lib/jwt";
-import { getAccessToken, logoutWithRefreshToken } from "../../lib/auth-tokens";
+import { clearAuthTokens, getAccessToken, logoutWithRefreshToken } from "../../lib/auth-tokens";
 
 type MyRestaurant = { id: string; name: string };
 
@@ -20,6 +20,12 @@ export default function ProfilePage() {
   const [pushStatus, setPushStatus] = useState<string | null>(null);
   const [pushBusy, setPushBusy] = useState(false);
   const [pushEnabled, setPushEnabled] = useState<boolean | null>(null);
+  const [credCurrent, setCredCurrent] = useState("");
+  const [credNewEmail, setCredNewEmail] = useState("");
+  const [credNewPassword, setCredNewPassword] = useState("");
+  const [credConfirmPassword, setCredConfirmPassword] = useState("");
+  const [credBusy, setCredBusy] = useState(false);
+  const [credMessage, setCredMessage] = useState<string | null>(null);
   const router = useRouter();
 
   useEffect(() => {
@@ -238,6 +244,51 @@ export default function ProfilePage() {
     router.push("/");
   }
 
+  async function handleUpdateCredentials(e: FormEvent) {
+    e.preventDefault();
+    if (credBusy || !hasToken) return;
+    setCredMessage(null);
+    const emailTrim = credNewEmail.trim();
+    const passTrim = credNewPassword.trim();
+    if (!emailTrim && !passTrim) {
+      setCredMessage("Yangi email yoki yangi parolni kiriting.");
+      return;
+    }
+    if (passTrim && passTrim.length < 8) {
+      setCredMessage("Yangi parol kamida 8 belgidan iborat bo‘lishi kerak.");
+      return;
+    }
+    if (passTrim && passTrim !== credConfirmPassword.trim()) {
+      setCredMessage("Yangi parollar mos kelmayapti.");
+      return;
+    }
+    if (!credCurrent.trim()) {
+      setCredMessage("Joriy parolni kiriting.");
+      return;
+    }
+    setCredBusy(true);
+    try {
+      await adminApi.updateMyCredentials({
+        currentPassword: credCurrent,
+        ...(emailTrim ? { newEmail: emailTrim } : {}),
+        ...(passTrim ? { newPassword: passTrim } : {}),
+      });
+      clearAuthTokens();
+      setHasToken(false);
+      setPayload(null);
+      setMyRestaurants([]);
+      router.push("/login?credentials=updated");
+    } catch (err: unknown) {
+      const msg =
+        err instanceof Error && err.message.trim()
+          ? err.message.trim()
+          : "Saqlashda xatolik yuz berdi.";
+      setCredMessage(msg);
+    } finally {
+      setCredBusy(false);
+    }
+  }
+
   const isPlatformAdmin = role === "PLATFORM_ADMIN";
   const isRestaurantAdmin = role === "RESTAURANT_ADMIN";
   const isCourier = role === "COURIER" || courierAccess;
@@ -316,6 +367,63 @@ export default function ProfilePage() {
           {pushStatus && <p className="fd-profile-note">{pushStatus}</p>}
         </div>
       </section>
+
+      {hasToken && adminAccess && (
+        <section className="fd-profile-group">
+          <h2 className="fd-profile-group-title">Login va parol</h2>
+          <form className="fd-profile-credentials" onSubmit={handleUpdateCredentials}>
+            <p className="fd-profile-note">
+              Email yoki parolni almashtirgach, qayta kirishingiz kerak (barcha seanslar yopiladi).
+            </p>
+            <label className="fd-profile-field">
+              <span>Joriy parol</span>
+              <input
+                type="password"
+                autoComplete="current-password"
+                value={credCurrent}
+                onChange={(ev) => setCredCurrent(ev.target.value)}
+                disabled={credBusy}
+              />
+            </label>
+            <label className="fd-profile-field">
+              <span>Yangi email (ixtiyoriy)</span>
+              <input
+                type="email"
+                autoComplete="email"
+                value={credNewEmail}
+                onChange={(ev) => setCredNewEmail(ev.target.value)}
+                disabled={credBusy}
+                placeholder="o‘zgartirmasangiz bo‘sh qoldiring"
+              />
+            </label>
+            <label className="fd-profile-field">
+              <span>Yangi parol (ixtiyoriy)</span>
+              <input
+                type="password"
+                autoComplete="new-password"
+                value={credNewPassword}
+                onChange={(ev) => setCredNewPassword(ev.target.value)}
+                disabled={credBusy}
+                placeholder="kamida 8 belgi"
+              />
+            </label>
+            <label className="fd-profile-field">
+              <span>Yangi parolni tasdiqlang</span>
+              <input
+                type="password"
+                autoComplete="new-password"
+                value={credConfirmPassword}
+                onChange={(ev) => setCredConfirmPassword(ev.target.value)}
+                disabled={credBusy}
+              />
+            </label>
+            {credMessage ? <p className="fd-profile-note fd-profile-note-error">{credMessage}</p> : null}
+            <button type="submit" className="fd-profile-login-btn fd-profile-credentials-submit" disabled={credBusy}>
+              {credBusy ? "Saqlanmoqda…" : "Saqlash"}
+            </button>
+          </form>
+        </section>
+      )}
 
       {adminAccess && (
         <section className="fd-profile-group">

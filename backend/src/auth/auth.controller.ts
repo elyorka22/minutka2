@@ -1,9 +1,22 @@
-import { Body, Controller, Post, UsePipes, ValidationPipe } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Patch,
+  Post,
+  Req,
+  UnauthorizedException,
+  UseGuards,
+  UsePipes,
+  ValidationPipe,
+} from '@nestjs/common';
+import type { Request } from 'express';
 import { AuthService } from './auth.service';
 import { UsersService } from '../users/users.service';
 import { LoginDto } from './dto/login.dto';
 import { RegisterDto } from './dto/register.dto';
 import { RefreshTokenDto } from './dto/refresh-token.dto';
+import { UpdateMeDto } from './dto/update-me.dto';
+import { JwtAuthGuard } from './jwt-auth.guard';
 
 @Controller('auth')
 @UsePipes(
@@ -46,6 +59,16 @@ export class AuthController {
   @Post('logout')
   async logout(@Body() dto: RefreshTokenDto) {
     return this.authService.logout(dto.refreshToken.trim());
+  }
+
+  @Patch('me')
+  @UseGuards(JwtAuthGuard)
+  async updateMe(@Req() req: Request, @Body() dto: UpdateMeDto) {
+    const user = (req as Request & { user?: { id: string } }).user;
+    if (!user?.id) {
+      throw new UnauthorizedException();
+    }
+    return this.authService.updateMyCredentials(user.id, dto);
   }
 }
 

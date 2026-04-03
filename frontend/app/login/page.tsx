@@ -18,6 +18,7 @@ export default function LoginPage() {
     typeof window === "undefined" ? null : getAccessToken(),
   );
   const [next, setNext] = useState<string | null>(null);
+  const [credentialsUpdated, setCredentialsUpdated] = useState(false);
   const router = useRouter();
 
   useEffect(() => {
@@ -25,6 +26,7 @@ export default function LoginPage() {
     const params = new URLSearchParams(window.location.search);
     const value = params.get("next");
     if (value) setNext(value);
+    if (params.get("credentials") === "updated") setCredentialsUpdated(true);
   }, []);
 
   async function handleSubmit(e: FormEvent) {
@@ -106,6 +108,9 @@ export default function LoginPage() {
     <div className="fd-shell fd-section">
       <BackLink href="/" />
       <h1 className="fd-section-title">Admin uchun kirish</h1>
+      {credentialsUpdated && (
+        <p className="fd-success">Login yoki parol yangilandi. Yangi maʼlumotlar bilan kiring.</p>
+      )}
       {token && (
         <p className="fd-success">Token brauzerda saqlandi. Admin panellarini ochish mumkin.</p>
       )}

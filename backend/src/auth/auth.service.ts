@@ -1,4 +1,11 @@
-import { Injectable, UnauthorizedException } from '@nestjs/common';
+import {
+  BadRequestException,
+  ConflictException,
+  ForbiddenException,
+  Injectable,
+  NotFoundException,
+  UnauthorizedException,
+} from '@nestjs/common';
 import * as jwt from 'jsonwebtoken';
 import * as bcrypt from 'bcrypt';
 import { createHash, randomBytes } from 'crypto';
@@ -144,6 +151,66 @@ export class AuthService {
     } catch {
       throw new UnauthorizedException('Invalid token');
     }
+  }
+
+  private async revokeAllRefreshTokensForUser(userId: string): Promise<void> {
+    await this.prisma.$executeRaw`
+      UPDATE "RefreshToken"
+      SET "revokedAt" = NOW(), "updatedAt" = NOW()
+      WHERE "userId" = ${userId} AND "revokedAt" IS NULL
+    `;
+  }
+
+  /**
+   * Joriy parolni tekshiradi, ixtiyoriy yangi email va/yoki parolni saqlaydi.
+   * Mehmon (@minutka.local) akkauntlari uchun ruxsat yo‘q.
+   */
+  async updateMyCredentials(
+    userId: string,
+    dto: { currentPassword: string; newPassword?: string; newEmail?: string },
+  ): Promise<{ ok: true; email: string }> {
+    const user = await this.usersService.findById(userId);
+    if (!user) {
+      throw new NotFoundException('Foydalanuvchi topilmadi');
+    }
+    if (user.email.endsWith('@minutka.local')) {
+      throw new ForbiddenException('Bu akkaunt uchun login yoki parolni o‘zgartirib bo‘lmaydi');
+    }
+
+    const currentOk = await bcrypt.compare(dto.currentPassword, user.password);
+    if (!currentOk) {
+      throw new UnauthorizedException('Joriy parol noto‘g‘ri');
+    }
+
+    const rawEmail = dto.newEmail?.trim();
+    const rawPassword = dto.newPassword?.trim();
+    const nextEmail = rawEmail && rawEmail.length > 0 ? rawEmail : undefined;
+    const nextPassword = rawPassword && rawPassword.length > 0 ? rawPassword : undefined;
+
+    if (!nextEmail && !nextPassword) {
+      throw new BadRequestException('Yangi email yoki yangi parol kerak');
+    }
+
+    if (nextEmail) {
+      const taken = await this.usersService.findByEmailIgnoreCase(nextEmail);
+      if (taken && taken.id !== userId) {
+        throw new ConflictException('Bu email allaqachon band');
+      }
+    }
+
+    const data: { email?: string; password?: string } = {};
+    if (nextEmail) data.email = nextEmail;
+    if (nextPassword) data.password = await bcrypt.hash(nextPassword, 10);
+
+    const updated = await this.prisma.user.update({
+      where: { id: userId },
+      data,
+      select: { email: true },
+    });
+
+    await this.revokeAllRefreshTokensForUser(userId);
+
+    return { ok: true, email: updated.email };
   }
 }
 

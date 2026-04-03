@@ -1394,6 +1394,45 @@ body {
   font-size: 0.86rem;
 }
 
+.fd-profile-note-error {
+  color: #c62828;
+}
+
+.fd-profile-credentials {
+  background: #fff;
+  border: 1px solid var(--color-border);
+  border-radius: 16px;
+  box-shadow: var(--shadow-sm);
+  padding: 14px 14px 16px;
+}
+
+.fd-profile-credentials .fd-profile-note {
+  margin: 0 0 12px;
+}
+
+.fd-profile-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 12px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+.fd-profile-field input {
+  font-weight: 500;
+  padding: 10px 12px;
+  border: 1px solid var(--color-border);
+  border-radius: 12px;
+  font-size: 1rem;
+}
+
+.fd-profile-credentials-submit {
+  width: 100%;
+  margin-top: 4px;
+}
+
 .fd-admin-header {
   display: flex;
   align-items: center;

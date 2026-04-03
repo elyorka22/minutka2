@@ -416,4 +416,14 @@ export const adminApi = {
     adminRequest<any>(`/admin/banners/${id}`, {
       method: "DELETE",
     }),
+
+  updateMyCredentials: (body: {
+    currentPassword: string;
+    newEmail?: string;
+    newPassword?: string;
+  }) =>
+    adminRequest<{ ok: true; email: string }>("/auth/me", {
+      method: "PATCH",
+      body: JSON.stringify(body),
+    }),
 };
