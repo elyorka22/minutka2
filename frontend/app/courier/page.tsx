@@ -238,6 +238,12 @@ function FullOrderCard({
   const showOnTheWayBtn = st === "READY";
   const showDeliveredBtn = st === "ON_THE_WAY" || st === "IN_PATH";
 
+  const addrStreetCity = [o.address?.street, o.address?.city].filter(Boolean).join(", ");
+  // `address.details` ichida ko‘pincha "Tel: +998..." bo‘ladi — buni manzil sifatida ko‘rsatmaymiz.
+  const addrDetails = typeof o.address?.details === "string" ? o.address.details.trim() : "";
+  const addrDetailsWithoutTel =
+    addrDetails && !/^tel\s*:/i.test(addrDetails) ? addrDetails : "";
+
   return (
     <div className="fd-card" style={{ padding: 14 }}>
       <div style={{ display: "flex", justifyContent: "space-between", gap: 8, flexWrap: "wrap", alignItems: "baseline" }}>
@@ -254,34 +260,41 @@ function FullOrderCard({
       <p className="fd-checkout-meta" style={{ margin: "8px 0 4px", fontWeight: 700 }}>
         {o.restaurant?.name ?? "Restoran"}
       </p>
-      {clientTelHref && (
-        <a
-          href={clientTelHref}
-          className="fd-btn fd-btn-primary"
-          style={{ width: "100%", textDecoration: "none", display: "inline-block", marginBottom: 10 }}
-        >
-          Telefon qilish
-        </a>
-      )}
-      {o.address?.details && (
-        <p className="fd-checkout-meta" style={{ marginTop: 4 }}>
-          {o.address.details}
-        </p>
-      )}
-      <p className="fd-checkout-meta" style={{ marginTop: 4 }}>
-        {o.address?.street ? String(o.address.street) : ""}
-        {o.address?.city ? `, ${o.address.city}` : ""}
-      </p>
-      {mapUrl && (
-        <a
-          href={mapUrl}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="fd-btn fd-btn-primary"
-          style={{ marginTop: 10, display: "inline-block", textDecoration: "none", width: "100%" }}
-        >
-          Xaritada ochish
-        </a>
+      <div style={{ marginTop: 6 }}>
+        <div className="fd-card-desc" style={{ fontWeight: 700, marginBottom: 4 }}>
+          Manzil:
+        </div>
+        {addrStreetCity && <p className="fd-checkout-meta" style={{ margin: 0 }}>{addrStreetCity}</p>}
+        {addrDetailsWithoutTel && (
+          <p className="fd-checkout-meta" style={{ margin: "4px 0 0" }}>
+            {addrDetailsWithoutTel}
+          </p>
+        )}
+      </div>
+
+      {(clientTelHref || mapUrl) && (
+        <div style={{ display: "flex", gap: 8, marginTop: 12, flexWrap: "wrap" }}>
+          {clientTelHref && (
+            <a
+              href={clientTelHref}
+              className="fd-btn fd-btn-primary"
+              style={{ flex: "1 1 160px", textDecoration: "none", display: "inline-block" }}
+            >
+              Telefon qilish
+            </a>
+          )}
+          {mapUrl && (
+            <a
+              href={mapUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="fd-btn fd-btn--secondary"
+              style={{ flex: "1 1 160px", textDecoration: "none", display: "inline-block" }}
+            >
+              Xaritada ochish
+            </a>
+          )}
+        </div>
       )}
       {Array.isArray(o.items) && o.items.length > 0 && (
         <ul className="fd-checkout-meta" style={{ margin: "10px 0 0", paddingLeft: 18 }}>
