@@ -126,7 +126,7 @@ function HeaderMain({ showCity }: { showCity: boolean }) {
           <span className="fd-install-icon material-symbols-rounded">
             download
           </span>
-          <span className="fd-install-label">Telefonimga o‘rnatish</span>
+          <span className="fd-install-label">Ilovani yuklang</span>
         </button>
       )}
     </header>

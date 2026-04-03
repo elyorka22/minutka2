@@ -298,7 +298,7 @@ body {
 
 @media (max-width: 768px) {
   .fd-install-label {
-    display: none;
+    display: inline;
   }
 }
 
