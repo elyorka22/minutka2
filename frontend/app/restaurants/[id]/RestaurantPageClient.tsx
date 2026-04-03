@@ -69,7 +69,9 @@ export function RestaurantPageClient({
       ? categories.find((c) => c.id === selectedCategoryId)?.name ?? null
       : null;
 
-  function renderDishCard(dish: any) {
+  const EAGER_IMAGE_COUNT = 8;
+
+  function renderDishCard(dish: any, dishIndex: number) {
     const id = String(dish.id);
     const quantity = items.find((i) => i.dish.id === id)?.quantity ?? 0;
 
@@ -82,6 +84,7 @@ export function RestaurantPageClient({
             className="fd-card-image"
             style={{ width: "100%", height: "100%" }}
             fallbackStyle={{ height: 72 }}
+            priority={dishIndex < EAGER_IMAGE_COUNT}
           />
           {quantity === 0 ? (
             <button
@@ -188,7 +191,9 @@ export function RestaurantPageClient({
                 >
                   {sec.title}
                 </h3>
-                <div className="fd-grid fd-grid--2">{sec.items.map((dish) => renderDishCard(dish))}</div>
+                <div className="fd-grid fd-grid--2">
+                  {sec.items.map((dish, idx) => renderDishCard(dish, idx))}
+                </div>
               </div>
             ))}
           </div>
@@ -208,7 +213,7 @@ export function RestaurantPageClient({
                 {activeCategoryName}
               </h3>
             )}
-            {filteredDishes.map((dish) => renderDishCard(dish))}
+            {filteredDishes.map((dish, idx) => renderDishCard(dish, idx))}
             {filteredDishes.length === 0 && dishes.length > 0 && hasCategoryMenu && (
               <p className="fd-empty">Bu kategoriyada taom yo‘q.</p>
             )}
