@@ -242,10 +242,22 @@ export default function RestaurantAdminPage({
   const [error, setError] = useState<string | null>(null);
   const [manualArchive, setManualArchive] = useState<any[]>([]);
   const [telegramChatId, setTelegramChatId] = useState("");
+  const [telegramChatIds, setTelegramChatIds] = useState<string[]>([]);
   const [settingsSaving, setSettingsSaving] = useState(false);
   const [settingsMessage, setSettingsMessage] = useState<string | null>(null);
 
   const manualArchiveKey = `restaurant-admin-manual-archive:${restaurantId}`;
+
+  function parseChatIds(raw: string): string[] {
+    return raw
+      .split(/[,;\n\r\s]+/g)
+      .map((s) => s.trim())
+      .filter(Boolean);
+  }
+
+  function uniq(arr: string[]): string[] {
+    return Array.from(new Set(arr));
+  }
 
   /**
    * Cursor for GET .../orders/changes?since= — only advance from a successful full list fetch.
@@ -362,8 +374,16 @@ export default function RestaurantAdminPage({
   useEffect(() => {
     adminApi
       .getRestaurantSettings(restaurantId)
-      .then((s) => setTelegramChatId(String(s?.telegramChatId ?? "")))
-      .catch(() => setTelegramChatId(""));
+      .then((s) => {
+        const raw = String(s?.telegramChatId ?? "");
+        setTelegramChatIds(parseChatIds(raw));
+        // Input — только для добавления новых ID
+        setTelegramChatId("");
+      })
+      .catch(() => {
+        setTelegramChatIds([]);
+        setTelegramChatId("");
+      });
   }, [restaurantId]);
 
   useEffect(() => {
@@ -430,13 +450,40 @@ export default function RestaurantAdminPage({
     setSettingsSaving(true);
     setSettingsMessage(null);
     try {
+      const inputRaw = telegramChatId.trim();
+      const toAdd = parseChatIds(inputRaw);
+      if (toAdd.length === 0) {
+        setSettingsMessage("Telegram chat ID kiriting (yoki vergul/enter orqali bir nechta kiriting).");
+        return;
+      }
+
+      const nextIds = uniq([...telegramChatIds, ...toAdd]);
       const saved = await adminApi.updateRestaurantSettings(restaurantId, {
-        telegramChatId: telegramChatId.trim(),
+        telegramChatId: nextIds.join(","),
       });
-      setTelegramChatId(String(saved?.telegramChatId ?? ""));
-      setSettingsMessage("Telegram chat ID saqlandi.");
+
+      setTelegramChatIds(parseChatIds(String(saved?.telegramChatId ?? "")));
+      setTelegramChatId("");
+      setSettingsMessage("Qo‘shildi.");
     } catch (err: any) {
       setSettingsMessage(err?.message ?? "Sozlamani saqlashda xatolik.");
+    } finally {
+      setSettingsSaving(false);
+    }
+  }
+
+  async function deleteTelegramChatId(id: string) {
+    setSettingsSaving(true);
+    setSettingsMessage(null);
+    try {
+      const nextIds = telegramChatIds.filter((x) => x !== id);
+      await adminApi.updateRestaurantSettings(restaurantId, {
+        telegramChatId: nextIds.join(","),
+      });
+      setTelegramChatIds(nextIds);
+      setSettingsMessage("O‘chirildi.");
+    } catch (err: any) {
+      setSettingsMessage(err?.message ?? "O‘chirishda xatolik.");
     } finally {
       setSettingsSaving(false);
     }
@@ -500,18 +547,20 @@ export default function RestaurantAdminPage({
             Telegram bot sozlamalari
           </div>
           <p className="fd-card-desc" style={{ marginTop: 0 }}>
-            Yangi buyurtmalar bo‘yicha Telegram xabarnoma olish uchun chat ID kiriting.
+            Yangi buyurtmalar bo‘yicha Telegram xabarnoma olish uchun chat ID kiriting. Bir nechta ID qo‘shish mumkin: vergul, bo‘sh joy yoki enter orqali.
           </p>
+
           <label className="fd-label" htmlFor="telegram-chat-id" style={{ marginBottom: 6, display: "block" }}>
-            Telegram chat ID
+            Telegram chat ID (yoki bir nechta)
           </label>
           <input
             id="telegram-chat-id"
             className="fd-input"
             value={telegramChatId}
             onChange={(e) => setTelegramChatId(e.target.value)}
-            placeholder="-1001234567890"
+            placeholder="-1001234567890, -1009876543210"
           />
+
           <div style={{ marginTop: 10, display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
             <button
               type="button"
@@ -519,10 +568,58 @@ export default function RestaurantAdminPage({
               onClick={saveTelegramSettings}
               disabled={settingsSaving}
             >
-              {settingsSaving ? "Saqlanmoqda..." : "Saqlash"}
+              {settingsSaving ? "Saqlanmoqda..." : "Qo‘shish"}
             </button>
             {settingsMessage && <span className="fd-checkout-meta">{settingsMessage}</span>}
           </div>
+
+          {telegramChatIds.length > 0 && (
+            <div style={{ marginTop: 14 }}>
+              <div className="fd-card-desc" style={{ fontWeight: 700, marginBottom: 10 }}>
+                Sizning айди
+              </div>
+              {telegramChatIds.map((id) => (
+                <div
+                  key={id}
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 10,
+                    marginBottom: 10,
+                    flexWrap: "wrap",
+                  }}
+                >
+                  <span
+                    style={{
+                      fontFamily: "monospace",
+                      fontSize: "0.85rem",
+                      padding: "6px 10px",
+                      border: "1px solid var(--color-border)",
+                      borderRadius: 8,
+                      background: "var(--color-surface)",
+                    }}
+                  >
+                    {id}
+                  </span>
+                  <button
+                    type="button"
+                    className="fd-btn fd-btn--secondary"
+                    style={{ fontSize: "0.82rem", padding: "6px 10px" }}
+                    onClick={() => deleteTelegramChatId(id)}
+                    disabled={settingsSaving}
+                  >
+                    O‘chirish
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {telegramChatIds.length === 0 && !settingsSaving && (
+            <p className="fd-empty" style={{ marginTop: 14 }}>
+              Hali hech qanday chat ID saqlanmadi.
+            </p>
+          )}
         </div>
       )}
 

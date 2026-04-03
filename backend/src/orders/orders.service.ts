@@ -230,10 +230,15 @@ export class OrdersService {
 
     const notifyUrl = (process.env.TELEGRAM_BOT_NOTIFY_URL ?? '').trim();
     const rawChatId = (restaurant as { telegramChatId?: string | null }).telegramChatId;
-    const chatId =
-      typeof rawChatId === 'string' ? rawChatId.trim() : rawChatId != null ? String(rawChatId).trim() : '';
+    const chatIds =
+      typeof rawChatId === 'string'
+        ? rawChatId
+            .split(/[,;\n\r\s]+/g)
+            .map((s) => s.trim())
+            .filter(Boolean)
+        : [];
 
-    if (!skipTelegram && notifyUrl && chatId) {
+    if (!skipTelegram && notifyUrl && chatIds.length > 0) {
       void (async () => {
         const base = notifyUrl.replace(/\/$/, '');
         const phone = dto.address?.details?.replace(/^Tel:\s*/i, '') ?? '';
@@ -246,46 +251,57 @@ export class OrdersService {
             lineTotal: unit * item.quantity,
           };
         });
-        const payload = {
-          chatId,
-          order: {
-            id: createdOrder.id,
-            shortCode: this.formatOrderCode(createdOrder.shortCode),
-            restaurantName: restaurant.name,
-            total: Number(createdOrder.total),
-            customerName: '',
-            phone,
-            lat: dto.address?.latitude,
-            lng: dto.address?.longitude,
-            addressLine: [dto.address.street, dto.address.city].filter(Boolean).join(', ') || undefined,
-            comment: dto.comment?.trim() || undefined,
-            items: telegramItems,
-          },
-        };
-        try {
-          const res = await fetchWithRetry(`${base}/notify`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(payload),
-          });
-          if (!res.ok) {
-            const text = await res.text().catch(() => '');
-            this.logger.warn(
-              `[telegram] /notify HTTP ${res.status} restaurantId=${dto.restaurantId} body=${text.slice(0, 200)}`,
-            );
-          }
-        } catch (e: unknown) {
-          this.logger.warn(
-            `[telegram] /notify failed restaurantId=${dto.restaurantId} err=${e instanceof Error ? e.message : String(e)}`,
-          );
-        }
+
+        // Send separate messages to every saved chatId.
+        await Promise.all(
+          chatIds.map(async (chatId) => {
+            const payload = {
+              chatId,
+              order: {
+                id: createdOrder.id,
+                shortCode: this.formatOrderCode(createdOrder.shortCode),
+                restaurantName: restaurant.name,
+                total: Number(createdOrder.total),
+                customerName: '',
+                phone,
+                lat: dto.address?.latitude,
+                lng: dto.address?.longitude,
+                addressLine: [dto.address.street, dto.address.city].filter(Boolean).join(', ') || undefined,
+                comment: dto.comment?.trim() || undefined,
+                items: telegramItems,
+              },
+            };
+            try {
+              const res = await fetchWithRetry(`${base}/notify`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload),
+              });
+              if (!res.ok) {
+                const text = await res.text().catch(() => '');
+                this.logger.warn(
+                  `[telegram] /notify HTTP ${res.status} chatId=${String(chatId).slice(0, 30)} restaurantId=${dto.restaurantId} body=${text.slice(
+                    0,
+                    200,
+                  )}`,
+                );
+              }
+            } catch (e: unknown) {
+              this.logger.warn(
+                `[telegram] /notify failed chatId=${String(chatId).slice(0, 30)} restaurantId=${dto.restaurantId} err=${
+                  e instanceof Error ? e.message : String(e)
+                }`,
+              );
+            }
+          }),
+        );
       })();
     } else if (!skipTelegram) {
       if (!notifyUrl) {
         this.logger.warn(
           `[telegram] skip: TELEGRAM_BOT_NOTIFY_URL is empty (set it on API and worker to your bot service URL) order=${createdOrder.id}`,
         );
-      } else if (!chatId) {
+      } else {
         this.logger.warn(
           `[telegram] skip: restaurant.telegramChatId empty restaurantId=${dto.restaurantId} order=${createdOrder.id}`,
         );
