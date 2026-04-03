@@ -266,20 +266,36 @@ export const adminApi = {
       method: "DELETE",
     }),
   uploadImage: async (file: File): Promise<{ url: string }> => {
-    const formData = new FormData();
-    formData.append("file", file);
-    const token = getAccessToken();
-    const res = await fetch(`${API_BASE}/admin/upload`, {
-      method: "POST",
-      headers: token ? { Authorization: `Bearer ${token}` } : {},
-      body: formData,
-      cache: "no-store",
-    });
+    const postUpload = (accessToken: string | null) => {
+      const fd = new FormData();
+      fd.append("file", file);
+      const headers: Record<string, string> = {};
+      if (accessToken) headers.Authorization = `Bearer ${accessToken}`;
+      return fetch(`${API_BASE}/admin/upload`, {
+        method: "POST",
+        headers,
+        body: fd,
+        cache: "no-store",
+      });
+    };
+
+    let res = await postUpload(getAccessToken());
+    if (res.status === 401 && typeof window !== "undefined") {
+      const refreshed = await refreshAccessToken();
+      if (refreshed) {
+        res = await postUpload(refreshed);
+      }
+    }
+    if (res.status === 401) {
+      clearAuthTokens();
+    }
     if (!res.ok) {
       const err = await res.json().catch(() => ({}));
-      throw new Error(err.message || `Upload failed: ${res.status}`);
+      const msg =
+        typeof err?.message === "string" ? err.message : `Upload failed: ${res.status}`;
+      throw new Error(msg);
     }
-    return res.json();
+    return res.json() as Promise<{ url: string }>;
   },
   updateRestaurant: (
     id: string,
