@@ -368,7 +368,7 @@ export default function ProfilePage() {
         </div>
       </section>
 
-      {hasToken && adminAccess && (
+      {hasToken && (
         <section className="fd-profile-group">
           <h2 className="fd-profile-group-title">Login va parol</h2>
           <form className="fd-profile-credentials" onSubmit={handleUpdateCredentials}>
