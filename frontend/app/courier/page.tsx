@@ -296,15 +296,6 @@ function FullOrderCard({
           )}
         </div>
       )}
-      {Array.isArray(o.items) && o.items.length > 0 && (
-        <ul className="fd-checkout-meta" style={{ margin: "10px 0 0", paddingLeft: 18 }}>
-          {o.items.map((it: any) => (
-            <li key={it.id}>
-              {it.dish?.name ?? "Taom"} × {it.quantity}
-            </li>
-          ))}
-        </ul>
-      )}
       {showOnTheWayBtn && (
         <div style={{ marginTop: 14, paddingTop: 12, borderTop: "1px solid var(--color-border, #e8e8e8)" }}>
           <button
