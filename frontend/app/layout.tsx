@@ -389,6 +389,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
           rel="stylesheet"
           href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@24,400,0,0"
         />
+        <link rel="apple-touch-icon" sizes="192x192" href="/icons/web-app-manifest-192x192.png" />
         <link rel="manifest" href="/manifest.json" />
       </head>
       <body className="fd-body">
