@@ -46,7 +46,15 @@ function OrderCard({
           <span style={{ marginLeft: 8, fontSize: "0.875rem", color: "var(--color-muted)" }}>{o.status}</span>
         </div>
         {showStatusButtons && onStatusChange && (
-          <div style={{ display: "flex", gap: 6, flexWrap: "wrap", justifyContent: "flex-end" }}>
+          <div
+            style={{
+              display: "flex",
+              gap: 6,
+              flexWrap: "wrap",
+              justifyContent: "flex-end",
+              alignItems: "center",
+            }}
+          >
             {o.status === "NEW" && (
               <button
                 className="fd-btn fd-btn-primary"
@@ -69,12 +77,42 @@ function OrderCard({
             )}
 
             {o.status === "READY" && (
-              <span className="fd-checkout-meta" style={{ width: "100%", textAlign: "right", fontSize: "0.78rem" }}>
+              <span
+                style={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  fontSize: "0.82rem",
+                  padding: "6px 10px",
+                  lineHeight: 1.2,
+                  borderRadius: 8,
+                  border: "1px solid var(--color-border)",
+                  background: "var(--color-surface)",
+                  color: "var(--color-text-secondary)",
+                  fontWeight: 600,
+                  flexShrink: 0,
+                  maxWidth: "100%",
+                }}
+              >
                 Kuryer kutyapti
               </span>
             )}
             {o.status === "ON_THE_WAY" && (
-              <span className="fd-checkout-meta" style={{ width: "100%", textAlign: "right", fontSize: "0.78rem" }}>
+              <span
+                style={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  fontSize: "0.82rem",
+                  padding: "6px 10px",
+                  lineHeight: 1.2,
+                  borderRadius: 8,
+                  border: "1px solid var(--color-border)",
+                  background: "var(--color-surface)",
+                  color: "var(--color-text-secondary)",
+                  fontWeight: 600,
+                  flexShrink: 0,
+                  maxWidth: "100%",
+                }}
+              >
                 Yo‘lda
               </span>
             )}
