@@ -1433,6 +1433,27 @@ body {
   margin-top: 4px;
 }
 
+.fd-profile-disclosure-arrow {
+  display: inline-block;
+  transition: transform 0.2s ease;
+}
+
+.fd-profile-disclosure-arrow--open {
+  transform: rotate(90deg);
+}
+
+.fd-profile-credentials-wrap {
+  padding: 0 14px 14px;
+  border-bottom: 1px solid #f1f1f1;
+}
+
+.fd-profile-credentials.fd-profile-credentials--nested {
+  box-shadow: none;
+  border: none;
+  border-radius: 0;
+  padding: 8px 0 0;
+}
+
 .fd-admin-header {
   display: flex;
   align-items: center;

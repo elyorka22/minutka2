@@ -26,6 +26,7 @@ export default function ProfilePage() {
   const [credConfirmPassword, setCredConfirmPassword] = useState("");
   const [credBusy, setCredBusy] = useState(false);
   const [credMessage, setCredMessage] = useState<string | null>(null);
+  const [credentialsOpen, setCredentialsOpen] = useState(false);
   const router = useRouter();
 
   useEffect(() => {
@@ -370,58 +371,78 @@ export default function ProfilePage() {
 
       {hasToken && (
         <section className="fd-profile-group">
-          <h2 className="fd-profile-group-title">Login va parol</h2>
-          <form className="fd-profile-credentials" onSubmit={handleUpdateCredentials}>
-            <p className="fd-profile-note">
-              Email yoki parolni almashtirgach, qayta kirishingiz kerak (barcha seanslar yopiladi).
-            </p>
-            <label className="fd-profile-field">
-              <span>Joriy parol</span>
-              <input
-                type="password"
-                autoComplete="current-password"
-                value={credCurrent}
-                onChange={(ev) => setCredCurrent(ev.target.value)}
-                disabled={credBusy}
-              />
-            </label>
-            <label className="fd-profile-field">
-              <span>Yangi email (ixtiyoriy)</span>
-              <input
-                type="email"
-                autoComplete="email"
-                value={credNewEmail}
-                onChange={(ev) => setCredNewEmail(ev.target.value)}
-                disabled={credBusy}
-                placeholder="o‘zgartirmasangiz bo‘sh qoldiring"
-              />
-            </label>
-            <label className="fd-profile-field">
-              <span>Yangi parol (ixtiyoriy)</span>
-              <input
-                type="password"
-                autoComplete="new-password"
-                value={credNewPassword}
-                onChange={(ev) => setCredNewPassword(ev.target.value)}
-                disabled={credBusy}
-                placeholder="kamida 8 belgi"
-              />
-            </label>
-            <label className="fd-profile-field">
-              <span>Yangi parolni tasdiqlang</span>
-              <input
-                type="password"
-                autoComplete="new-password"
-                value={credConfirmPassword}
-                onChange={(ev) => setCredConfirmPassword(ev.target.value)}
-                disabled={credBusy}
-              />
-            </label>
-            {credMessage ? <p className="fd-profile-note fd-profile-note-error">{credMessage}</p> : null}
-            <button type="submit" className="fd-profile-login-btn fd-profile-credentials-submit" disabled={credBusy}>
-              {credBusy ? "Saqlanmoqda…" : "Saqlash"}
+          <div className="fd-profile-list">
+            <button
+              type="button"
+              className="fd-profile-item fd-profile-item-btn"
+              onClick={() => setCredentialsOpen((v) => !v)}
+              aria-expanded={credentialsOpen}
+            >
+              <span className="fd-profile-item-icon">🔐</span>
+              <span className="fd-profile-item-label">Login yoki parolni o‘zgartirish</span>
+              <span
+                className={`fd-profile-item-arrow fd-profile-disclosure-arrow${credentialsOpen ? " fd-profile-disclosure-arrow--open" : ""}`}
+                aria-hidden
+              >
+                ›
+              </span>
             </button>
-          </form>
+            {credentialsOpen ? (
+              <div className="fd-profile-credentials-wrap">
+                <form className="fd-profile-credentials fd-profile-credentials--nested" onSubmit={handleUpdateCredentials}>
+                  <p className="fd-profile-note">
+                    Email yoki parolni almashtirgach, qayta kirishingiz kerak (barcha seanslar yopiladi).
+                  </p>
+                  <label className="fd-profile-field">
+                    <span>Joriy parol</span>
+                    <input
+                      type="password"
+                      autoComplete="current-password"
+                      value={credCurrent}
+                      onChange={(ev) => setCredCurrent(ev.target.value)}
+                      disabled={credBusy}
+                    />
+                  </label>
+                  <label className="fd-profile-field">
+                    <span>Yangi email (ixtiyoriy)</span>
+                    <input
+                      type="email"
+                      autoComplete="email"
+                      value={credNewEmail}
+                      onChange={(ev) => setCredNewEmail(ev.target.value)}
+                      disabled={credBusy}
+                      placeholder="o‘zgartirmasangiz bo‘sh qoldiring"
+                    />
+                  </label>
+                  <label className="fd-profile-field">
+                    <span>Yangi parol (ixtiyoriy)</span>
+                    <input
+                      type="password"
+                      autoComplete="new-password"
+                      value={credNewPassword}
+                      onChange={(ev) => setCredNewPassword(ev.target.value)}
+                      disabled={credBusy}
+                      placeholder="kamida 8 belgi"
+                    />
+                  </label>
+                  <label className="fd-profile-field">
+                    <span>Yangi parolni tasdiqlang</span>
+                    <input
+                      type="password"
+                      autoComplete="new-password"
+                      value={credConfirmPassword}
+                      onChange={(ev) => setCredConfirmPassword(ev.target.value)}
+                      disabled={credBusy}
+                    />
+                  </label>
+                  {credMessage ? <p className="fd-profile-note fd-profile-note-error">{credMessage}</p> : null}
+                  <button type="submit" className="fd-profile-login-btn fd-profile-credentials-submit" disabled={credBusy}>
+                    {credBusy ? "Saqlanmoqda…" : "Saqlash"}
+                  </button>
+                </form>
+              </div>
+            ) : null}
+          </div>
         </section>
       )}
 
