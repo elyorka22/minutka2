@@ -142,26 +142,7 @@ function PoolOrderCard({
 
   return (
     <div className="fd-card" style={{ padding: 14 }}>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: 8, flexWrap: "wrap", marginBottom: 8 }}>
-        <span style={{ fontSize: "1.25rem", fontWeight: 800, letterSpacing: "0.02em", color: "var(--color-text, #111)" }}>
-          #{displayCode}
-        </span>
-        <span className="fd-checkout-meta">{o.status}</span>
-      </div>
       <div style={{ fontWeight: 700, fontSize: "1.05rem", marginBottom: 6 }}>{name}</div>
-      <p className="fd-checkout-meta" style={{ margin: "6px 0 10px" }}>
-        Mijoz: {o.customer?.name ?? "—"}
-        {clientPhone ? ` · ${clientPhone.display}` : ""}
-      </p>
-      {clientTelHref && (
-        <a
-          href={clientTelHref}
-          className="fd-btn fd-btn-primary"
-          style={{ width: "100%", textDecoration: "none", display: "inline-block", marginBottom: 10 }}
-        >
-          Telefon qilish
-        </a>
-      )}
       {o.status === "READY" && !o.courierId && (
         <button
           type="button"
@@ -213,18 +194,7 @@ function PoolOrderCard({
           Tugatildi
         </button>
       )}
-      {!!o.courierId && mapUrl && (
-        <a
-          href={mapUrl}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="fd-btn"
-          style={{ width: "100%", marginTop: 8, display: "inline-block", textDecoration: "none" }}
-        >
-          Xaritani ochish
-        </a>
-      )}
-      <CourierPricingLines subtotalUz={subtotalVal} showDelivery={showDelivery} />
+      <CourierPricingLines subtotalUz={subtotalVal} showDelivery={false} />
     </div>
   );
 }
@@ -271,60 +241,11 @@ function FullOrderCard({
   return (
     <div className="fd-card" style={{ padding: 14 }}>
       <div style={{ display: "flex", justifyContent: "space-between", gap: 8, flexWrap: "wrap", alignItems: "baseline" }}>
-        <div style={{ display: "flex", alignItems: "baseline", gap: 8, flexWrap: "wrap" }}>
-          <span style={{ fontSize: "1.25rem", fontWeight: 800, letterSpacing: "0.02em", color: "var(--color-text, #111)" }}>
-            #{displayCode}
-          </span>
-          <span className="fd-checkout-meta">{o.status}</span>
-        </div>
+        <div style={{ fontWeight: 700, fontSize: "1.05rem" }}>{o.restaurant?.name ?? "Restoran"}</div>
         <div style={{ textAlign: "right" }}>
-          <CourierPricingLines subtotalUz={subtotalVal} showDelivery tight />
+          <CourierPricingLines subtotalUz={subtotalVal} showDelivery={false} tight />
         </div>
       </div>
-      <p className="fd-checkout-meta" style={{ margin: "8px 0 4px" }}>
-        {o.restaurant?.name ?? "Restoran"}
-      </p>
-      <p className="fd-checkout-meta">
-        Mijoz: {o.customer?.name ?? "—"}
-        {clientPhone ? ` · ${clientPhone.display}` : ""}
-      </p>
-      {clientTelHref && (
-        <a
-          href={clientTelHref}
-          className="fd-btn fd-btn-primary"
-          style={{ width: "100%", textDecoration: "none", display: "inline-block", marginTop: 8 }}
-        >
-          Telefon qilish
-        </a>
-      )}
-      {o.address?.details && (
-        <p className="fd-checkout-meta" style={{ marginTop: 4 }}>
-          {o.address.details}
-        </p>
-      )}
-      <p className="fd-checkout-meta" style={{ marginTop: 4 }}>
-        {o.address?.street}, {o.address?.city}
-      </p>
-      {mapUrl && (
-        <a
-          href={mapUrl}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="fd-btn fd-btn-primary"
-          style={{ marginTop: 10, display: "inline-block", textDecoration: "none" }}
-        >
-          Xaritada ochish
-        </a>
-      )}
-      {Array.isArray(o.items) && o.items.length > 0 && (
-        <ul className="fd-checkout-meta" style={{ margin: "10px 0 0", paddingLeft: 18 }}>
-          {o.items.map((it: any) => (
-            <li key={it.id}>
-              {it.dish?.name ?? "Taom"} × {it.quantity}
-            </li>
-          ))}
-        </ul>
-      )}
       {showOnTheWayBtn && (
         <div style={{ marginTop: 14, paddingTop: 12, borderTop: "1px solid var(--color-border, #e8e8e8)" }}>
           <button
@@ -503,8 +424,8 @@ export default function CourierPage() {
       )}
       <p className="fd-card-desc" style={{ marginBottom: 16 }}>
         {tab === "yangi"
-          ? "Har bir kartochkada #xxxx buyurtma kodi, restoran va narx. Batafsil ma’lumot — «Mening buyurtmalarim»."
-          : "Siz olgan buyurtmalar — kod, manzil, taomlar va xarita shu yerda."}
+          ? "Har bir kartochkada restoran va taomlar narxi. Batafsil ma’lumot «Mening buyurtmalarim»da."
+          : "Siz olgan buyurtmalar — restoran va taomlar narxi shu yerda."}
       </p>
       <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 16 }}>
         <button type="button" className="fd-btn fd-btn-primary" onClick={() => load()} disabled={loading}>
