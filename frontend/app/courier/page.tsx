@@ -403,7 +403,9 @@ export default function CourierPage() {
 
   useEffect(() => {
     let inFlight = false;
-    const interval = setInterval(() => {
+    let resumeTimer: ReturnType<typeof setTimeout> | null = null;
+
+    const pollOnce = () => {
       if (typeof document !== "undefined" && document.hidden) return;
       if (actionBusy) return;
       if (loading) return;
@@ -422,8 +424,26 @@ export default function CourierPage() {
         .finally(() => {
           inFlight = false;
         });
-    }, 15000);
-    return () => clearInterval(interval);
+    };
+
+    const interval = setInterval(pollOnce, 15000);
+
+    const onVisible = () => {
+      if (typeof document === "undefined" || document.hidden) return;
+      if (resumeTimer) clearTimeout(resumeTimer);
+      resumeTimer = setTimeout(() => {
+        resumeTimer = null;
+        if (typeof document !== "undefined" && document.hidden) return;
+        pollOnce();
+      }, 280);
+    };
+    if (typeof document !== "undefined") document.addEventListener("visibilitychange", onVisible);
+
+    return () => {
+      clearInterval(interval);
+      if (resumeTimer) clearTimeout(resumeTimer);
+      if (typeof document !== "undefined") document.removeEventListener("visibilitychange", onVisible);
+    };
   }, [load, actionBusy, loading, tab, ordersLastSyncAt]);
 
   async function handleTake(id: string) {

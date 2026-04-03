@@ -407,6 +407,7 @@ export default function RestaurantAdminPage({
     if (activeTab !== "orders") return;
     let inFlight = false;
     let safetyTick = 0;
+    let resumeTimer: ReturnType<typeof setTimeout> | null = null;
     const tick = () => {
       if (typeof document !== "undefined" && document.hidden) return;
       if (inFlight) return;
@@ -429,11 +430,18 @@ export default function RestaurantAdminPage({
       }
     }, 8000);
     const onVisible = () => {
-      if (typeof document !== "undefined" && !document.hidden) loadOrders({ background: true });
+      if (typeof document === "undefined" || document.hidden) return;
+      if (resumeTimer) clearTimeout(resumeTimer);
+      resumeTimer = setTimeout(() => {
+        resumeTimer = null;
+        if (typeof document !== "undefined" && document.hidden) return;
+        tick();
+      }, 280);
     };
     if (typeof document !== "undefined") document.addEventListener("visibilitychange", onVisible);
     return () => {
       clearInterval(interval);
+      if (resumeTimer) clearTimeout(resumeTimer);
       if (typeof document !== "undefined") document.removeEventListener("visibilitychange", onVisible);
     };
   }, [activeTab, restaurantId, loadOrders]);
