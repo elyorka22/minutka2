@@ -742,7 +742,7 @@ export class OrdersService {
             id: true,
             quantity: true,
             price: true,
-            dish: { select: { name: true } },
+            dish: { select: { name: true, description: true } },
           },
         },
         address: true,
