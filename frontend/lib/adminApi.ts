@@ -148,6 +148,12 @@ export const adminApi = {
       { method: "GET" },
     );
   },
+  getCourierSettings: () => adminRequest<{ telegramChatId: string }>(`/courier/settings`),
+  updateCourierSettings: (body: { telegramChatId?: string }) =>
+    adminRequest<{ telegramChatId: string }>(`/courier/settings`, {
+      method: "PATCH",
+      body: JSON.stringify(body),
+    }),
   getRestaurantSettings: (id: string) =>
     adminRequest<{ telegramChatId: string }>(`/restaurants/${id}/settings`),
   updateRestaurantSettings: (id: string, body: { telegramChatId?: string }) =>

@@ -100,7 +100,18 @@ function normalizeUzPhone(phone: unknown): NormalizedPhone | null {
   return null;
 }
 
-type CourierTab = "yangi" | "mine";
+type CourierTab = "yangi" | "mine" | "telegram";
+
+function parseChatIds(raw: string): string[] {
+  return raw
+    .split(/[,;\n\r\s]+/g)
+    .map((s) => s.trim())
+    .filter(Boolean);
+}
+
+function uniqStrings(arr: string[]): string[] {
+  return Array.from(new Set(arr));
+}
 
 function PoolOrderCard({
   o,
@@ -347,10 +358,15 @@ export default function CourierPage() {
   const [actionBusy, setActionBusy] = useState(false);
   const [pushEnabled, setPushEnabled] = useState<boolean | null>(null);
   const [ordersLastSyncAt, setOrdersLastSyncAt] = useState<string | null>(null);
+  const [telegramChatId, setTelegramChatId] = useState("");
+  const [telegramChatIds, setTelegramChatIds] = useState<string[]>([]);
+  const [settingsSaving, setSettingsSaving] = useState(false);
+  const [settingsMessage, setSettingsMessage] = useState<string | null>(null);
   const listLimit = 300;
   const listOffset = 0;
 
   const load = useCallback(async () => {
+    if (tab === "telegram") return;
     setError(null);
     try {
       const list = await adminApi.getCourierOrders({
@@ -397,11 +413,32 @@ export default function CourierPage() {
   useEffect(() => {
     if (typeof window === "undefined") return;
     if (!window.localStorage.getItem("token")) return;
+    if (tab === "telegram") {
+      setLoading(false);
+      return;
+    }
     setLoading(true);
     load();
   }, [tab, load]);
 
   useEffect(() => {
+    if (tab !== "telegram") return;
+    setSettingsMessage(null);
+    adminApi
+      .getCourierSettings()
+      .then((s) => {
+        const raw = String(s?.telegramChatId ?? "");
+        setTelegramChatIds(parseChatIds(raw));
+        setTelegramChatId("");
+      })
+      .catch(() => {
+        setTelegramChatIds([]);
+        setTelegramChatId("");
+      });
+  }, [tab]);
+
+  useEffect(() => {
+    if (tab === "telegram") return;
     let inFlight = false;
     let resumeTimer: ReturnType<typeof setTimeout> | null = null;
 
@@ -476,6 +513,47 @@ export default function CourierPage() {
     }
   }
 
+  async function saveTelegramSettings() {
+    setSettingsSaving(true);
+    setSettingsMessage(null);
+    try {
+      const inputRaw = telegramChatId.trim();
+      const toAdd = parseChatIds(inputRaw);
+      if (toAdd.length === 0) {
+        setSettingsMessage("Telegram chat ID kiriting (yoki vergul/enter orqali bir nechta kiriting).");
+        return;
+      }
+      const nextIds = uniqStrings([...telegramChatIds, ...toAdd]);
+      const saved = await adminApi.updateCourierSettings({
+        telegramChatId: nextIds.join(","),
+      });
+      setTelegramChatIds(parseChatIds(String(saved?.telegramChatId ?? "")));
+      setTelegramChatId("");
+      setSettingsMessage("Qo‘shildi.");
+    } catch (err: any) {
+      setSettingsMessage(err?.message ?? "Sozlamani saqlashda xatolik.");
+    } finally {
+      setSettingsSaving(false);
+    }
+  }
+
+  async function deleteTelegramChatId(id: string) {
+    setSettingsSaving(true);
+    setSettingsMessage(null);
+    try {
+      const nextIds = telegramChatIds.filter((x) => x !== id);
+      await adminApi.updateCourierSettings({
+        telegramChatId: nextIds.join(","),
+      });
+      setTelegramChatIds(nextIds);
+      setSettingsMessage("O‘chirildi.");
+    } catch (err: any) {
+      setSettingsMessage(err?.message ?? "O‘chirishda xatolik.");
+    } finally {
+      setSettingsSaving(false);
+    }
+  }
+
   return (
     <div className="fd-shell fd-section">
       <BackLink href="/profile" />
@@ -495,20 +573,11 @@ export default function CourierPage() {
       <p className="fd-card-desc" style={{ marginBottom: 16 }}>
         {tab === "yangi"
           ? "Har bir kartochkada restoran va taomlar narxi. Batafsil ma’lumot «Mening buyurtmalarim»da."
-          : "Siz olgan buyurtmalar — restoran va taomlar narxi shu yerda."}
+          : tab === "mine"
+            ? "Siz olgan buyurtmalar — restoran va taomlar narxi shu yerda."
+            : "Restoran buyurtmani «Tayyor» qilganda Telegram orqali xabar olasiz (xuddi restoranlar uchun bot kabi)."}
       </p>
-      <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 16 }}>
-        <button type="button" className="fd-btn fd-btn-primary" onClick={() => load()} disabled={loading}>
-          {loading ? "Yuklanmoqda…" : "Yangilash"}
-        </button>
-        <Link href="/profile" className="fd-btn" style={{ textDecoration: "none" }}>
-          Profil
-        </Link>
-        <Link href="/courier/stats" className="fd-btn" style={{ textDecoration: "none" }}>
-          Statistika
-        </Link>
-      </div>
-      <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 16 }}>
+      <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 16, alignItems: "center" }}>
         <button
           type="button"
           className={tab === "yangi" ? "fd-btn fd-btn-primary" : "fd-btn"}
@@ -523,35 +592,102 @@ export default function CourierPage() {
         >
           Mening buyurtmalarim
         </button>
+        <button
+          type="button"
+          className={tab === "telegram" ? "fd-btn fd-btn-primary" : "fd-btn"}
+          onClick={() => setTab("telegram")}
+        >
+          Telegram
+        </button>
+        <Link href="/profile" className="fd-btn" style={{ textDecoration: "none" }}>
+          Profil
+        </Link>
+        <Link href="/courier/stats" className="fd-btn" style={{ textDecoration: "none" }}>
+          Statistika
+        </Link>
       </div>
-      {error && <p className="fd-empty">{error}</p>}
-      {!loading && !error && orders.length === 0 && <p className="fd-empty">Buyurtmalar yo‘q.</p>}
-      <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-        {tab === "yangi"
-          ? orders.map((o) => (
-              <PoolOrderCard
-                key={o.id}
-                o={o}
-                actionBusy={actionBusy}
-                loading={loading}
-                onTake={handleTake}
-                onOnTheWay={handleOnTheWay}
-                onDone={handleDone}
-                onError={setError}
-              />
-            ))
-          : orders.map((o) => (
-              <FullOrderCard
-                key={o.id}
-                o={o}
-                actionBusy={actionBusy}
-                loading={loading}
-                onOnTheWay={handleOnTheWay}
-                onDone={handleDone}
-                onError={setError}
-              />
-            ))}
-      </div>
+      {tab === "telegram" && (
+        <div className="fd-card" style={{ padding: 16, marginBottom: 14 }}>
+          <div className="fd-card-desc" style={{ fontWeight: 700, marginBottom: 10 }}>
+            Telegram bot sozlamalari
+          </div>
+          <p className="fd-card-desc" style={{ marginTop: 0 }}>
+            Buyurtma tayyor bo‘lganda (kuryer olishi mumkin) Telegram xabarnoma olish uchun chat ID kiriting. Bir nechta ID
+            qo‘shish mumkin: vergul, bo‘sh joy yoki yangi qator orqali. Minutka botiga /start yuboring — Chat ID chiqadi.
+          </p>
+          <label className="fd-label" htmlFor="courier-telegram-chat-id" style={{ marginBottom: 6, display: "block" }}>
+            Telegram chat ID (yoki bir nechta)
+          </label>
+          <input
+            id="courier-telegram-chat-id"
+            className="fd-input"
+            value={telegramChatId}
+            onChange={(e) => setTelegramChatId(e.target.value)}
+            placeholder="-1001234567890, -1009876543210"
+          />
+          <div style={{ marginTop: 10, display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
+            <button
+              type="button"
+              className="fd-btn fd-btn-primary"
+              onClick={saveTelegramSettings}
+              disabled={settingsSaving}
+            >
+              {settingsSaving ? "Saqlanmoqda..." : "Qo‘shish"}
+            </button>
+            {settingsMessage && <span className="fd-checkout-meta">{settingsMessage}</span>}
+          </div>
+          {telegramChatIds.length > 0 && (
+            <ul style={{ margin: "14px 0 0", paddingLeft: 18 }}>
+              {telegramChatIds.map((id) => (
+                <li key={id} className="fd-checkout-meta" style={{ marginBottom: 6 }}>
+                  <span style={{ marginRight: 8 }}>{id}</span>
+                  <button
+                    type="button"
+                    className="fd-btn"
+                    style={{ padding: "4px 10px", fontSize: "0.85rem" }}
+                    disabled={settingsSaving}
+                    onClick={() => deleteTelegramChatId(id)}
+                  >
+                    O‘chirish
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+      )}
+      {tab !== "telegram" && error && <p className="fd-empty">{error}</p>}
+      {tab !== "telegram" && !loading && !error && orders.length === 0 && (
+        <p className="fd-empty">Buyurtmalar yo‘q.</p>
+      )}
+      {tab !== "telegram" && (
+        <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+          {tab === "yangi"
+            ? orders.map((o) => (
+                <PoolOrderCard
+                  key={o.id}
+                  o={o}
+                  actionBusy={actionBusy}
+                  loading={loading}
+                  onTake={handleTake}
+                  onOnTheWay={handleOnTheWay}
+                  onDone={handleDone}
+                  onError={setError}
+                />
+              ))
+            : orders.map((o) => (
+                <FullOrderCard
+                  key={o.id}
+                  o={o}
+                  actionBusy={actionBusy}
+                  loading={loading}
+                  onOnTheWay={handleOnTheWay}
+                  onDone={handleDone}
+                  onError={setError}
+                />
+              ))}
+        </div>
+      )}
     </div>
   );
 }

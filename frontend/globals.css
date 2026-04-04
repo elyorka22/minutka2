@@ -549,6 +549,7 @@ body {
   border-radius: var(--radius-lg);
   padding: 18px 18px 20px;
   color: #111827;
+  box-shadow: none;
   /* Было ~пол-экрана (узкие карточки); теперь почти вся ширина + чуть видно следующий слайд */
   min-width: min(calc(100vw - 40px), 720px);
   max-width: min(calc(100vw - 40px), 720px);
@@ -602,12 +603,12 @@ body {
   position: absolute;
   inset: 0;
   pointer-events: none;
+  /* Yengil pastki qatlam — matn o‘qilishi uchun; qora soyasiz */
   background: linear-gradient(
     to top,
-    rgba(0, 0, 0, 0.88) 0%,
-    rgba(0, 0, 0, 0.45) 38%,
-    rgba(0, 0, 0, 0.12) 62%,
-    transparent 85%
+    rgba(0, 0, 0, 0.42) 0%,
+    rgba(0, 0, 0, 0.18) 42%,
+    transparent 72%
   );
 }
 
@@ -623,7 +624,7 @@ body {
 .fd-banner--photo .fd-banner-title,
 .fd-banner--photo .fd-banner-text {
   color: #fff;
-  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.45);
+  text-shadow: none;
 }
 
 .fd-banner--photo .fd-banner-title {
@@ -651,6 +652,10 @@ body {
   padding-inline: 14px;
   padding-block: 8px;
   font-size: 0.85rem;
+}
+
+.fd-banner .fd-btn-primary {
+  box-shadow: none;
 }
 
 .fd-banner-body {

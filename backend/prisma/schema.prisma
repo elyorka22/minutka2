@@ -211,6 +211,9 @@ model Courier {
 
   status CourierStatus @default(OFFLINE)
 
+  /** Comma-separated Telegram chat IDs for READY/pool order alerts (same bot as restaurants). */
+  telegramChatId String?
+
   orders Order[]
 }
 

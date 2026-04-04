@@ -514,6 +514,125 @@ export class OrdersService {
     });
   }
 
+  /**
+   * Telegram: when an order becomes READY (pool), notify couriers who saved chat IDs on their Courier row.
+   * Uses the same bot /notify endpoint as restaurants; payload includes kind=courier_ready for wording.
+   */
+  private notifyCouriersTelegramOrderReady(orderId: string): void {
+    const disableTelegramEnv = process.env.DISABLE_TELEGRAM_NOTIFY === 'true';
+    if (disableTelegramEnv) return;
+    const notifyUrl = (process.env.TELEGRAM_BOT_NOTIFY_URL ?? '').trim();
+    if (!notifyUrl) return;
+
+    void (async () => {
+      const orderRow = await this.prisma.order.findUnique({
+        where: { id: orderId },
+        select: {
+          id: true,
+          shortCode: true,
+          total: true,
+          comment: true,
+          restaurant: { select: { name: true } },
+          address: {
+            select: { street: true, city: true, details: true, latitude: true, longitude: true },
+          },
+          customer: { select: { name: true, phone: true } },
+          items: {
+            select: {
+              quantity: true,
+              price: true,
+              dish: { select: { name: true } },
+            },
+          },
+        },
+      });
+      if (!orderRow) return;
+
+      const couriers = await this.prisma.courier.findMany({
+        where: {
+          telegramChatId: { not: null },
+          user: { role: 'COURIER', status: 'ACTIVE' },
+        },
+        select: { telegramChatId: true },
+      });
+
+      const chatIdSet = new Set<string>();
+      for (const c of couriers) {
+        const raw = c.telegramChatId;
+        if (typeof raw !== 'string') continue;
+        for (const id of raw
+          .split(/[,;\n\r\s]+/g)
+          .map((s) => s.trim())
+          .filter(Boolean)) {
+          chatIdSet.add(id);
+        }
+      }
+      if (chatIdSet.size === 0) return;
+
+      const phone =
+        (orderRow.customer?.phone?.trim() ||
+          orderRow.address?.details?.replace(/^Tel:\s*/i, '').trim() ||
+          '') ??
+        '';
+
+      const telegramItems = orderRow.items.map((item) => {
+        const unit = Number(item.price);
+        const qty = item.quantity;
+        return {
+          name: item.dish?.name ?? '—',
+          quantity: qty,
+          unitPrice: unit,
+          lineTotal: unit * qty,
+        };
+      });
+
+      const orderPayload = {
+        id: orderRow.id,
+        shortCode: this.formatOrderCode(orderRow.shortCode),
+        restaurantName: orderRow.restaurant?.name ?? '—',
+        total: Number(orderRow.total),
+        customerName: orderRow.customer?.name ?? '',
+        phone,
+        lat: orderRow.address?.latitude,
+        lng: orderRow.address?.longitude,
+        addressLine:
+          [orderRow.address?.street, orderRow.address?.city].filter(Boolean).join(', ') || undefined,
+        comment: orderRow.comment?.trim() || undefined,
+        items: telegramItems,
+      };
+
+      const base = notifyUrl.replace(/\/$/, '');
+      await Promise.all(
+        [...chatIdSet].map(async (chatId) => {
+          const payload = {
+            chatId,
+            kind: 'courier_ready' as const,
+            order: orderPayload,
+          };
+          try {
+            const res = await fetchWithRetry(`${base}/notify`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify(payload),
+            });
+            if (!res.ok) {
+              const text = await res.text().catch(() => '');
+              this.logger.warn(
+                `[telegram] courier READY /notify HTTP ${res.status} chatId=${String(chatId).slice(0, 30)} order=${orderId} body=${text.slice(0, 200)}`,
+              );
+            }
+          } catch (e: unknown) {
+            this.logger.warn(
+              `[telegram] courier READY /notify failed chatId=${String(chatId).slice(0, 30)} order=${orderId} err=${
+                e instanceof Error ? e.message : String(e)
+              }`,
+            );
+          }
+        }),
+      );
+    })();
+  }
+
   private async notifyOtherCouriersOrderTaken(
     orderCode: string,
     takenByCourierUserId: string,
@@ -688,6 +807,7 @@ export class OrdersService {
         select: { name: true },
       });
       void this.notifyAllCouriersReady(this.formatOrderCode(order.shortCode), restaurant?.name).catch(() => {});
+      this.notifyCouriersTelegramOrderReady(id);
     }
 
     if (status === 'ON_THE_WAY' && order?.customerId) {

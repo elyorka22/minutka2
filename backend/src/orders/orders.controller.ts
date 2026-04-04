@@ -113,6 +113,41 @@ export class CourierOrdersController {
     private readonly prisma: PrismaService,
   ) {}
 
+  @Get('settings')
+  @UseGuards(JwtAuthGuard)
+  async getSettings(@Req() req: RequestWithUser) {
+    if (req.user?.role !== 'COURIER') {
+      throw new ForbiddenException('Faqat kuryerlar uchun');
+    }
+    const userId = req.user?.id;
+    if (!userId) throw new BadRequestException('Unauthorized');
+    const row = await this.prisma.courier.findUnique({
+      where: { userId },
+      select: { telegramChatId: true },
+    });
+    return { telegramChatId: row?.telegramChatId ?? '' };
+  }
+
+  @Patch('settings')
+  @UseGuards(JwtAuthGuard)
+  async patchSettings(
+    @Body() body: { telegramChatId?: string },
+    @Req() req: RequestWithUser,
+  ) {
+    if (req.user?.role !== 'COURIER') {
+      throw new ForbiddenException('Faqat kuryerlar uchun');
+    }
+    const userId = req.user?.id;
+    if (!userId) throw new BadRequestException('Unauthorized');
+    const value = typeof body.telegramChatId === 'string' ? body.telegramChatId.trim() || null : null;
+    await this.prisma.courier.upsert({
+      where: { userId },
+      create: { userId, telegramChatId: value },
+      update: { telegramChatId: value },
+    });
+    return { telegramChatId: value ?? '' };
+  }
+
   @Get('orders')
   @UseGuards(JwtAuthGuard)
   async list(

@@ -39,10 +39,14 @@ function formatOrderItemsBlock(order) {
   return block;
 }
 
-async function sendOrderNotification(chatId, order) {
+async function sendOrderNotification(chatId, order, kind) {
   const code = order.shortCode != null && String(order.shortCode).length > 0 ? String(order.shortCode) : String(order.id).slice(0, 8);
+  const head =
+    kind === "courier_ready"
+      ? `Yetkazib berishga tayyor buyurtma #${code}`
+      : `Yangi buyurtma #${code}`;
   let text =
-    `Yangi buyurtma #${code}\n` +
+    `${head}\n` +
     `Restoran: ${order.restaurantName}\n` +
     `Jami: ${formatMoney(order.total)} so'm\n` +
     `Mijoz: ${order.customerName || "-"}\n` +
@@ -115,7 +119,9 @@ async function handleTelegramUpdate(update) {
       chat_id: chatId,
       text:
         "Assalomu alaykum! Bu Minutka boti.\n\n" +
-        "Quyidagi xabarda sizning Chat ID raqamingiz bo‘ladi — uni nusxa olib, restoran admin panelida Sozlamalar → Telegram Chat ID maydoniga kiriting.",
+        "Quyidagi xabarda sizning Chat ID raqamingiz bo‘ladi — uni nusxa olib:\n" +
+        "• restoran: admin panel → Telegram\n" +
+        "• kuryer: Kuryer paneli → Telegram",
     });
     await telegramRequest("sendMessage", {
       chat_id: chatId,
@@ -134,13 +140,13 @@ const server = http.createServer(async (req, res) => {
     req.on("end", async () => {
       try {
         const payload = JSON.parse(body || "{}");
-        const { chatId, order } = payload;
+        const { chatId, order, kind } = payload;
         if (!chatId || !order) {
           res.statusCode = 400;
           res.end("chatId and order are required");
           return;
         }
-        await sendOrderNotification(chatId, order);
+        await sendOrderNotification(chatId, order, kind);
         res.statusCode = 200;
         res.end("ok");
       } catch (e) {

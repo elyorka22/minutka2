@@ -209,6 +209,7 @@ CREATE TABLE IF NOT EXISTS "Courier" (
     "updatedAt" TIMESTAMP(3) NOT NULL,
     "userId" TEXT NOT NULL,
     "status" "CourierStatus" NOT NULL DEFAULT 'OFFLINE',
+    "telegramChatId" TEXT,
 
     CONSTRAINT "Courier_pkey" PRIMARY KEY ("id")
 );
