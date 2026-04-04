@@ -528,6 +528,20 @@ export class OrdersService {
    * Telegram bot callback uchun ochiq API manzili (GET /internal/telegram/...).
    * Bir marta API servisida sozlansa yetadi; bot servisida alohida URL shart emas.
    */
+  /** Vercel/Netlify — ko‘pincha frontend; /internal Nest da yo‘q. */
+  private isLikelyFrontendHostForTelegramApi(u: string): boolean {
+    const allowVercel = process.env.ALLOW_VERCEL_AS_TELEGRAM_API === 'true';
+    const allowNetlify = process.env.ALLOW_NETLIFY_AS_TELEGRAM_API === 'true';
+    try {
+      const host = new URL(u).hostname.toLowerCase();
+      if (host.endsWith('.vercel.app') && !allowVercel) return true;
+      if (host.endsWith('.netlify.app') && !allowNetlify) return true;
+    } catch {
+      return true;
+    }
+    return false;
+  }
+
   private getPublicApiBaseUrlForTelegramCallbacks(): string {
     const tryUrl = (raw: string | undefined): string | null => {
       if (typeof raw !== 'string') return null;
@@ -535,6 +549,10 @@ export class OrdersService {
       if (!s) return null;
       let u = s.replace(/\/$/, '');
       if (!/^https?:\/\//i.test(u)) u = `https://${u}`;
+      if (this.isLikelyFrontendHostForTelegramApi(u)) {
+        this.logger.warn(`[telegram] callback URL rad etildi (frontend domeni): ${u}`);
+        return null;
+      }
       return u;
     };
 
@@ -557,7 +575,8 @@ export class OrdersService {
     const rail = process.env.RAILWAY_PUBLIC_DOMAIN?.trim();
     if (rail) {
       const host = rail.replace(/^https?:\/\//, '').replace(/\/$/, '');
-      return `https://${host}`;
+      const u = `https://${host}`;
+      if (!this.isLikelyFrontendHostForTelegramApi(u)) return u;
     }
 
     const render = process.env.RENDER_EXTERNAL_URL?.trim();
@@ -566,12 +585,17 @@ export class OrdersService {
       if (u) return u;
     }
 
-    // VERCEL_URL ko‘pincha Next.js loyihasidan — /internal 404; PUBLIC_API_URL qo‘ling.
     const fly = process.env.FLY_APP_NAME?.trim();
-    if (fly) return `https://${fly}.fly.dev`;
+    if (fly) {
+      const u = tryUrl(`https://${fly}.fly.dev`);
+      if (u) return u;
+    }
 
     const heroku = process.env.HEROKU_APP_NAME?.trim();
-    if (heroku) return `https://${heroku}.herokuapp.com`;
+    if (heroku) {
+      const u = tryUrl(`https://${heroku}.herokuapp.com`);
+      if (u) return u;
+    }
 
     return '';
   }

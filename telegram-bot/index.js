@@ -11,14 +11,34 @@ const API = `https://api.telegram.org/bot${TOKEN}`;
 /** /notify dan kelgan apiBaseUrl — callback da ishlatiladi (bot qayta ishga tushsa yo‘qoladi). */
 const orderApiBaseByOrderId = new Map();
 
+/** Vercel/Netlify — odatda frontend; /internal Nest da yo‘q. */
+function isBadCallbackBaseUrl(url) {
+  if (!url || typeof url !== "string") return true;
+  const allowVercel = process.env.ALLOW_VERCEL_AS_TELEGRAM_API === "true";
+  const allowNetlify = process.env.ALLOW_NETLIFY_AS_TELEGRAM_API === "true";
+  try {
+    const h = new URL(url).hostname.toLowerCase();
+    if (h.endsWith(".vercel.app") && !allowVercel) return true;
+    if (h.endsWith(".netlify.app") && !allowNetlify) return true;
+  } catch {
+    return true;
+  }
+  return false;
+}
+
 function normalizeApiBase(raw) {
   if (raw == null || String(raw).trim() === "") return "";
   let u = String(raw).trim().replace(/\/$/, "");
   if (!/^https?:\/\//i.test(u)) u = `https://${u}`;
+  if (isBadCallbackBaseUrl(u)) return "";
   return u;
 }
 
-/** API server bilan bir xil nomlar (backend getPublicApiBaseUrl bilan mos). */
+/**
+ * Faqat aniq API URLlar. RAILWAY_PUBLIC_DOMAIN, RENDER_EXTERNAL_URL, FLY, HEROKU
+ * bot servisida ko‘pincha boshqa xizmat (botning o‘zi) — ularni ishlatmaslik kerak.
+ * Bot Railway da: MINUTKA_API_URL=https://your-nest-api.up.railway.app
+ */
 function resolveApiBaseFromEnv() {
   const keys = [
     "TELEGRAM_API_CALLBACK_BASE_URL",
@@ -29,7 +49,6 @@ function resolveApiBaseFromEnv() {
     "API_URL",
     "SERVER_URL",
     "APP_URL",
-    "RENDER_EXTERNAL_URL",
     "API_BASE_URL",
     "BACKEND_URL",
   ];
@@ -40,17 +59,20 @@ function resolveApiBaseFromEnv() {
       if (b) return b;
     }
   }
-  const rail = process.env.RAILWAY_PUBLIC_DOMAIN?.trim();
-  if (rail) {
-    const host = rail.replace(/^https?:\/\//, "").replace(/\/$/, "");
-    const b = normalizeApiBase(`https://${host}`);
-    if (b) return b;
-  }
-  const fly = process.env.FLY_APP_NAME?.trim();
-  if (fly) return normalizeApiBase(`https://${fly}.fly.dev`);
-  const heroku = process.env.HEROKU_APP_NAME?.trim();
-  if (heroku) return normalizeApiBase(`https://${heroku}.herokuapp.com`);
   return "";
+}
+
+function resolveApiBaseForCallback(orderId) {
+  const cached = orderId != null ? orderApiBaseByOrderId.get(String(orderId)) : undefined;
+  const fromCache = normalizeApiBase(cached);
+  if (fromCache) return fromCache;
+  return resolveApiBaseFromEnv();
+}
+
+if (!resolveApiBaseFromEnv()) {
+  console.warn(
+    "[telegram-bot] MINUTKA_API_URL yoki PUBLIC_API_URL yo‘q — «Qabul qilish» / «Buyurtmani olish» Nest API ga ulanmaydi. Qiymat: faqat backend (masalan https://xxx.up.railway.app), Vercel emas.",
+  );
 }
 
 async function telegramRequest(method, body) {
@@ -267,12 +289,11 @@ async function handleCourierOrderCallback(q) {
     return;
   }
   const [, orderId, sig] = parts;
-  const base =
-    normalizeApiBase(orderApiBaseByOrderId.get(String(orderId))) || resolveApiBaseFromEnv();
+  const base = resolveApiBaseForCallback(orderId);
   if (!base) {
     await answerCallbackQuery(
       q.id,
-      "API manzili topilmadi. API servisida PUBLIC_API_URL yoki TELEGRAM_API_CALLBACK_BASE_URL qo‘ying; yoki bot servisida MINUTKA_API_URL. Keyin botni qayta ishga tushiring va yangi xabar yuboring.",
+      "API manzili yo‘q. Bot servisiga MINUTKA_API_URL=Backend URL qo‘ying (masalan xxx.up.railway.app — Vercel emas). Brauzerda .../internal/telegram/ping tekshiring. Keyin botni qayta ishga tushiring.",
       true,
     );
     return;
@@ -368,12 +389,11 @@ async function handleRestaurantOrderCallback(q) {
     return;
   }
   const [, orderId, sig, action] = parts;
-  const base =
-    normalizeApiBase(orderApiBaseByOrderId.get(String(orderId))) || resolveApiBaseFromEnv();
+  const base = resolveApiBaseForCallback(orderId);
   if (!base) {
     await answerCallbackQuery(
       q.id,
-      "API manzili topilmadi. API da PUBLIC_API_URL yoki botda MINUTKA_API_URL qo‘ying; keyin yangi xabar yuboring.",
+      "API manzili yo‘q. Bot servisiga MINUTKA_API_URL=Backend URL (Nest API, Vercel emas). Tekshiruv: .../internal/telegram/ping",
       true,
     );
     return;
