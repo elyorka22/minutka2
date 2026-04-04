@@ -401,14 +401,26 @@ async function handleRestaurantOrderCallback(q) {
       await answerCallbackQuery(q.id, "Serverga ulanib bo‘lmadi.", true);
       return;
     }
+    const rawText = await res.text();
     let j = {};
     try {
-      j = await res.json();
+      j = JSON.parse(rawText || "{}");
     } catch {
       j = {};
     }
     if (!res.ok || !j.order) {
-      const msg = errMsg(j.message) || "Qabul qilishda xatolik.";
+      let msg = errMsg(j.message);
+      if (!msg && res.status === 403) {
+        msg =
+          "Ruxsat yo‘q (imzo). API va buyurtma workerida bir xil TELEGRAM_ORDER_HMAC_SECRET yoki JWT_SECRET bo‘lsin.";
+      }
+      if (!msg && rawText) {
+        msg = rawText.slice(0, 220);
+      }
+      if (!msg) {
+        msg = `Qabul qilishda xatolik (HTTP ${res.status}).`;
+      }
+      console.error("[telegram] restaurant accept", res.status, rawText?.slice(0, 500));
       await answerCallbackQuery(q.id, msg, true);
       return;
     }

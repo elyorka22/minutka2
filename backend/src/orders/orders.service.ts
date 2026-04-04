@@ -581,9 +581,22 @@ export class OrdersService {
     return '';
   }
 
+  /**
+   * Worker va API bir xil qiymatda bo‘lishi kerak (JWT farq qilsa, Telegram tugmalari ishlamaydi).
+   * TELEGRAM_ORDER_HMAC_SECRET — ikkala servisga bir xil qo‘ying.
+   */
+  private getTelegramHmacSecret(): string {
+    return (
+      process.env.TELEGRAM_ORDER_HMAC_SECRET?.trim() ||
+      process.env.TELEGRAM_RESTAURANT_CALLBACK_SECRET?.trim() ||
+      process.env.TELEGRAM_COURIER_CALLBACK_SECRET?.trim() ||
+      process.env.JWT_SECRET?.trim() ||
+      ''
+    );
+  }
+
   private signCourierTelegramOrderId(orderId: string): string {
-    const secret =
-      process.env.TELEGRAM_COURIER_CALLBACK_SECRET?.trim() || process.env.JWT_SECRET?.trim() || '';
+    const secret = this.getTelegramHmacSecret();
     if (!secret) return '';
     return crypto
       .createHmac('sha256', secret)
@@ -603,11 +616,7 @@ export class OrdersService {
   }
 
   private signRestaurantTelegramOrderId(orderId: string): string {
-    const secret =
-      process.env.TELEGRAM_RESTAURANT_CALLBACK_SECRET?.trim() ||
-      process.env.TELEGRAM_COURIER_CALLBACK_SECRET?.trim() ||
-      process.env.JWT_SECRET?.trim() ||
-      '';
+    const secret = this.getTelegramHmacSecret();
     if (!secret) return '';
     return crypto
       .createHmac('sha256', secret)
@@ -629,9 +638,35 @@ export class OrdersService {
   private async getAnyRestaurantAdminUserId(restaurantId: string): Promise<string | null> {
     const r = await this.prisma.restaurant.findUnique({
       where: { id: restaurantId },
-      select: { admins: { select: { id: true }, take: 1 } },
+      select: {
+        admins: {
+          take: 1,
+          select: { id: true },
+        },
+      },
     });
     return r?.admins[0]?.id ?? null;
+  }
+
+  /** Telegram tugmasi: avvalo restoran admini, bo‘lmasa PLATFORM_ADMIN. */
+  private async resolveActorForTelegramRestaurantAction(restaurantId: string): Promise<{
+    userId: string;
+    actorRole: 'RESTAURANT_ADMIN' | 'PLATFORM_ADMIN';
+  }> {
+    const restaurantAdminId = await this.getAnyRestaurantAdminUserId(restaurantId);
+    if (restaurantAdminId) {
+      return { userId: restaurantAdminId, actorRole: 'RESTAURANT_ADMIN' };
+    }
+    const platform = await this.prisma.user.findFirst({
+      where: { role: 'PLATFORM_ADMIN', status: 'ACTIVE' },
+      select: { id: true },
+    });
+    if (platform?.id) {
+      return { userId: platform.id, actorRole: 'PLATFORM_ADMIN' };
+    }
+    throw new BadRequestException(
+      "Restoran uchun admin topilmadi. Platforma admini panelda restoranga admin biriktiring.",
+    );
   }
 
   private async buildTelegramOrderPayloadFromOrderId(orderId: string) {
@@ -733,11 +768,8 @@ export class OrdersService {
       throw new NotFoundException('Buyurtma topilmadi.');
     }
     if (row.status === 'NEW') {
-      const adminId = await this.getAnyRestaurantAdminUserId(row.restaurantId);
-      if (!adminId) {
-        throw new BadRequestException('Restoranda admin yo‘q.');
-      }
-      await this.updateStatus(orderId, 'ACCEPTED', 'RESTAURANT_ADMIN', adminId);
+      const actor = await this.resolveActorForTelegramRestaurantAction(row.restaurantId);
+      await this.updateStatus(orderId, 'ACCEPTED', actor.actorRole, actor.userId);
     } else if (row.status !== 'ACCEPTED') {
       throw new BadRequestException('Buyurtma boshqa holatda (qabul qilib bo‘lmaydi).');
     }
@@ -768,11 +800,8 @@ export class OrdersService {
     if (row.status !== 'ACCEPTED') {
       throw new BadRequestException('Avval «Qabul qilish»ni bosing.');
     }
-    const adminId = await this.getAnyRestaurantAdminUserId(row.restaurantId);
-    if (!adminId) {
-      throw new BadRequestException('Restoranda admin yo‘q.');
-    }
-    await this.updateStatus(orderId, 'READY', 'RESTAURANT_ADMIN', adminId);
+    const actor = await this.resolveActorForTelegramRestaurantAction(row.restaurantId);
+    await this.updateStatus(orderId, 'READY', actor.actorRole, actor.userId);
     return { ok: true as const };
   }
 
