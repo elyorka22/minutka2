@@ -566,8 +566,8 @@ export default function RestaurantAdminPage({
             Telegram bot sozlamalari
           </div>
           <p className="fd-card-desc" style={{ marginTop: 0 }}>
-            Botda yangi buyurtma: qisqa xabar, «Batafsil» (to‘liq ma’lumot) va «Admin panel» havolasi. Holatni (qabul/tayyor)
-            shu yerda panelda boshqaring. «Admin panel» tugmasi uchun API da FRONTEND_ORIGIN (sayt manzili) bo‘lishi kerak.
+            Botda yangi buyurtma: qisqa xabar, «Qabul qilish» — to‘liq ma’lumot va xarita, keyin «Tayyor» — kuryerlarga.
+            Holatni shu yerda ham boshqarishingiz mumkin (qabul/tayyor).
             Chat ID kiriting; bir nechtasini vergul yoki yangi
             qator bilan qo‘shishingiz mumkin.
           </p>

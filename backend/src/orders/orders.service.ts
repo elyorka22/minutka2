@@ -818,7 +818,6 @@ export class OrdersService {
 
   /**
    * Telegram: «Qabul qilish» — NEW → ACCEPTED, keyin to‘liq buyurtma matni + «Tayyor».
-   * (Hozircha botda ishlatilmaydi; panel orqali status o‘zgartiriladi.)
    */
   async telegramRestaurantAcceptOrder(orderId: string, sig: string) {
     if (!this.verifyRestaurantTelegramOrderId(orderId, sig)) {
