@@ -577,6 +577,7 @@ export class OrdersService {
       process.env.TELEGRAM_API_CALLBACK_BASE_URL,
       process.env.PUBLIC_API_URL,
       process.env.MINUTKA_API_URL,
+      process.env.NEST_API_URL,
       process.env.API_PUBLIC_URL,
       process.env.BACKEND_PUBLIC_URL,
       process.env.API_URL,

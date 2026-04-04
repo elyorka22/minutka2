@@ -46,6 +46,7 @@ function resolveApiBaseFromEnv() {
     "TELEGRAM_API_CALLBACK_BASE_URL",
     "PUBLIC_API_URL",
     "MINUTKA_API_URL",
+    "NEST_API_URL",
     "API_PUBLIC_URL",
     "BACKEND_PUBLIC_URL",
     "API_URL",
@@ -73,9 +74,13 @@ function resolveApiBaseForCallback(orderId) {
 
 if (!resolveApiBaseFromEnv()) {
   console.warn(
-    "[telegram-bot] MINUTKA_API_URL yoki PUBLIC_API_URL yo‘q — «Qabul qilish» / «Buyurtmani olish» Nest API ga ulanmaydi. Qiymat: faqat backend (masalan https://xxx.up.railway.app), Vercel emas.",
+    "[telegram-bot] MINUTKA_API_URL (yoki NEST_API_URL / PUBLIC_API_URL) yo‘q — «Batafsil» / «Buyurtmani olish» ishlamaydi. Railway bot servisida Variables ga Nest API URL qo‘ying (Vercel emas).",
   );
 }
+
+/** Telegram alert ~200 belgi. */
+const MSG_NO_BACKEND_URL =
+  "MINUTKA_API_URL yo‘q: bot servisida (Railway) Variables → Nest API URL (masalan *.up.railway.app). API da ham PUBLIC_API_URL shu bo‘lsin. Tekshiruv: /internal/telegram/ping";
 
 async function telegramRequest(method, body) {
   const res = await fetch(`${API}/${method}`, {
@@ -301,11 +306,7 @@ async function handleCourierOrderCallback(q) {
   const [, orderId, sig] = parts;
   const base = resolveApiBaseForCallback(orderId);
   if (!base) {
-    await answerCallbackQuery(
-      q.id,
-      "API manzili yo‘q. Bot servisiga MINUTKA_API_URL=Backend URL qo‘ying (masalan xxx.up.railway.app — Vercel emas). Brauzerda .../internal/telegram/ping tekshiring. Keyin botni qayta ishga tushiring.",
-      true,
-    );
+    await answerCallbackQuery(q.id, MSG_NO_BACKEND_URL, true);
     return;
   }
   const url = `${base}/internal/telegram/courier-order/${encodeURIComponent(orderId)}?sig=${encodeURIComponent(sig)}`;
@@ -409,11 +410,7 @@ async function handleRestaurantOrderCallback(q) {
   }
   const base = resolveApiBaseForCallback(orderId);
   if (!base) {
-    await answerCallbackQuery(
-      q.id,
-      "API manzili yo‘q. Bot servisiga MINUTKA_API_URL=Backend URL (Nest API, Vercel emas). Tekshiruv: .../internal/telegram/ping",
-      true,
-    );
+    await answerCallbackQuery(q.id, MSG_NO_BACKEND_URL, true);
     return;
   }
 
