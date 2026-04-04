@@ -270,36 +270,32 @@ export class OrdersService {
     if (!skipTelegram && notifyUrl && chatIds.length > 0) {
       void (async () => {
         const base = notifyUrl.replace(/\/$/, '');
-        const phone = dto.address?.details?.replace(/^Tel:\s*/i, '') ?? '';
-        const telegramItems = dto.items.map((item) => {
-          const unit = dishById.get(item.dishId) ?? 0;
-          return {
-            name: dishNameById.get(item.dishId) ?? '—',
-            quantity: item.quantity,
-            unitPrice: unit,
-            lineTotal: unit * item.quantity,
-          };
-        });
+        const restSig = this.signRestaurantTelegramOrderId(createdOrder.id);
+        const apiBaseUrl = this.getPublicApiBaseUrlForTelegramCallbacks();
+        if (!restSig) {
+          this.logger.warn(
+            `[telegram] yangi buyurtma: restoran Telegram yuborilmadi (JWT_SECRET yoki TELEGRAM_*_CALLBACK_SECRET yo‘q) order=${createdOrder.id}`,
+          );
+        }
 
-        // Send separate messages to every saved chatId.
+        // Restoran: avvalo qisqa xabar + «Qabul qilish»; tugmadan keyin to‘liq ma’lumot va «Tayyor» (bot + internal API).
         await Promise.all(
           chatIds.map(async (chatId) => {
-            const payload = {
-              chatId,
-              order: {
-                id: createdOrder.id,
-                shortCode: this.formatOrderCode(createdOrder.shortCode),
-                restaurantName: restaurant.name,
-                total: Number(createdOrder.total),
-                customerName: '',
-                phone,
-                lat: dto.address?.latitude,
-                lng: dto.address?.longitude,
-                addressLine: [dto.address.street, dto.address.city].filter(Boolean).join(', ') || undefined,
-                comment: dto.comment?.trim() || undefined,
-                items: telegramItems,
-              },
-            };
+            const payload = restSig
+              ? {
+                  chatId,
+                  kind: 'restaurant_new' as const,
+                  preview: {
+                    orderId: createdOrder.id,
+                    shortCode: this.formatOrderCode(createdOrder.shortCode),
+                    restaurantName: restaurant.name,
+                    total: Number(createdOrder.total),
+                    sig: restSig,
+                    ...(apiBaseUrl ? { apiBaseUrl } : {}),
+                  },
+                }
+              : null;
+            if (!payload) return;
             try {
               const res = await fetchWithRetry(`${base}/notify`, {
                 method: 'POST',
@@ -578,6 +574,47 @@ export class OrdersService {
     }
   }
 
+  private signRestaurantTelegramOrderId(orderId: string): string {
+    const secret =
+      process.env.TELEGRAM_RESTAURANT_CALLBACK_SECRET?.trim() ||
+      process.env.TELEGRAM_COURIER_CALLBACK_SECRET?.trim() ||
+      process.env.JWT_SECRET?.trim() ||
+      '';
+    if (!secret) return '';
+    return crypto
+      .createHmac('sha256', secret)
+      .update(`restaurant_tg_order:${orderId}`)
+      .digest('hex')
+      .slice(0, 16);
+  }
+
+  private verifyRestaurantTelegramOrderId(orderId: string, sig: string): boolean {
+    const expected = this.signRestaurantTelegramOrderId(orderId);
+    if (!expected || typeof sig !== 'string' || sig.length !== expected.length) return false;
+    try {
+      return crypto.timingSafeEqual(Buffer.from(expected, 'utf8'), Buffer.from(sig, 'utf8'));
+    } catch {
+      return false;
+    }
+  }
+
+  private async getAnyRestaurantAdminUserId(restaurantId: string): Promise<string | null> {
+    const r = await this.prisma.restaurant.findUnique({
+      where: { id: restaurantId },
+      select: { admins: { select: { id: true }, take: 1 } },
+    });
+    return r?.admins[0]?.id ?? null;
+  }
+
+  private async buildTelegramOrderPayloadFromOrderId(orderId: string) {
+    const row = await this.prisma.order.findUnique({
+      where: { id: orderId },
+      select: TELEGRAM_COURIER_ORDER_SELECT,
+    });
+    if (!row) return null;
+    return this.buildTelegramCourierOrderPayload(row);
+  }
+
   private buildTelegramCourierOrderPayload(orderRow: {
     id: string;
     shortCode: number;
@@ -651,6 +688,64 @@ export class OrdersService {
       );
     }
     return { order: this.buildTelegramCourierOrderPayload(orderRow) };
+  }
+
+  /**
+   * Telegram: «Qabul qilish» — NEW → ACCEPTED, keyin to‘liq buyurtma matni + «Tayyor».
+   */
+  async telegramRestaurantAcceptOrder(orderId: string, sig: string) {
+    if (!this.verifyRestaurantTelegramOrderId(orderId, sig)) {
+      throw new ForbiddenException('Invalid sig');
+    }
+    const row = await this.prisma.order.findUnique({
+      where: { id: orderId },
+      select: { id: true, status: true, restaurantId: true },
+    });
+    if (!row) {
+      throw new NotFoundException('Buyurtma topilmadi.');
+    }
+    if (row.status === 'NEW') {
+      const adminId = await this.getAnyRestaurantAdminUserId(row.restaurantId);
+      if (!adminId) {
+        throw new BadRequestException('Restoranda admin yo‘q.');
+      }
+      await this.updateStatus(orderId, 'ACCEPTED', 'RESTAURANT_ADMIN', adminId);
+    } else if (row.status !== 'ACCEPTED') {
+      throw new BadRequestException('Buyurtma boshqa holatda (qabul qilib bo‘lmaydi).');
+    }
+    const order = await this.buildTelegramOrderPayloadFromOrderId(orderId);
+    if (!order) {
+      throw new NotFoundException('Buyurtma topilmadi.');
+    }
+    return { order };
+  }
+
+  /**
+   * Telegram: «Tayyor» — ACCEPTED → READY (kuryerlarga push + Telegram).
+   */
+  async telegramRestaurantReadyOrder(orderId: string, sig: string) {
+    if (!this.verifyRestaurantTelegramOrderId(orderId, sig)) {
+      throw new ForbiddenException('Invalid sig');
+    }
+    const row = await this.prisma.order.findUnique({
+      where: { id: orderId },
+      select: { id: true, status: true, restaurantId: true },
+    });
+    if (!row) {
+      throw new NotFoundException('Buyurtma topilmadi.');
+    }
+    if (row.status === 'READY') {
+      return { ok: true as const, alreadyReady: true };
+    }
+    if (row.status !== 'ACCEPTED') {
+      throw new BadRequestException('Avval «Qabul qilish»ni bosing.');
+    }
+    const adminId = await this.getAnyRestaurantAdminUserId(row.restaurantId);
+    if (!adminId) {
+      throw new BadRequestException('Restoranda admin yo‘q.');
+    }
+    await this.updateStatus(orderId, 'READY', 'RESTAURANT_ADMIN', adminId);
+    return { ok: true as const };
   }
 
   private async notifyAllCouriersReady(orderCode: string, restaurantName?: string) {

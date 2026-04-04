@@ -566,7 +566,9 @@ export default function RestaurantAdminPage({
             Telegram bot sozlamalari
           </div>
           <p className="fd-card-desc" style={{ marginTop: 0 }}>
-            Yangi buyurtmalar bo‘yicha Telegram xabarnoma olish uchun chat ID kiriting. Bir nechta ID qo‘shish mumkin: vergul, bo‘sh joy yoki enter orqali.
+            Botda yangi buyurtma: qisqa xabar va «Qabul qilish» tugmasi — bosilgach to‘liq ma’lumot, xarita va «Tayyor».
+            «Tayyor»dan keyin kuryerlarga xabar ketadi (paneldagidek). Chat ID kiriting; bir nechtasini vergul yoki yangi
+            qator bilan qo‘shishingiz mumkin.
           </p>
 
           <label className="fd-label" htmlFor="telegram-chat-id" style={{ marginBottom: 6, display: "block" }}>
@@ -595,7 +597,7 @@ export default function RestaurantAdminPage({
           {telegramChatIds.length > 0 && (
             <div style={{ marginTop: 14 }}>
               <div className="fd-card-desc" style={{ fontWeight: 700, marginBottom: 10 }}>
-                Sizning айди
+                Saqlangan chat ID
               </div>
               {telegramChatIds.map((id) => (
                 <div

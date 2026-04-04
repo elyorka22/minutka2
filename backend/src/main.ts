@@ -107,7 +107,8 @@ async function bootstrap() {
       p.startsWith('/orders') ||
       p === '/visit' ||
       p.startsWith('/push') ||
-      p.startsWith('/courier')
+      p.startsWith('/courier') ||
+      p.startsWith('/internal')
     ) {
       return next();
     }

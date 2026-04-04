@@ -4,7 +4,7 @@ import { OrdersService } from './orders.service';
 
 /**
  * Server-to-server routes for the Telegram bot (no JWT).
- * Secured by HMAC sig on orderId (see OrdersService.verifyCourierTelegramOrderId).
+ * Secured by HMAC sig on orderId (courier vs restaurant — turli xil prefiks).
  */
 @SkipThrottle()
 @Controller('internal/telegram')
@@ -18,5 +18,19 @@ export class InternalTelegramController {
       throw new ForbiddenException('Missing sig');
     }
     return this.ordersService.getTelegramCourierOrderDetailsForBot(orderId, s);
+  }
+
+  @Get('restaurant-order/:orderId/accept')
+  async restaurantAccept(@Param('orderId') orderId: string, @Query('sig') sig?: string) {
+    const s = typeof sig === 'string' ? sig.trim() : '';
+    if (!s) throw new ForbiddenException('Missing sig');
+    return this.ordersService.telegramRestaurantAcceptOrder(orderId, s);
+  }
+
+  @Get('restaurant-order/:orderId/ready')
+  async restaurantReady(@Param('orderId') orderId: string, @Query('sig') sig?: string) {
+    const s = typeof sig === 'string' ? sig.trim() : '';
+    if (!s) throw new ForbiddenException('Missing sig');
+    return this.ordersService.telegramRestaurantReadyOrder(orderId, s);
   }
 }

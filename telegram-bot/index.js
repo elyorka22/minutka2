@@ -9,7 +9,7 @@ if (!TOKEN) {
 const API = `https://api.telegram.org/bot${TOKEN}`;
 
 /** /notify dan kelgan apiBaseUrl — callback da ishlatiladi (bot qayta ishga tushsa yo‘qoladi). */
-const courierOrderApiBaseByOrderId = new Map();
+const orderApiBaseByOrderId = new Map();
 
 function normalizeApiBase(raw) {
   if (raw == null || String(raw).trim() === "") return "";
@@ -81,7 +81,7 @@ async function sendCourierReadyPreview(chatId, preview) {
   }
   const base = normalizeApiBase(apiBaseUrl);
   if (base) {
-    courierOrderApiBaseByOrderId.set(String(orderId), base);
+    orderApiBaseByOrderId.set(String(orderId), base);
   }
   const text = `${String(restaurantName || "—")}\nJami: ${formatMoney(total)} so'm`;
   const callbackData = `c|${orderId}|${sig}`;
@@ -96,6 +96,60 @@ async function sendCourierReadyPreview(chatId, preview) {
       text,
       reply_markup: {
         inline_keyboard: [[{ text: "Buyurtmani olish", callback_data: callbackData }]],
+      },
+    }),
+  });
+}
+
+function buildRestaurantOrderFullText(order) {
+  const code =
+    order.shortCode != null && String(order.shortCode).length > 0
+      ? String(order.shortCode)
+      : String(order.id).slice(0, 8);
+  let text =
+    `Qabul qilingan buyurtma #${code}\n` +
+    `Restoran: ${order.restaurantName}\n` +
+    `Jami: ${formatMoney(order.total)} so'm\n` +
+    `Mijoz: ${order.customerName || "-"}\n` +
+    `Telefon: ${order.phone || "-"}`;
+  if (order.addressLine) {
+    text += `\nManzil: ${order.addressLine}`;
+  }
+  if (order.comment) {
+    text += `\nIzoh: ${order.comment}`;
+  }
+  text += formatOrderItemsBlock(order);
+  if (text.length > 4000) {
+    text = text.slice(0, 3997) + "...";
+  }
+  return text;
+}
+
+async function sendRestaurantNewPreview(chatId, preview) {
+  const { orderId, shortCode, restaurantName, total, sig, apiBaseUrl } = preview;
+  if (!orderId || !sig) {
+    throw new Error("preview.orderId and preview.sig required");
+  }
+  const base = normalizeApiBase(apiBaseUrl);
+  if (base) {
+    orderApiBaseByOrderId.set(String(orderId), base);
+  }
+  const text =
+    `Yangi buyurtma #${String(shortCode || "----")}\n` +
+    `${String(restaurantName || "—")}\n` +
+    `Jami: ${formatMoney(total)} so'm`;
+  const callbackData = `r|${orderId}|${sig}|a`;
+  if (Buffer.byteLength(callbackData, "utf8") > 64) {
+    throw new Error("callback_data > 64 bytes");
+  }
+  await fetch(`${API}/sendMessage`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      chat_id: chatId,
+      text,
+      reply_markup: {
+        inline_keyboard: [[{ text: "Qabul qilish", callback_data: callbackData }]],
       },
     }),
   });
@@ -179,7 +233,7 @@ async function handleCourierOrderCallback(q) {
   }
   const [, orderId, sig] = parts;
   const base =
-    normalizeApiBase(courierOrderApiBaseByOrderId.get(String(orderId))) ||
+    normalizeApiBase(orderApiBaseByOrderId.get(String(orderId))) ||
     normalizeApiBase(process.env.MINUTKA_API_URL) ||
     normalizeApiBase(process.env.API_BASE_URL) ||
     normalizeApiBase(process.env.BACKEND_URL);
@@ -270,9 +324,180 @@ async function handleCourierOrderCallback(q) {
   }
 }
 
+async function handleRestaurantOrderCallback(q) {
+  const data = String(q.data || "").trim();
+  if (!data.startsWith("r|")) {
+    await answerCallbackQuery(q.id);
+    return;
+  }
+  const parts = data.split("|");
+  if (parts.length !== 4) {
+    await answerCallbackQuery(q.id);
+    return;
+  }
+  const [, orderId, sig, action] = parts;
+  const base =
+    normalizeApiBase(orderApiBaseByOrderId.get(String(orderId))) ||
+    normalizeApiBase(process.env.MINUTKA_API_URL) ||
+    normalizeApiBase(process.env.API_BASE_URL) ||
+    normalizeApiBase(process.env.BACKEND_URL);
+  if (!base) {
+    await answerCallbackQuery(
+      q.id,
+      "API manzili topilmadi. API serverda PUBLIC_API_URL qo‘ying.",
+      true,
+    );
+    return;
+  }
+
+  const errMsg = (m) => {
+    if (Array.isArray(m)) return m.join(", ");
+    if (typeof m === "string") return m;
+    return "";
+  };
+
+  if (action === "a") {
+    const url = `${base}/internal/telegram/restaurant-order/${encodeURIComponent(orderId)}/accept?sig=${encodeURIComponent(sig)}`;
+    let res;
+    try {
+      res = await fetch(url, { method: "GET", headers: { Accept: "application/json" } });
+    } catch (e) {
+      console.error("restaurant accept fetch", e);
+      await answerCallbackQuery(q.id, "Serverga ulanib bo‘lmadi.", true);
+      return;
+    }
+    let j = {};
+    try {
+      j = await res.json();
+    } catch {
+      j = {};
+    }
+    if (!res.ok || !j.order) {
+      const msg = errMsg(j.message) || "Qabul qilishda xatolik.";
+      await answerCallbackQuery(q.id, msg, true);
+      return;
+    }
+    const order = j.order;
+    const fullText = buildRestaurantOrderFullText(order);
+    const readyCb = `r|${orderId}|${sig}|t`;
+    if (Buffer.byteLength(readyCb, "utf8") > 64) {
+      await answerCallbackQuery(q.id, "callback_data juda uzun.", true);
+      return;
+    }
+    await answerCallbackQuery(q.id, "Buyurtma qabul qilindi.", false);
+
+    const msg = q.message;
+    if (!msg || !msg.chat) return;
+    const chatId = msg.chat.id;
+    const messageId = msg.message_id;
+    const rows = [];
+    if (order.lat != null && order.lng != null) {
+      rows.push([
+        {
+          text: "Xaritada ochish",
+          url: `https://maps.google.com/?q=${order.lat},${order.lng}`,
+        },
+      ]);
+    }
+    rows.push([{ text: "Tayyor", callback_data: readyCb }]);
+
+    const editRes = await fetch(`${API}/editMessageText`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        chat_id: chatId,
+        message_id: messageId,
+        text: fullText,
+        reply_markup: { inline_keyboard: rows },
+      }),
+    });
+    if (!editRes.ok) {
+      await fetch(`${API}/sendMessage`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          chat_id: chatId,
+          text: fullText,
+          reply_markup: { inline_keyboard: rows },
+        }),
+      });
+    }
+
+    if (order.lat != null && order.lng != null) {
+      await fetch(`${API}/sendLocation`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          chat_id: chatId,
+          latitude: order.lat,
+          longitude: order.lng,
+        }),
+      });
+    }
+    return;
+  }
+
+  if (action === "t") {
+    const url = `${base}/internal/telegram/restaurant-order/${encodeURIComponent(orderId)}/ready?sig=${encodeURIComponent(sig)}`;
+    let res;
+    try {
+      res = await fetch(url, { method: "GET", headers: { Accept: "application/json" } });
+    } catch (e) {
+      console.error("restaurant ready fetch", e);
+      await answerCallbackQuery(q.id, "Serverga ulanib bo‘lmadi.", true);
+      return;
+    }
+    let j = {};
+    try {
+      j = await res.json();
+    } catch {
+      j = {};
+    }
+    if (!res.ok || !j.ok) {
+      const msg = errMsg(j.message) || "Tayyor qilishda xatolik.";
+      await answerCallbackQuery(q.id, msg, true);
+      return;
+    }
+    if (j.alreadyReady) {
+      await answerCallbackQuery(q.id, "Buyurtma allaqachon tayyor.", true);
+      return;
+    }
+    await answerCallbackQuery(q.id, "Kuryerlarga yuborildi.", false);
+
+    const msg = q.message;
+    if (!msg || !msg.chat) return;
+    const chatId = msg.chat.id;
+    const messageId = msg.message_id;
+    const prev = String(msg.text || "");
+    const extra = "\n\n✅ Tayyor. Kuryerlarga xabar yuborildi.";
+    let newText = prev + extra;
+    if (newText.length > 4096) {
+      newText = newText.slice(0, 4093 - extra.length) + extra;
+    }
+    await fetch(`${API}/editMessageText`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        chat_id: chatId,
+        message_id: messageId,
+        text: newText,
+        reply_markup: { inline_keyboard: [] },
+      }),
+    });
+    return;
+  }
+
+  await answerCallbackQuery(q.id);
+}
+
 async function handleTelegramUpdate(update) {
   if (update.callback_query) {
-    await handleCourierOrderCallback(update.callback_query);
+    const d = String(update.callback_query.data || "").trim();
+    if (d.startsWith("r|")) {
+      await handleRestaurantOrderCallback(update.callback_query);
+    } else {
+      await handleCourierOrderCallback(update.callback_query);
+    }
     return;
   }
   const msg = update.message;
@@ -297,9 +522,10 @@ async function handleTelegramUpdate(update) {
       chat_id: chatId,
       text:
         "Assalomu alaykum! Bu Minutka boti.\n\n" +
-        "Quyidagi xabarda sizning Chat ID raqamingiz bo‘ladi — uni nusxa olib:\n" +
-        "• restoran: admin panel → Telegram\n" +
-        "• kuryer: Kuryer paneli → Telegram",
+        "Quyidagi xabarda Chat ID — nusxa olib sozlamaga kiriting.\n" +
+        "• Restoran: «Qabul qilish» → manzil/xarita → «Tayyor» (keyin kuryerlar).\n" +
+        "• Kuryer: qisqa xabar → «Buyurtmani olish» → batafsil.\n" +
+        "Sozlash: restoran — admin Telegram; kuryer — Kuryer paneli → Telegram.",
     });
     await telegramRequest("sendMessage", {
       chat_id: chatId,
@@ -326,11 +552,13 @@ const server = http.createServer(async (req, res) => {
         }
         if (kind === "courier_ready" && preview && typeof preview === "object") {
           await sendCourierReadyPreview(chatId, preview);
+        } else if (kind === "restaurant_new" && preview && typeof preview === "object") {
+          await sendRestaurantNewPreview(chatId, preview);
         } else if (order) {
           await sendOrderNotification(chatId, order, kind);
         } else {
           res.statusCode = 400;
-          res.end("order or courier preview required");
+          res.end("order or courier/restaurant preview required");
           return;
         }
         res.statusCode = 200;
