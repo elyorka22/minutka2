@@ -8,6 +8,16 @@ if (!TOKEN) {
 
 const API = `https://api.telegram.org/bot${TOKEN}`;
 
+/** /notify dan kelgan apiBaseUrl — callback da ishlatiladi (bot qayta ishga tushsa yo‘qoladi). */
+const courierOrderApiBaseByOrderId = new Map();
+
+function normalizeApiBase(raw) {
+  if (raw == null || String(raw).trim() === "") return "";
+  let u = String(raw).trim().replace(/\/$/, "");
+  if (!/^https?:\/\//i.test(u)) u = `https://${u}`;
+  return u;
+}
+
 async function telegramRequest(method, body) {
   const res = await fetch(`${API}/${method}`, {
     method: "POST",
@@ -65,9 +75,13 @@ function buildCourierOrderDetailText(order) {
 
 /** Birinchi xabar: faqat restoran + jami; tugma bosilgach API dan to‘liq ma’lumot. */
 async function sendCourierReadyPreview(chatId, preview) {
-  const { orderId, restaurantName, total, sig } = preview;
+  const { orderId, restaurantName, total, sig, apiBaseUrl } = preview;
   if (!orderId || !sig) {
     throw new Error("preview.orderId and preview.sig required");
+  }
+  const base = normalizeApiBase(apiBaseUrl);
+  if (base) {
+    courierOrderApiBaseByOrderId.set(String(orderId), base);
   }
   const text = `${String(restaurantName || "—")}\nJami: ${formatMoney(total)} so'm`;
   const callbackData = `c|${orderId}|${sig}`;
@@ -164,9 +178,17 @@ async function handleCourierOrderCallback(q) {
     return;
   }
   const [, orderId, sig] = parts;
-  const base = (process.env.MINUTKA_API_URL || process.env.API_BASE_URL || process.env.BACKEND_URL || "").replace(/\/$/, "");
+  const base =
+    normalizeApiBase(courierOrderApiBaseByOrderId.get(String(orderId))) ||
+    normalizeApiBase(process.env.MINUTKA_API_URL) ||
+    normalizeApiBase(process.env.API_BASE_URL) ||
+    normalizeApiBase(process.env.BACKEND_URL);
   if (!base) {
-    await answerCallbackQuery(q.id, "API manzili sozlanmagan (MINUTKA_API_URL).", true);
+    await answerCallbackQuery(
+      q.id,
+      "API manzili topilmadi. API serverda PUBLIC_API_URL yoki MINUTKA_API_URL qo‘ying (botni qayta ishga tushirsangiz, xabarni qayta yuboring).",
+      true,
+    );
     return;
   }
   const url = `${base}/internal/telegram/courier-order/${encodeURIComponent(orderId)}?sig=${encodeURIComponent(sig)}`;

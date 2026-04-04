@@ -528,6 +528,35 @@ export class OrdersService {
     return { subscriptionsFound: subs.length, success, failed };
   }
 
+  /**
+   * Telegram bot callback uchun ochiq API manzili (GET /internal/telegram/...).
+   * Bir marta API servisida sozlansa yetadi; bot servisida alohida URL shart emas.
+   */
+  private getPublicApiBaseUrlForTelegramCallbacks(): string {
+    const raw = [
+      process.env.PUBLIC_API_URL,
+      process.env.MINUTKA_API_URL,
+      process.env.API_PUBLIC_URL,
+      process.env.BACKEND_PUBLIC_URL,
+      process.env.NEXT_PUBLIC_API_BASE_URL,
+    ]
+      .map((s) => (typeof s === 'string' ? s.trim() : ''))
+      .find(Boolean);
+    if (raw) {
+      let u = raw.replace(/\/$/, '');
+      if (!/^https?:\/\//i.test(u)) u = `https://${u}`;
+      return u;
+    }
+    const rail = process.env.RAILWAY_PUBLIC_DOMAIN?.trim();
+    if (rail) {
+      const host = rail.replace(/^https?:\/\//, '');
+      return `https://${host.replace(/\/$/, '')}`;
+    }
+    const render = process.env.RENDER_EXTERNAL_URL?.trim();
+    if (render) return render.replace(/\/$/, '');
+    return '';
+  }
+
   private signCourierTelegramOrderId(orderId: string): string {
     const secret =
       process.env.TELEGRAM_COURIER_CALLBACK_SECRET?.trim() || process.env.JWT_SECRET?.trim() || '';
@@ -685,11 +714,19 @@ export class OrdersService {
       }
       if (chatIdSet.size === 0) return;
 
+      const apiBaseUrl = this.getPublicApiBaseUrlForTelegramCallbacks();
+      if (!apiBaseUrl) {
+        this.logger.warn(
+          '[telegram] courier READY: PUBLIC_API_URL yoki MINUTKA_API_URL (yoki RAILWAY_PUBLIC_DOMAIN) bo‘lmasa, «Buyurtmani olish» tugmasi ishlamaydi',
+        );
+      }
+
       const preview = {
         orderId: orderRow.id,
         restaurantName: orderRow.restaurant?.name ?? '—',
         total: Number(orderRow.total),
         sig,
+        ...(apiBaseUrl ? { apiBaseUrl } : {}),
       };
 
       const base = notifyUrl.replace(/\/$/, '');
