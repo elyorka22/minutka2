@@ -529,27 +529,55 @@ export class OrdersService {
    * Bir marta API servisida sozlansa yetadi; bot servisida alohida URL shart emas.
    */
   private getPublicApiBaseUrlForTelegramCallbacks(): string {
-    const raw = [
+    const tryUrl = (raw: string | undefined): string | null => {
+      if (typeof raw !== 'string') return null;
+      const s = raw.trim();
+      if (!s) return null;
+      let u = s.replace(/\/$/, '');
+      if (!/^https?:\/\//i.test(u)) u = `https://${u}`;
+      return u;
+    };
+
+    const direct = [
+      process.env.TELEGRAM_API_CALLBACK_BASE_URL,
       process.env.PUBLIC_API_URL,
       process.env.MINUTKA_API_URL,
       process.env.API_PUBLIC_URL,
       process.env.BACKEND_PUBLIC_URL,
       process.env.NEXT_PUBLIC_API_BASE_URL,
-    ]
-      .map((s) => (typeof s === 'string' ? s.trim() : ''))
-      .find(Boolean);
-    if (raw) {
-      let u = raw.replace(/\/$/, '');
-      if (!/^https?:\/\//i.test(u)) u = `https://${u}`;
-      return u;
+      process.env.API_URL,
+      process.env.SERVER_URL,
+      process.env.APP_URL,
+    ];
+    for (const c of direct) {
+      const u = tryUrl(c);
+      if (u) return u;
     }
+
     const rail = process.env.RAILWAY_PUBLIC_DOMAIN?.trim();
     if (rail) {
-      const host = rail.replace(/^https?:\/\//, '');
-      return `https://${host.replace(/\/$/, '')}`;
+      const host = rail.replace(/^https?:\/\//, '').replace(/\/$/, '');
+      return `https://${host}`;
     }
+
     const render = process.env.RENDER_EXTERNAL_URL?.trim();
-    if (render) return render.replace(/\/$/, '');
+    if (render) {
+      const u = tryUrl(render);
+      if (u) return u;
+    }
+
+    const vercel = process.env.VERCEL_URL?.trim();
+    if (vercel) {
+      const u = tryUrl(vercel.startsWith('http') ? vercel : `https://${vercel}`);
+      if (u) return u;
+    }
+
+    const fly = process.env.FLY_APP_NAME?.trim();
+    if (fly) return `https://${fly}.fly.dev`;
+
+    const heroku = process.env.HEROKU_APP_NAME?.trim();
+    if (heroku) return `https://${heroku}.herokuapp.com`;
+
     return '';
   }
 

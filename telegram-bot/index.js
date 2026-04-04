@@ -18,6 +18,47 @@ function normalizeApiBase(raw) {
   return u;
 }
 
+/** API server bilan bir xil nomlar (backend getPublicApiBaseUrl bilan mos). */
+function resolveApiBaseFromEnv() {
+  const keys = [
+    "TELEGRAM_API_CALLBACK_BASE_URL",
+    "PUBLIC_API_URL",
+    "MINUTKA_API_URL",
+    "API_PUBLIC_URL",
+    "BACKEND_PUBLIC_URL",
+    "NEXT_PUBLIC_API_BASE_URL",
+    "API_URL",
+    "SERVER_URL",
+    "APP_URL",
+    "RENDER_EXTERNAL_URL",
+    "API_BASE_URL",
+    "BACKEND_URL",
+  ];
+  for (const k of keys) {
+    const raw = process.env[k];
+    if (raw && String(raw).trim()) {
+      const b = normalizeApiBase(raw);
+      if (b) return b;
+    }
+  }
+  const rail = process.env.RAILWAY_PUBLIC_DOMAIN?.trim();
+  if (rail) {
+    const host = rail.replace(/^https?:\/\//, "").replace(/\/$/, "");
+    const b = normalizeApiBase(`https://${host}`);
+    if (b) return b;
+  }
+  const vercel = process.env.VERCEL_URL?.trim();
+  if (vercel) {
+    const b = normalizeApiBase(vercel.startsWith("http") ? vercel : `https://${vercel}`);
+    if (b) return b;
+  }
+  const fly = process.env.FLY_APP_NAME?.trim();
+  if (fly) return normalizeApiBase(`https://${fly}.fly.dev`);
+  const heroku = process.env.HEROKU_APP_NAME?.trim();
+  if (heroku) return normalizeApiBase(`https://${heroku}.herokuapp.com`);
+  return "";
+}
+
 async function telegramRequest(method, body) {
   const res = await fetch(`${API}/${method}`, {
     method: "POST",
@@ -233,14 +274,11 @@ async function handleCourierOrderCallback(q) {
   }
   const [, orderId, sig] = parts;
   const base =
-    normalizeApiBase(orderApiBaseByOrderId.get(String(orderId))) ||
-    normalizeApiBase(process.env.MINUTKA_API_URL) ||
-    normalizeApiBase(process.env.API_BASE_URL) ||
-    normalizeApiBase(process.env.BACKEND_URL);
+    normalizeApiBase(orderApiBaseByOrderId.get(String(orderId))) || resolveApiBaseFromEnv();
   if (!base) {
     await answerCallbackQuery(
       q.id,
-      "API manzili topilmadi. API serverda PUBLIC_API_URL yoki MINUTKA_API_URL qo‘ying (botni qayta ishga tushirsangiz, xabarni qayta yuboring).",
+      "API manzili topilmadi. API servisida PUBLIC_API_URL yoki TELEGRAM_API_CALLBACK_BASE_URL qo‘ying; yoki bot servisida MINUTKA_API_URL. Keyin botni qayta ishga tushiring va yangi xabar yuboring.",
       true,
     );
     return;
@@ -337,14 +375,11 @@ async function handleRestaurantOrderCallback(q) {
   }
   const [, orderId, sig, action] = parts;
   const base =
-    normalizeApiBase(orderApiBaseByOrderId.get(String(orderId))) ||
-    normalizeApiBase(process.env.MINUTKA_API_URL) ||
-    normalizeApiBase(process.env.API_BASE_URL) ||
-    normalizeApiBase(process.env.BACKEND_URL);
+    normalizeApiBase(orderApiBaseByOrderId.get(String(orderId))) || resolveApiBaseFromEnv();
   if (!base) {
     await answerCallbackQuery(
       q.id,
-      "API manzili topilmadi. API serverda PUBLIC_API_URL qo‘ying.",
+      "API manzili topilmadi. API da PUBLIC_API_URL yoki botda MINUTKA_API_URL qo‘ying; keyin yangi xabar yuboring.",
       true,
     );
     return;
