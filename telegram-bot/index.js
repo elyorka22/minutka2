@@ -39,6 +39,62 @@ function formatOrderItemsBlock(order) {
   return block;
 }
 
+function buildCourierOrderDetailText(order) {
+  const code =
+    order.shortCode != null && String(order.shortCode).length > 0
+      ? String(order.shortCode)
+      : String(order.id).slice(0, 8);
+  let text =
+    `Yetkazib berishga tayyor buyurtma #${code}\n` +
+    `Restoran: ${order.restaurantName}\n` +
+    `Jami: ${formatMoney(order.total)} so'm\n` +
+    `Mijoz: ${order.customerName || "-"}\n` +
+    `Telefon: ${order.phone || "-"}`;
+  if (order.addressLine) {
+    text += `\nManzil: ${order.addressLine}`;
+  }
+  if (order.comment) {
+    text += `\nIzoh: ${order.comment}`;
+  }
+  text += formatOrderItemsBlock(order);
+  if (text.length > 4000) {
+    text = text.slice(0, 3997) + "...";
+  }
+  return text;
+}
+
+/** Birinchi xabar: faqat restoran + jami; tugma bosilgach API dan to‘liq ma’lumot. */
+async function sendCourierReadyPreview(chatId, preview) {
+  const { orderId, restaurantName, total, sig } = preview;
+  if (!orderId || !sig) {
+    throw new Error("preview.orderId and preview.sig required");
+  }
+  const text = `${String(restaurantName || "—")}\nJami: ${formatMoney(total)} so'm`;
+  const callbackData = `c|${orderId}|${sig}`;
+  if (Buffer.byteLength(callbackData, "utf8") > 64) {
+    throw new Error("callback_data > 64 bytes");
+  }
+  await fetch(`${API}/sendMessage`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      chat_id: chatId,
+      text,
+      reply_markup: {
+        inline_keyboard: [[{ text: "Buyurtmani olish", callback_data: callbackData }]],
+      },
+    }),
+  });
+}
+
+async function answerCallbackQuery(callbackQueryId, text, showAlert) {
+  await telegramRequest("answerCallbackQuery", {
+    callback_query_id: callbackQueryId,
+    ...(text ? { text: String(text).slice(0, 200) } : {}),
+    show_alert: !!showAlert,
+  });
+}
+
 async function sendOrderNotification(chatId, order, kind) {
   const code = order.shortCode != null && String(order.shortCode).length > 0 ? String(order.shortCode) : String(order.id).slice(0, 8);
   const head =
@@ -96,7 +152,107 @@ async function sendOrderNotification(chatId, order, kind) {
   }
 }
 
+async function handleCourierOrderCallback(q) {
+  const data = String(q.data || "").trim();
+  if (!data.startsWith("c|")) {
+    await answerCallbackQuery(q.id);
+    return;
+  }
+  const parts = data.split("|");
+  if (parts.length !== 3) {
+    await answerCallbackQuery(q.id);
+    return;
+  }
+  const [, orderId, sig] = parts;
+  const base = (process.env.MINUTKA_API_URL || process.env.API_BASE_URL || process.env.BACKEND_URL || "").replace(/\/$/, "");
+  if (!base) {
+    await answerCallbackQuery(q.id, "API manzili sozlanmagan (MINUTKA_API_URL).", true);
+    return;
+  }
+  const url = `${base}/internal/telegram/courier-order/${encodeURIComponent(orderId)}?sig=${encodeURIComponent(sig)}`;
+  let res;
+  try {
+    res = await fetch(url, { method: "GET", headers: { Accept: "application/json" } });
+  } catch (e) {
+    console.error("courier-order fetch", e);
+    await answerCallbackQuery(q.id, "Serverga ulanib bo‘lmadi.", true);
+    return;
+  }
+  let j = {};
+  try {
+    j = await res.json();
+  } catch {
+    j = {};
+  }
+  const errMsg = (m) => {
+    if (Array.isArray(m)) return m.join(", ");
+    if (typeof m === "string") return m;
+    return "";
+  };
+  if (!res.ok || !j.order) {
+    const msg =
+      errMsg(j.message) ||
+      (res.status === 403 ? "Ruxsat yo‘q." : "Buyurtma topilmadi yoki boshqa kuryer oldi.");
+    await answerCallbackQuery(q.id, msg || "Xatolik", true);
+    return;
+  }
+  await answerCallbackQuery(q.id, "Buyurtma ma’lumotlari yuborildi.", false);
+
+  const order = j.order;
+  const fullText = buildCourierOrderDetailText(order);
+  const msg = q.message;
+  if (!msg || !msg.chat) return;
+  const chatId = msg.chat.id;
+  const messageId = msg.message_id;
+  const mapMarkup =
+    order.lat != null && order.lng != null
+      ? {
+          inline_keyboard: [
+            [{ text: "Xaritada ochish", url: `https://maps.google.com/?q=${order.lat},${order.lng}` }],
+          ],
+        }
+      : undefined;
+
+  const editRes = await fetch(`${API}/editMessageText`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      chat_id: chatId,
+      message_id: messageId,
+      text: fullText,
+      reply_markup: mapMarkup,
+    }),
+  });
+  if (!editRes.ok) {
+    await fetch(`${API}/sendMessage`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        chat_id: chatId,
+        text: fullText,
+        reply_markup: mapMarkup,
+      }),
+    });
+  }
+
+  if (order.lat != null && order.lng != null) {
+    await fetch(`${API}/sendLocation`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        chat_id: chatId,
+        latitude: order.lat,
+        longitude: order.lng,
+      }),
+    });
+  }
+}
+
 async function handleTelegramUpdate(update) {
+  if (update.callback_query) {
+    await handleCourierOrderCallback(update.callback_query);
+    return;
+  }
   const msg = update.message;
   if (!msg || !msg.chat) return;
   const text = (msg.text || "").trim().toLowerCase();
@@ -140,13 +296,21 @@ const server = http.createServer(async (req, res) => {
     req.on("end", async () => {
       try {
         const payload = JSON.parse(body || "{}");
-        const { chatId, order, kind } = payload;
-        if (!chatId || !order) {
+        const { chatId, order, kind, preview } = payload;
+        if (!chatId) {
           res.statusCode = 400;
-          res.end("chatId and order are required");
+          res.end("chatId is required");
           return;
         }
-        await sendOrderNotification(chatId, order, kind);
+        if (kind === "courier_ready" && preview && typeof preview === "object") {
+          await sendCourierReadyPreview(chatId, preview);
+        } else if (order) {
+          await sendOrderNotification(chatId, order, kind);
+        } else {
+          res.statusCode = 400;
+          res.end("order or courier preview required");
+          return;
+        }
         res.statusCode = 200;
         res.end("ok");
       } catch (e) {

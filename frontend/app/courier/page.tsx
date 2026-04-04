@@ -575,7 +575,7 @@ export default function CourierPage() {
           ? "Har bir kartochkada restoran va taomlar narxi. Batafsil ma’lumot «Mening buyurtmalarim»da."
           : tab === "mine"
             ? "Siz olgan buyurtmalar — restoran va taomlar narxi shu yerda."
-            : "Restoran buyurtmani «Tayyor» qilganda Telegram orqali xabar olasiz (xuddi restoranlar uchun bot kabi)."}
+            : "Tayyor buyurtma chiqganda avvalo Telegramda faqat restoran nomi va jami summa ko‘rinadi; «Buyurtmani olish» tugmasidan keyin manzil, telefon va xarita."}
       </p>
       <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 16, alignItems: "center" }}>
         <button
@@ -612,8 +612,8 @@ export default function CourierPage() {
             Telegram bot sozlamalari
           </div>
           <p className="fd-card-desc" style={{ marginTop: 0 }}>
-            Buyurtma tayyor bo‘lganda (kuryer olishi mumkin) Telegram xabarnoma olish uchun chat ID kiriting. Bir nechta ID
-            qo‘shish mumkin: vergul, bo‘sh joy yoki yangi qator orqali. Minutka botiga /start yuboring — Chat ID chiqadi.
+            Tayyor buyurtmalar haqida xabar olish uchun chat ID kiriting. Botda avvalo restoran va summa, tugma bosilgach
+            batafsil ma’lumot va lokatsiya. Bir nechta ID — vergul yoki yangi qator bilan. Minutka botiga /start — Chat ID.
           </p>
           <label className="fd-label" htmlFor="courier-telegram-chat-id" style={{ marginBottom: 6, display: "block" }}>
             Telegram chat ID (yoki bir nechta)

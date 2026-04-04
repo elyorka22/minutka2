@@ -1,4 +1,11 @@
-import { BadRequestException, ForbiddenException, Injectable, Logger } from '@nestjs/common';
+import {
+  BadRequestException,
+  ForbiddenException,
+  Injectable,
+  Logger,
+  NotFoundException,
+} from '@nestjs/common';
+import * as crypto from 'crypto';
 import { PrismaService } from '../prisma.service';
 import { UsersService } from '../users/users.service';
 import { CreateOrderDto } from './dto/create-order.dto';
@@ -34,6 +41,28 @@ const COURIER_ORDER_API_SELECT = {
   address: true,
   restaurant: { select: { name: true } },
   customer: { select: { id: true, name: true, email: true, phone: true } },
+} as const;
+
+/** Telegram kuryer: tayyor buyurtma tafsilotlari (HMAC himoyalangan ochish). */
+const TELEGRAM_COURIER_ORDER_SELECT = {
+  id: true,
+  shortCode: true,
+  status: true,
+  courierId: true,
+  total: true,
+  comment: true,
+  restaurant: { select: { name: true } },
+  address: {
+    select: { street: true, city: true, details: true, latitude: true, longitude: true },
+  },
+  customer: { select: { name: true, phone: true } },
+  items: {
+    select: {
+      quantity: true,
+      price: true,
+      dish: { select: { name: true } },
+    },
+  },
 } as const;
 
 @Injectable()
@@ -499,6 +528,102 @@ export class OrdersService {
     return { subscriptionsFound: subs.length, success, failed };
   }
 
+  private signCourierTelegramOrderId(orderId: string): string {
+    const secret =
+      process.env.TELEGRAM_COURIER_CALLBACK_SECRET?.trim() || process.env.JWT_SECRET?.trim() || '';
+    if (!secret) return '';
+    return crypto
+      .createHmac('sha256', secret)
+      .update(`courier_tg_order:${orderId}`)
+      .digest('hex')
+      .slice(0, 16);
+  }
+
+  private verifyCourierTelegramOrderId(orderId: string, sig: string): boolean {
+    const expected = this.signCourierTelegramOrderId(orderId);
+    if (!expected || typeof sig !== 'string' || sig.length !== expected.length) return false;
+    try {
+      return crypto.timingSafeEqual(Buffer.from(expected, 'utf8'), Buffer.from(sig, 'utf8'));
+    } catch {
+      return false;
+    }
+  }
+
+  private buildTelegramCourierOrderPayload(orderRow: {
+    id: string;
+    shortCode: number;
+    total: unknown;
+    comment: string | null;
+    restaurant: { name: string } | null;
+    address: {
+      street: string;
+      city: string;
+      details: string | null;
+      latitude: number;
+      longitude: number;
+    } | null;
+    customer: { name: string; phone: string | null } | null;
+    items: Array<{
+      quantity: number;
+      price: unknown;
+      dish: { name: string } | null;
+    }>;
+  }) {
+    const phone =
+      (orderRow.customer?.phone?.trim() ||
+        orderRow.address?.details?.replace(/^Tel:\s*/i, '').trim() ||
+        '') ??
+      '';
+
+    const telegramItems = orderRow.items.map((item) => {
+      const unit = Number(item.price);
+      const qty = item.quantity;
+      return {
+        name: item.dish?.name ?? '—',
+        quantity: qty,
+        unitPrice: unit,
+        lineTotal: unit * qty,
+      };
+    });
+
+    return {
+      id: orderRow.id,
+      shortCode: this.formatOrderCode(orderRow.shortCode),
+      restaurantName: orderRow.restaurant?.name ?? '—',
+      total: Number(orderRow.total),
+      customerName: orderRow.customer?.name ?? '',
+      phone,
+      lat: orderRow.address?.latitude,
+      lng: orderRow.address?.longitude,
+      addressLine:
+        [orderRow.address?.street, orderRow.address?.city].filter(Boolean).join(', ') || undefined,
+      comment: orderRow.comment?.trim() || undefined,
+      items: telegramItems,
+    };
+  }
+
+  /**
+   * Telegram bot tugmasi bosilganda: buyurtma hali READY va bo‘sh bo‘lsa to‘liq ma’lumot.
+   */
+  async getTelegramCourierOrderDetailsForBot(orderId: string, sig: string) {
+    if (!this.verifyCourierTelegramOrderId(orderId, sig)) {
+      throw new ForbiddenException('Invalid sig');
+    }
+    const orderRow = await this.prisma.order.findUnique({
+      where: { id: orderId },
+      select: TELEGRAM_COURIER_ORDER_SELECT,
+    });
+    if (!orderRow) {
+      throw new NotFoundException('Buyurtma topilmadi.');
+    }
+    if (orderRow.status !== 'READY' || orderRow.courierId != null) {
+      throw new NotFoundException(
+        'Buyurtma boshqa kuryer tomonidan olingan yoki endi ro‘yxatda yo‘q.',
+      );
+    }
+    return { order: this.buildTelegramCourierOrderPayload(orderRow) };
+  }
+
   private async notifyAllCouriersReady(orderCode: string, restaurantName?: string) {
     // Use users with role COURIER instead of Courier table,
     // otherwise couriers won't receive notifications until they open their panel.
@@ -527,26 +652,17 @@ export class OrdersService {
     void (async () => {
       const orderRow = await this.prisma.order.findUnique({
         where: { id: orderId },
-        select: {
-          id: true,
-          shortCode: true,
-          total: true,
-          comment: true,
-          restaurant: { select: { name: true } },
-          address: {
-            select: { street: true, city: true, details: true, latitude: true, longitude: true },
-          },
-          customer: { select: { name: true, phone: true } },
-          items: {
-            select: {
-              quantity: true,
-              price: true,
-              dish: { select: { name: true } },
-            },
-          },
-        },
+        select: TELEGRAM_COURIER_ORDER_SELECT,
       });
       if (!orderRow) return;
+
+      const sig = this.signCourierTelegramOrderId(orderRow.id);
+      if (!sig) {
+        this.logger.warn(
+          '[telegram] courier READY: TELEGRAM_COURIER_CALLBACK_SECRET yoki JWT_SECRET bo‘lmasa, kuryer Telegram xabari yuborilmaydi',
+        );
+        return;
+      }
 
       const couriers = await this.prisma.courier.findMany({
         where: {
@@ -569,36 +685,11 @@ export class OrdersService {
       }
       if (chatIdSet.size === 0) return;
 
-      const phone =
-        (orderRow.customer?.phone?.trim() ||
-          orderRow.address?.details?.replace(/^Tel:\s*/i, '').trim() ||
-          '') ??
-        '';
-
-      const telegramItems = orderRow.items.map((item) => {
-        const unit = Number(item.price);
-        const qty = item.quantity;
-        return {
-          name: item.dish?.name ?? '—',
-          quantity: qty,
-          unitPrice: unit,
-          lineTotal: unit * qty,
-        };
-      });
-
-      const orderPayload = {
-        id: orderRow.id,
-        shortCode: this.formatOrderCode(orderRow.shortCode),
+      const preview = {
+        orderId: orderRow.id,
         restaurantName: orderRow.restaurant?.name ?? '—',
         total: Number(orderRow.total),
-        customerName: orderRow.customer?.name ?? '',
-        phone,
-        lat: orderRow.address?.latitude,
-        lng: orderRow.address?.longitude,
-        addressLine:
-          [orderRow.address?.street, orderRow.address?.city].filter(Boolean).join(', ') || undefined,
-        comment: orderRow.comment?.trim() || undefined,
-        items: telegramItems,
+        sig,
       };
 
       const base = notifyUrl.replace(/\/$/, '');
@@ -607,7 +698,7 @@ export class OrdersService {
           const payload = {
             chatId,
             kind: 'courier_ready' as const,
-            order: orderPayload,
+            preview,
           };
           try {
             const res = await fetchWithRetry(`${base}/notify`, {

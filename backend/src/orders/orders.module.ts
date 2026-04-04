@@ -7,6 +7,7 @@ import {
   RestaurantOrdersController,
   RestaurantSettingsController,
 } from './orders.controller';
+import { InternalTelegramController } from './internal-telegram.controller';
 import { AuthModule } from '../auth/auth.module';
 import { UsersModule } from '../users/users.module';
 import { OrdersQueue } from './orders.queue';
@@ -48,6 +49,7 @@ function ordersWorkerInThisProcess(): boolean {
     CourierOrdersController,
     RestaurantOrdersController,
     RestaurantSettingsController,
+    InternalTelegramController,
   ],
   exports: [OrdersService],
 })
