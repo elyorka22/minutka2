@@ -26,7 +26,6 @@ function resolveApiBaseFromEnv() {
     "MINUTKA_API_URL",
     "API_PUBLIC_URL",
     "BACKEND_PUBLIC_URL",
-    "NEXT_PUBLIC_API_BASE_URL",
     "API_URL",
     "SERVER_URL",
     "APP_URL",
@@ -56,6 +55,11 @@ function resolveApiBaseFromEnv() {
   if (fly) return normalizeApiBase(`https://${fly}.fly.dev`);
   const heroku = process.env.HEROKU_APP_NAME?.trim();
   if (heroku) return normalizeApiBase(`https://${heroku}.herokuapp.com`);
+  const np = process.env.NEXT_PUBLIC_API_BASE_URL?.trim();
+  if (np) {
+    const b = normalizeApiBase(np);
+    if (b) return b;
+  }
   return "";
 }
 
@@ -413,6 +417,21 @@ async function handleRestaurantOrderCallback(q) {
       if (!msg && res.status === 403) {
         msg =
           "Ruxsat yo‘q (imzo). API va buyurtma workerida bir xil TELEGRAM_ORDER_HMAC_SECRET yoki JWT_SECRET bo‘lsin.";
+      }
+      if (!msg && res.status === 404) {
+        const t = rawText || "";
+        if (
+          t.includes("Cannot GET") ||
+          t.includes("Cannot POST") ||
+          t.includes('"statusCode":404') ||
+          /not\s*found/i.test(t)
+        ) {
+          msg =
+            "404: so‘rov Nest API ga emas (masalan Vercel/saytga) ketgan. PUBLIC_API_URL / MINUTKA_API_URL faqat backend manzili bo‘lsin. Tekshiruv: brauzerda .../internal/telegram/ping";
+        } else {
+          msg =
+            "Buyurtma topilmadi: API va worker bir xil DATABASE_URL (bir xil PostgreSQL) bo‘lishi kerak.";
+        }
       }
       if (!msg && rawText) {
         msg = rawText.slice(0, 220);

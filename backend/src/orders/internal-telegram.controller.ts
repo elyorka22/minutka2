@@ -11,6 +11,12 @@ import { OrdersService } from './orders.service';
 export class InternalTelegramController {
   constructor(private readonly ordersService: OrdersService) {}
 
+  /** Telegram / PUBLIC_API_URL tekshiruvi: brauzerda GET .../internal/telegram/ping */
+  @Get('ping')
+  ping() {
+    return { ok: true, service: 'minutka-api', ts: new Date().toISOString() };
+  }
+
   @Get('courier-order/:orderId')
   async courierOrder(@Param('orderId') orderId: string, @Query('sig') sig?: string) {
     const s = typeof sig === 'string' ? sig.trim() : '';

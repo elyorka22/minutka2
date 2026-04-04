@@ -538,13 +538,13 @@ export class OrdersService {
       return u;
     };
 
+    // NEXT_PUBLIC_API_BASE_URL ko‘pincha frontend build uchun; ba’zan sayt URL — oxiriga qoldiramiz.
     const direct = [
       process.env.TELEGRAM_API_CALLBACK_BASE_URL,
       process.env.PUBLIC_API_URL,
       process.env.MINUTKA_API_URL,
       process.env.API_PUBLIC_URL,
       process.env.BACKEND_PUBLIC_URL,
-      process.env.NEXT_PUBLIC_API_BASE_URL,
       process.env.API_URL,
       process.env.SERVER_URL,
       process.env.APP_URL,
@@ -577,6 +577,12 @@ export class OrdersService {
 
     const heroku = process.env.HEROKU_APP_NAME?.trim();
     if (heroku) return `https://${heroku}.herokuapp.com`;
+
+    const nextPublic = process.env.NEXT_PUBLIC_API_BASE_URL?.trim();
+    if (nextPublic) {
+      const u = tryUrl(nextPublic);
+      if (u) return u;
+    }
 
     return '';
   }
@@ -765,7 +771,9 @@ export class OrdersService {
       select: { id: true, status: true, restaurantId: true },
     });
     if (!row) {
-      throw new NotFoundException('Buyurtma topilmadi.');
+      throw new NotFoundException(
+        'Buyurtma topilmadi. API va buyurtma yaratuvchi worker bir xil DATABASE_URL (bir xil PostgreSQL) ulanishi kerak.',
+      );
     }
     if (row.status === 'NEW') {
       const actor = await this.resolveActorForTelegramRestaurantAction(row.restaurantId);
@@ -775,7 +783,9 @@ export class OrdersService {
     }
     const order = await this.buildTelegramOrderPayloadFromOrderId(orderId);
     if (!order) {
-      throw new NotFoundException('Buyurtma topilmadi.');
+      throw new NotFoundException(
+        'Buyurtma maʼlumotlari yuklanmadi. DATABASE_URL va order ID ni tekshiring.',
+      );
     }
     return { order };
   }
@@ -792,7 +802,9 @@ export class OrdersService {
       select: { id: true, status: true, restaurantId: true },
     });
     if (!row) {
-      throw new NotFoundException('Buyurtma topilmadi.');
+      throw new NotFoundException(
+        'Buyurtma topilmadi. API va worker bir xil DATABASE_URL ishlatishi kerak.',
+      );
     }
     if (row.status === 'READY') {
       return { ok: true as const, alreadyReady: true };
