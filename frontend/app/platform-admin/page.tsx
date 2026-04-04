@@ -39,6 +39,7 @@ export default function PlatformAdminPage() {
   const [showCreateRestaurantForm, setShowCreateRestaurantForm] = useState(false);
   const [editingRestaurantId, setEditingRestaurantId] = useState<string | null>(null);
   const [editSubmitting, setEditSubmitting] = useState(false);
+  const [editRestaurantImageUploading, setEditRestaurantImageUploading] = useState(false);
   const [editRestaurantForm, setEditRestaurantForm] = useState<{
     name: string;
     description: string;
@@ -170,6 +171,22 @@ export default function PlatformAdminPage() {
       setCreateError(err?.message ?? "Yuklashda xatolik");
     } finally {
       setCreateImageUploading(false);
+    }
+  }
+
+  async function handleUploadEditRestaurantImage(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    e.target.value = "";
+    setEditRestaurantImageUploading(true);
+    setError(null);
+    try {
+      const { url } = await adminApi.uploadImage(file);
+      setEditRestaurantForm((p) => ({ ...p, imageUrl: url }));
+    } catch (err: any) {
+      setError(err?.message ?? "Yuklashda xatolik");
+    } finally {
+      setEditRestaurantImageUploading(false);
     }
   }
 
@@ -1938,11 +1955,44 @@ export default function PlatformAdminPage() {
                     />
                   </label>
                   <label className="fd-field">
-                    <span>Rasm URL</span>
+                    <span>Rasm URL (logo va muqova uchun bir xil rasm)</span>
                     <input
+                      type="url"
                       value={editRestaurantForm.imageUrl}
                       onChange={(e) => setEditRestaurantForm((p) => ({ ...p, imageUrl: e.target.value }))}
+                      placeholder="https://..."
                     />
+                    <div style={{ marginTop: 8, display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
+                      <input
+                        type="file"
+                        accept="image/*"
+                        id="edit-restaurant-image-file"
+                        style={{ display: "none" }}
+                        onChange={handleUploadEditRestaurantImage}
+                      />
+                      <label htmlFor="edit-restaurant-image-file" style={{ margin: 0 }}>
+                        <span className="fd-btn fd-btn-primary" style={{ cursor: "pointer", display: "inline-block" }}>
+                          {editRestaurantImageUploading ? "Yuklanmoqda..." : "Telefondan yuklash"}
+                        </span>
+                      </label>
+                    </div>
+                    {editRestaurantForm.imageUrl.trim() ? (
+                      <img
+                        src={imageUrl(editRestaurantForm.imageUrl.trim())}
+                        alt=""
+                        style={{
+                          marginTop: 10,
+                          width: 96,
+                          height: 96,
+                          objectFit: "cover",
+                          borderRadius: 10,
+                          border: "1px solid var(--color-border)",
+                        }}
+                        onError={(e) => {
+                          (e.target as HTMLImageElement).style.display = "none";
+                        }}
+                      />
+                    ) : null}
                   </label>
                   <label className="fd-field">
                     <span>Platforma %</span>
@@ -2071,7 +2121,7 @@ export default function PlatformAdminPage() {
                     <button
                       type="button"
                       className="fd-btn fd-btn-primary"
-                      disabled={editSubmitting}
+                      disabled={editSubmitting || editRestaurantImageUploading}
                       onClick={() => saveEditRestaurant(editingRestaurant.id)}
                     >
                       {editSubmitting ? "Saqlanmoqda..." : "Saqlash"}

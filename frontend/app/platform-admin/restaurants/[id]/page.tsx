@@ -43,6 +43,7 @@ export default function PlatformAdminRestaurantMenuPage() {
     if (!file) return;
     e.target.value = "";
     setEditLogoUploading(true);
+    setEditError(null);
     try {
       const { url } = await adminApi.uploadImage(file);
       setEditLogoUrl(url);
@@ -58,6 +59,7 @@ export default function PlatformAdminRestaurantMenuPage() {
     if (!file) return;
     e.target.value = "";
     setEditCoverUploading(true);
+    setEditError(null);
     try {
       const { url } = await adminApi.uploadImage(file);
       setEditCoverUrl(url);
@@ -258,6 +260,93 @@ export default function PlatformAdminRestaurantMenuPage() {
       <BackLink href="/platform-admin">← Platforma admin</BackLink>
       <h1 className="fd-section-title">{restaurant.name} — menyu</h1>
       <p className="fd-checkout-meta">{restaurant.address || "—"}</p>
+
+      <div className="fd-form-block" style={{ marginTop: 24 }}>
+        <h3>Restoran rasmlari</h3>
+        <form onSubmit={handleUpdateRestaurant} className="fd-form">
+          <label className="fd-field">
+            <span>Logo URL</span>
+            <input
+              type="url"
+              value={editLogoUrl}
+              onChange={(e) => setEditLogoUrl(e.target.value)}
+              placeholder="https://..."
+            />
+            <div style={{ marginTop: 8, display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
+              <input
+                type="file"
+                accept="image/*"
+                id={`restaurant-logo-file-${id}`}
+                style={{ display: "none" }}
+                onChange={handleUploadLogo}
+              />
+              <label htmlFor={`restaurant-logo-file-${id}`} style={{ margin: 0 }}>
+                <span className="fd-btn fd-btn--secondary" style={{ cursor: "pointer", display: "inline-block" }}>
+                  {editLogoUploading ? "Yuklanmoqda..." : "Logoni telefondan yuklash"}
+                </span>
+              </label>
+            </div>
+            {editLogoUrl.trim() ? (
+              <img
+                src={imageUrl(editLogoUrl.trim())}
+                alt="Logo"
+                style={{ marginTop: 8, width: 72, height: 72, objectFit: "cover", borderRadius: 10 }}
+                onError={(e) => {
+                  (e.target as HTMLImageElement).style.display = "none";
+                }}
+              />
+            ) : null}
+          </label>
+          <label className="fd-field">
+            <span>Muqova (banner) URL</span>
+            <input
+              type="url"
+              value={editCoverUrl}
+              onChange={(e) => setEditCoverUrl(e.target.value)}
+              placeholder="https://..."
+            />
+            <div style={{ marginTop: 8, display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
+              <input
+                type="file"
+                accept="image/*"
+                id={`restaurant-cover-file-${id}`}
+                style={{ display: "none" }}
+                onChange={handleUploadCover}
+              />
+              <label htmlFor={`restaurant-cover-file-${id}`} style={{ margin: 0 }}>
+                <span className="fd-btn fd-btn--secondary" style={{ cursor: "pointer", display: "inline-block" }}>
+                  {editCoverUploading ? "Yuklanmoqda..." : "Muqovani telefondan yuklash"}
+                </span>
+              </label>
+            </div>
+            {editCoverUrl.trim() ? (
+              <img
+                src={imageUrl(editCoverUrl.trim())}
+                alt="Muqova"
+                style={{
+                  marginTop: 8,
+                  width: "100%",
+                  maxWidth: 280,
+                  maxHeight: 120,
+                  objectFit: "cover",
+                  borderRadius: 8,
+                }}
+                onError={(e) => {
+                  (e.target as HTMLImageElement).style.display = "none";
+                }}
+              />
+            ) : null}
+          </label>
+          {editError && <p style={{ color: "var(--color-orange)", fontSize: "0.875rem" }}>{editError}</p>}
+          <button
+            type="submit"
+            className="fd-btn fd-btn-primary"
+            disabled={editSubmitting || editLogoUploading || editCoverUploading}
+          >
+            {editSubmitting ? "Saqlanmoqda..." : "Rasmlarni saqlash"}
+          </button>
+        </form>
+      </div>
 
       <div className="fd-form-block" style={{ marginTop: 24 }}>
         <h3>Kategoriya qo‘shish</h3>

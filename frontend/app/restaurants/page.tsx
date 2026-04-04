@@ -39,6 +39,9 @@ export default async function RestaurantsPage() {
                 <div className="fd-card-title-row">
                   <h3>{r.name}</h3>
                 </div>
+                {r.description ? (
+                  <p className="fd-card-desc">{r.description}</p>
+                ) : null}
               </div>
             </Link>
           ))}
