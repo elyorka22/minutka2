@@ -538,7 +538,7 @@ export class OrdersService {
       return u;
     };
 
-    // NEXT_PUBLIC_API_BASE_URL ko‘pincha frontend build uchun; ba’zan sayt URL — oxiriga qoldiramiz.
+    // NEXT_PUBLIC_* qo‘ymaymiz — ko‘pincha Vercel/sayt URL, Nest /internal/... 404 beradi.
     const direct = [
       process.env.TELEGRAM_API_CALLBACK_BASE_URL,
       process.env.PUBLIC_API_URL,
@@ -566,23 +566,12 @@ export class OrdersService {
       if (u) return u;
     }
 
-    const vercel = process.env.VERCEL_URL?.trim();
-    if (vercel) {
-      const u = tryUrl(vercel.startsWith('http') ? vercel : `https://${vercel}`);
-      if (u) return u;
-    }
-
+    // VERCEL_URL ko‘pincha Next.js loyihasidan — /internal 404; PUBLIC_API_URL qo‘ling.
     const fly = process.env.FLY_APP_NAME?.trim();
     if (fly) return `https://${fly}.fly.dev`;
 
     const heroku = process.env.HEROKU_APP_NAME?.trim();
     if (heroku) return `https://${heroku}.herokuapp.com`;
-
-    const nextPublic = process.env.NEXT_PUBLIC_API_BASE_URL?.trim();
-    if (nextPublic) {
-      const u = tryUrl(nextPublic);
-      if (u) return u;
-    }
 
     return '';
   }

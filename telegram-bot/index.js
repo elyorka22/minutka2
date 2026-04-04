@@ -46,20 +46,10 @@ function resolveApiBaseFromEnv() {
     const b = normalizeApiBase(`https://${host}`);
     if (b) return b;
   }
-  const vercel = process.env.VERCEL_URL?.trim();
-  if (vercel) {
-    const b = normalizeApiBase(vercel.startsWith("http") ? vercel : `https://${vercel}`);
-    if (b) return b;
-  }
   const fly = process.env.FLY_APP_NAME?.trim();
   if (fly) return normalizeApiBase(`https://${fly}.fly.dev`);
   const heroku = process.env.HEROKU_APP_NAME?.trim();
   if (heroku) return normalizeApiBase(`https://${heroku}.herokuapp.com`);
-  const np = process.env.NEXT_PUBLIC_API_BASE_URL?.trim();
-  if (np) {
-    const b = normalizeApiBase(np);
-    if (b) return b;
-  }
   return "";
 }
 
