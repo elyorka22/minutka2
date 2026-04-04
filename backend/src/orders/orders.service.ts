@@ -92,6 +92,22 @@ export class OrdersService {
     return Math.min(Math.max(Math.trunc(raw), 7), 3650);
   }
 
+  /** Sayt URL (Telegram «Admin panel» havolasi). FRONTEND_ORIGIN yoki CORS_ORIGINS ning birinchi origin. */
+  private getPublicSiteBaseUrl(): string {
+    const single =
+      process.env.FRONTEND_ORIGIN?.trim() || process.env.PUBLIC_SITE_URL?.trim();
+    if (single) return single.replace(/\/$/, '');
+    const cors = process.env.CORS_ORIGINS?.split(',')[0]?.trim();
+    if (cors) return cors.replace(/\/$/, '');
+    return '';
+  }
+
+  private getRestaurantAdminPanelUrl(restaurantId: string): string | undefined {
+    const base = this.getPublicSiteBaseUrl();
+    if (!base) return undefined;
+    return `${base}/restaurant-admin/${encodeURIComponent(restaurantId)}`;
+  }
+
   private formatOrderCode(shortCode: number): string {
     // Short code is used as a human-friendly order identifier.
     // With load-test optimizations we increased the range to 6 digits.
@@ -773,7 +789,35 @@ export class OrdersService {
   }
 
   /**
+   * Telegram: faqat o‘qish — buyurtma tafsilotlari (holatni o‘zgartirmaydi).
+   * adminPanelUrl — bot qayta ishga tushganda ham «Admin panel» tugmasi uchun.
+   */
+  async getTelegramRestaurantOrderDetailsForBot(orderId: string, sig: string) {
+    if (!this.verifyRestaurantTelegramOrderId(orderId, sig)) {
+      throw new ForbiddenException('Invalid sig');
+    }
+    const row = await this.prisma.order.findUnique({
+      where: { id: orderId },
+      select: { id: true, restaurantId: true },
+    });
+    if (!row) {
+      throw new NotFoundException(
+        'Buyurtma topilmadi. API va buyurtma yaratuvchi worker bir xil DATABASE_URL ulanishi kerak.',
+      );
+    }
+    const order = await this.buildTelegramOrderPayloadFromOrderId(orderId);
+    if (!order) {
+      throw new NotFoundException(
+        'Buyurtma topilmadi. API va buyurtma yaratuvchi worker bir xil DATABASE_URL ulanishi kerak.',
+      );
+    }
+    const adminPanelUrl = this.getRestaurantAdminPanelUrl(row.restaurantId);
+    return { order, ...(adminPanelUrl ? { adminPanelUrl } : {}) };
+  }
+
+  /**
    * Telegram: «Qabul qilish» — NEW → ACCEPTED, keyin to‘liq buyurtma matni + «Tayyor».
+   * (Hozircha botda ishlatilmaydi; panel orqali status o‘zgartiriladi.)
    */
   async telegramRestaurantAcceptOrder(orderId: string, sig: string) {
     if (!this.verifyRestaurantTelegramOrderId(orderId, sig)) {

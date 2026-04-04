@@ -10,6 +10,8 @@ const API = `https://api.telegram.org/bot${TOKEN}`;
 
 /** /notify dan kelgan apiBaseUrl — callback da ishlatiladi (bot qayta ishga tushsa yo‘qoladi). */
 const orderApiBaseByOrderId = new Map();
+/** Restoran «Admin panel» havolasi (orderId bo‘yicha). */
+const orderAdminPanelByOrderId = new Map();
 
 /** Vercel/Netlify — odatda frontend; /internal Nest da yo‘q. */
 function isBadCallbackBaseUrl(url) {
@@ -158,13 +160,13 @@ async function sendCourierReadyPreview(chatId, preview) {
   });
 }
 
-function buildRestaurantOrderFullText(order) {
+function buildRestaurantOrderDetailText(order) {
   const code =
     order.shortCode != null && String(order.shortCode).length > 0
       ? String(order.shortCode)
       : String(order.id).slice(0, 8);
   let text =
-    `Qabul qilingan buyurtma #${code}\n` +
+    `Buyurtma #${code}\n` +
     `Restoran: ${order.restaurantName}\n` +
     `Jami: ${formatMoney(order.total)} so'm\n` +
     `Mijoz: ${order.customerName || "-"}\n` +
@@ -183,7 +185,7 @@ function buildRestaurantOrderFullText(order) {
 }
 
 async function sendRestaurantNewPreview(chatId, preview) {
-  const { orderId, shortCode, restaurantName, total, sig, apiBaseUrl } = preview;
+  const { orderId, shortCode, restaurantName, total, sig, apiBaseUrl, adminPanelUrl } = preview;
   if (!orderId || !sig) {
     throw new Error("preview.orderId and preview.sig required");
   }
@@ -191,13 +193,21 @@ async function sendRestaurantNewPreview(chatId, preview) {
   if (base) {
     orderApiBaseByOrderId.set(String(orderId), base);
   }
+  const adminUrl = adminPanelUrl != null && String(adminPanelUrl).trim() ? String(adminPanelUrl).trim() : "";
+  if (adminUrl) {
+    orderAdminPanelByOrderId.set(String(orderId), adminUrl);
+  }
   const text =
     `Yangi buyurtma #${String(shortCode || "----")}\n` +
     `${String(restaurantName || "—")}\n` +
     `Jami: ${formatMoney(total)} so'm`;
-  const callbackData = `r|${orderId}|${sig}|a`;
+  const callbackData = `r|${orderId}|${sig}|d`;
   if (Buffer.byteLength(callbackData, "utf8") > 64) {
     throw new Error("callback_data > 64 bytes");
+  }
+  const rows = [[{ text: "Batafsil", callback_data: callbackData }]];
+  if (adminUrl) {
+    rows.push([{ text: "Admin panel", url: adminUrl }]);
   }
   await fetch(`${API}/sendMessage`, {
     method: "POST",
@@ -206,7 +216,7 @@ async function sendRestaurantNewPreview(chatId, preview) {
       chat_id: chatId,
       text,
       reply_markup: {
-        inline_keyboard: [[{ text: "Qabul qilish", callback_data: callbackData }]],
+        inline_keyboard: rows,
       },
     }),
   });
@@ -389,6 +399,14 @@ async function handleRestaurantOrderCallback(q) {
     return;
   }
   const [, orderId, sig, action] = parts;
+  if (action !== "d") {
+    await answerCallbackQuery(
+      q.id,
+      "Eski tugmalar o‘chirilgan. Yangi buyurtma xabarini kuting (Batafsil + Admin panel).",
+      true,
+    );
+    return;
+  }
   const base = resolveApiBaseForCallback(orderId);
   if (!base) {
     await answerCallbackQuery(
@@ -405,165 +423,114 @@ async function handleRestaurantOrderCallback(q) {
     return "";
   };
 
-  if (action === "a") {
-    const url = `${base}/internal/telegram/restaurant-order/${encodeURIComponent(orderId)}/accept?sig=${encodeURIComponent(sig)}`;
-    let res;
-    try {
-      res = await fetch(url, { method: "GET", headers: { Accept: "application/json" } });
-    } catch (e) {
-      console.error("restaurant accept fetch", e);
-      await answerCallbackQuery(q.id, "Serverga ulanib bo‘lmadi.", true);
-      return;
+  const url = `${base}/internal/telegram/restaurant-order/${encodeURIComponent(orderId)}/details?sig=${encodeURIComponent(sig)}`;
+  let res;
+  try {
+    res = await fetch(url, { method: "GET", headers: { Accept: "application/json" } });
+  } catch (e) {
+    console.error("restaurant details fetch", e);
+    await answerCallbackQuery(q.id, "Serverga ulanib bo‘lmadi.", true);
+    return;
+  }
+  const rawText = await res.text();
+  let j = {};
+  try {
+    j = JSON.parse(rawText || "{}");
+  } catch {
+    j = {};
+  }
+  if (!res.ok || !j.order) {
+    let msg = errMsg(j.message);
+    if (!msg && res.status === 403) {
+      msg =
+        "Ruxsat yo‘q (imzo). API va buyurtma workerida bir xil TELEGRAM_ORDER_HMAC_SECRET yoki JWT_SECRET bo‘lsin.";
     }
-    const rawText = await res.text();
-    let j = {};
-    try {
-      j = JSON.parse(rawText || "{}");
-    } catch {
-      j = {};
-    }
-    if (!res.ok || !j.order) {
-      let msg = errMsg(j.message);
-      if (!msg && res.status === 403) {
+    if (!msg && res.status === 404) {
+      const t = rawText || "";
+      if (
+        t.includes("Cannot GET") ||
+        t.includes("Cannot POST") ||
+        t.includes('"statusCode":404') ||
+        /not\s*found/i.test(t)
+      ) {
         msg =
-          "Ruxsat yo‘q (imzo). API va buyurtma workerida bir xil TELEGRAM_ORDER_HMAC_SECRET yoki JWT_SECRET bo‘lsin.";
+          "404: so‘rov Nest API ga emas. PUBLIC_API_URL / MINUTKA_API_URL faqat backend. Tekshiruv: .../internal/telegram/ping";
+      } else {
+        msg =
+          "Buyurtma topilmadi: API va worker bir xil DATABASE_URL bo‘lishi kerak.";
       }
-      if (!msg && res.status === 404) {
-        const t = rawText || "";
-        if (
-          t.includes("Cannot GET") ||
-          t.includes("Cannot POST") ||
-          t.includes('"statusCode":404') ||
-          /not\s*found/i.test(t)
-        ) {
-          msg =
-            "404: so‘rov Nest API ga emas (masalan Vercel/saytga) ketgan. PUBLIC_API_URL / MINUTKA_API_URL faqat backend manzili bo‘lsin. Tekshiruv: brauzerda .../internal/telegram/ping";
-        } else {
-          msg =
-            "Buyurtma topilmadi: API va worker bir xil DATABASE_URL (bir xil PostgreSQL) bo‘lishi kerak.";
-        }
-      }
-      if (!msg && rawText) {
-        msg = rawText.slice(0, 220);
-      }
-      if (!msg) {
-        msg = `Qabul qilishda xatolik (HTTP ${res.status}).`;
-      }
-      console.error("[telegram] restaurant accept", res.status, rawText?.slice(0, 500));
-      await answerCallbackQuery(q.id, msg, true);
-      return;
     }
-    const order = j.order;
-    const fullText = buildRestaurantOrderFullText(order);
-    const readyCb = `r|${orderId}|${sig}|t`;
-    if (Buffer.byteLength(readyCb, "utf8") > 64) {
-      await answerCallbackQuery(q.id, "callback_data juda uzun.", true);
-      return;
+    if (!msg && rawText) {
+      msg = rawText.slice(0, 220);
     }
-    await answerCallbackQuery(q.id, "Buyurtma qabul qilindi.", false);
+    if (!msg) {
+      msg = `Xatolik (HTTP ${res.status}).`;
+    }
+    console.error("[telegram] restaurant details", res.status, rawText?.slice(0, 500));
+    await answerCallbackQuery(q.id, msg, true);
+    return;
+  }
 
-    const msg = q.message;
-    if (!msg || !msg.chat) return;
-    const chatId = msg.chat.id;
-    const messageId = msg.message_id;
-    const rows = [];
-    if (order.lat != null && order.lng != null) {
-      rows.push([
-        {
-          text: "Xaritada ochish",
-          url: `https://maps.google.com/?q=${order.lat},${order.lng}`,
-        },
-      ]);
-    }
-    rows.push([{ text: "Tayyor", callback_data: readyCb }]);
+  await answerCallbackQuery(q.id, "", false);
 
-    const editRes = await fetch(`${API}/editMessageText`, {
+  const order = j.order;
+  if (j.adminPanelUrl && String(j.adminPanelUrl).trim()) {
+    orderAdminPanelByOrderId.set(String(orderId), String(j.adminPanelUrl).trim());
+  }
+  const fullText = buildRestaurantOrderDetailText(order);
+  const adminUrl = orderAdminPanelByOrderId.get(String(orderId)) || "";
+  const msg = q.message;
+  if (!msg || !msg.chat) return;
+  const chatId = msg.chat.id;
+  const messageId = msg.message_id;
+
+  const rows = [];
+  if (order.lat != null && order.lng != null) {
+    rows.push([
+      {
+        text: "Xaritada ochish",
+        url: `https://maps.google.com/?q=${order.lat},${order.lng}`,
+      },
+    ]);
+  }
+  if (adminUrl) {
+    rows.push([{ text: "Admin panel", url: adminUrl }]);
+  }
+  const mapMarkup = rows.length ? { inline_keyboard: rows } : undefined;
+
+  const editRes = await fetch(`${API}/editMessageText`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      chat_id: chatId,
+      message_id: messageId,
+      text: fullText,
+      reply_markup: mapMarkup,
+    }),
+  });
+  if (!editRes.ok) {
+    await fetch(`${API}/sendMessage`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         chat_id: chatId,
-        message_id: messageId,
         text: fullText,
-        reply_markup: { inline_keyboard: rows },
+        reply_markup: mapMarkup,
       }),
     });
-    if (!editRes.ok) {
-      await fetch(`${API}/sendMessage`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          chat_id: chatId,
-          text: fullText,
-          reply_markup: { inline_keyboard: rows },
-        }),
-      });
-    }
-
-    if (order.lat != null && order.lng != null) {
-      await fetch(`${API}/sendLocation`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          chat_id: chatId,
-          latitude: order.lat,
-          longitude: order.lng,
-        }),
-      });
-    }
-    return;
   }
 
-  if (action === "t") {
-    const url = `${base}/internal/telegram/restaurant-order/${encodeURIComponent(orderId)}/ready?sig=${encodeURIComponent(sig)}`;
-    let res;
-    try {
-      res = await fetch(url, { method: "GET", headers: { Accept: "application/json" } });
-    } catch (e) {
-      console.error("restaurant ready fetch", e);
-      await answerCallbackQuery(q.id, "Serverga ulanib bo‘lmadi.", true);
-      return;
-    }
-    let j = {};
-    try {
-      j = await res.json();
-    } catch {
-      j = {};
-    }
-    if (!res.ok || !j.ok) {
-      const msg = errMsg(j.message) || "Tayyor qilishda xatolik.";
-      await answerCallbackQuery(q.id, msg, true);
-      return;
-    }
-    if (j.alreadyReady) {
-      await answerCallbackQuery(q.id, "Buyurtma allaqachon tayyor.", true);
-      return;
-    }
-    await answerCallbackQuery(q.id, "Kuryerlarga yuborildi.", false);
-
-    const msg = q.message;
-    if (!msg || !msg.chat) return;
-    const chatId = msg.chat.id;
-    const messageId = msg.message_id;
-    const prev = String(msg.text || "");
-    const extra = "\n\n✅ Tayyor. Kuryerlarga xabar yuborildi.";
-    let newText = prev + extra;
-    if (newText.length > 4096) {
-      newText = newText.slice(0, 4093 - extra.length) + extra;
-    }
-    await fetch(`${API}/editMessageText`, {
+  if (order.lat != null && order.lng != null) {
+    await fetch(`${API}/sendLocation`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         chat_id: chatId,
-        message_id: messageId,
-        text: newText,
-        reply_markup: { inline_keyboard: [] },
+        latitude: order.lat,
+        longitude: order.lng,
       }),
     });
-    return;
   }
-
-  await answerCallbackQuery(q.id);
 }
 
 async function handleTelegramUpdate(update) {
@@ -599,7 +566,7 @@ async function handleTelegramUpdate(update) {
       text:
         "Assalomu alaykum! Bu Minutka boti.\n\n" +
         "Quyidagi xabarda Chat ID — nusxa olib sozlamaga kiriting.\n" +
-        "• Restoran: «Qabul qilish» → manzil/xarita → «Tayyor» (keyin kuryerlar).\n" +
+        "• Restoran: «Batafsil» — to‘liq buyurtma; «Admin panel» — restoran boshqaruvi.\n" +
         "• Kuryer: qisqa xabar → «Buyurtmani olish» → batafsil.\n" +
         "Sozlash: restoran — admin Telegram; kuryer — Kuryer paneli → Telegram.",
     });
