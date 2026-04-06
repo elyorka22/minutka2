@@ -9,7 +9,7 @@ const nextConfig = {
     imageSizes: [16, 32, 48, 64, 96, 120, 128, 256, 384, 400, 500, 600],
     /** 1 year cache for optimized images (CDN / Image Optimization API). */
     minimumCacheTTL: 31536000,
-    qualities: [70, 75, 76, 78, 80, 85],
+    qualities: [70, 72, 75, 76, 78, 80, 85],
     remotePatterns: [
       {
         protocol: "https",

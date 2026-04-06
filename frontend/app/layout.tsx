@@ -11,6 +11,15 @@ const plusJakarta = Plus_Jakarta_Sans({
   display: "swap",
   preload: true,
   adjustFontFallback: true,
+  fallback: [
+    "system-ui",
+    "-apple-system",
+    "Segoe UI",
+    "Roboto",
+    "Helvetica Neue",
+    "Arial",
+    "sans-serif",
+  ],
 });
 
 const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://minut-ka.uz";
