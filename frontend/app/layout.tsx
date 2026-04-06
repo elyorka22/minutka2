@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { Plus_Jakarta_Sans } from "next/font/google";
+import { SpeedInsights } from "@vercel/speed-insights/next";
 import ClientRootLayout from "../components/ClientRootLayout";
 import { CriticalCss } from "../components/CriticalCss";
 import { ResourceHints } from "../components/ResourceHints";
@@ -62,6 +63,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <CriticalCss />
         <ResourceHints />
         <ClientRootLayout>{children}</ClientRootLayout>
+        <SpeedInsights />
       </body>
     </html>
   );
