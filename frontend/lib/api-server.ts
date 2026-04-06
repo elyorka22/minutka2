@@ -114,8 +114,9 @@ async function fetchJson<T>(path: string, revalidate: number): Promise<T> {
   return res.json() as Promise<T>;
 }
 
+/** Shorter revalidate so new banners from admin show sooner (ISR / Data Cache). */
 export async function fetchHomepage(): Promise<HomepagePayload> {
-  return fetchJson<HomepagePayload>("/homepage", 30);
+  return fetchJson<HomepagePayload>("/homepage", 10);
 }
 
 /** Single /homepage fetch with safe fallback to legacy parallel endpoints. */

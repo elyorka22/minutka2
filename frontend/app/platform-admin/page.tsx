@@ -1691,6 +1691,12 @@ export default function PlatformAdminPage() {
                     boshqarishingiz mumkin. Rasm va sarlavha ixtiyoriy — matn rasm bilan birga
                     ko‘rinadi.
                   </p>
+                  <p className="fd-checkout-meta" style={{ marginTop: 8 }}>
+                    <strong>Eslatma:</strong> bosh sahifada faqat <strong>«Faol»</strong> belgilangan
+                    bannerlar chiqadi (pastdagi ro‘yxatda). Yangilangandan keyin sayt 10–30 soniya
+                    ichida yangilanishi mumkin (kesh). Rasm bo‘lmasa, banner rangli blok sifatida
+                    (gradient) ko‘rinadi.
+                  </p>
 
                   <form onSubmit={handleCreateBanner} className="fd-form" style={{ marginTop: 16 }}>
                     <label className="fd-field">
