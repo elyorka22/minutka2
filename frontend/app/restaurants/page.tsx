@@ -32,8 +32,11 @@ export default async function RestaurantsPage() {
                 src={(r.coverUrl || r.logoUrl) ? imageUrl(r.coverUrl || r.logoUrl) : ""}
                 alt=""
                 className="fd-card-image"
+                width={500}
+                height={500}
                 style={{ width: "100%", aspectRatio: "1/1", objectFit: "cover" }}
                 fallbackStyle={{ aspectRatio: "1/1" }}
+                sizes="(max-width: 640px) 50vw, 320px"
               />
               <div className="fd-card-body">
                 <div className="fd-card-title-row">

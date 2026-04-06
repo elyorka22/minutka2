@@ -1,6 +1,7 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import Image from "next/image";
+import { useState } from "react";
 
 type Props = {
   src?: string | null;
@@ -9,9 +10,15 @@ type Props = {
   style?: React.CSSProperties;
   fallbackClassName?: string;
   fallbackStyle?: React.CSSProperties;
-  /** LCP / hero: eager load + high fetch priority */
+  /** Hero / LCP: eager + high priority (Next.js adds preload). */
   priority?: boolean;
   sizes?: string;
+  /** Fill positioned parent (banners, dish cards). */
+  fill?: boolean;
+  /** Fixed dimensions when fill is false (optimizer max width aligns with backend 500px). */
+  width?: number;
+  height?: number;
+  quality?: number;
 };
 
 export function SafeImage({
@@ -23,30 +30,46 @@ export function SafeImage({
   fallbackStyle,
   priority = false,
   sizes,
+  fill = false,
+  width = 500,
+  height = 500,
+  quality = 80,
 }: Props) {
   const [failed, setFailed] = useState(false);
-
-  const normalized = useMemo(() => {
-    const s = (src || "").trim();
-    return s;
-  }, [src]);
-
+  const normalized = (src || "").trim();
   if (!normalized || failed) {
     return <div className={fallbackClassName} style={fallbackStyle} />;
   }
 
+  if (fill) {
+    return (
+      <Image
+        src={normalized}
+        alt={alt}
+        fill
+        className={className}
+        style={style}
+        sizes={sizes ?? "100vw"}
+        priority={priority}
+        quality={quality}
+        onError={() => setFailed(true)}
+      />
+    );
+  }
+
   return (
-    <img
+    <Image
       src={normalized}
       alt={alt}
+      width={width}
+      height={height}
       className={className}
       style={style}
-      sizes={sizes}
-      loading={priority ? "eager" : "lazy"}
-      decoding="async"
-      fetchPriority={priority ? "high" : "auto"}
+      sizes={sizes ?? "(max-width: 768px) 100vw, 500px"}
+      priority={priority}
+      quality={quality}
+      placeholder="empty"
       onError={() => setFailed(true)}
     />
   );
 }
-

@@ -1,11 +1,11 @@
 import Link from "next/link";
 import { imageUrl } from "../lib/api";
 import {
-  fetchHomepageStable,
   buildCarouselsFromList,
   type HomepageRestaurant,
   type HomepageBanner,
 } from "../lib/api-server";
+import { getCachedHomepage } from "../lib/homepage-cache";
 import { SafeImage } from "../components/SafeImage";
 
 export const metadata = {
@@ -45,7 +45,7 @@ function mapBanner(b: HomepageBanner) {
 }
 
 export default async function HomePage() {
-  const home = await fetchHomepageStable();
+  const home = await getCachedHomepage();
   const restaurants = (home.restaurants || []).map(mapRestaurant);
   const featuredRestaurants = (home.featured || []).map(mapRestaurant);
   const banners = (home.banners || []).map(mapBanner);
@@ -104,16 +104,8 @@ export default async function HomePage() {
           },
         ];
 
-  const firstHeroSrc = displayBanners[0]?.imageUrl ? imageUrl(displayBanners[0].imageUrl) : "";
-
   return (
     <div className="fd-shell">
-      {firstHeroSrc ? (
-        <head>
-          <link rel="preload" as="image" href={firstHeroSrc} />
-        </head>
-      ) : null}
-
       <section className="fd-home-top">
         <div className="fd-home-search">
           <input
@@ -158,8 +150,9 @@ export default async function HomePage() {
                   src={imgSrc}
                   alt=""
                   className="fd-banner-img"
+                  fill
                   priority={isPrimary}
-                  sizes="(max-width: 768px) 100vw, 720px"
+                  sizes="(max-width: 768px) 100vw, min(90vw, 720px)"
                 />
                 <div className="fd-banner-scrim" aria-hidden="true" />
               </div>
@@ -195,6 +188,8 @@ export default async function HomePage() {
                     src={(r.coverUrl || r.logoUrl) ? imageUrl(r.coverUrl || r.logoUrl) : ""}
                     alt=""
                     className="fd-product-cat-image"
+                    width={120}
+                    height={120}
                     fallbackStyle={{ height: 40 }}
                     sizes="120px"
                   />
@@ -228,6 +223,8 @@ export default async function HomePage() {
                     src={(r.coverUrl || r.logoUrl) ? imageUrl(r.coverUrl || r.logoUrl) : ""}
                     alt=""
                     className="fd-product-cat-image"
+                    width={120}
+                    height={120}
                     fallbackStyle={{ height: 40 }}
                     sizes="120px"
                   />
@@ -261,6 +258,8 @@ export default async function HomePage() {
                     src={(s.coverUrl || s.logoUrl) ? imageUrl(s.coverUrl || s.logoUrl) : ""}
                     alt=""
                     className="fd-product-cat-image"
+                    width={120}
+                    height={120}
                     fallbackStyle={{ height: 40 }}
                     sizes="120px"
                   />
@@ -290,6 +289,8 @@ export default async function HomePage() {
                     src={c.imageUrl ? imageUrl(c.imageUrl) : ""}
                     alt={c.name}
                     className="fd-product-cat-image"
+                    width={120}
+                    height={120}
                     fallbackStyle={{ height: 40 }}
                     sizes="120px"
                   />
@@ -318,7 +319,9 @@ export default async function HomePage() {
                 src={(r.coverUrl || r.logoUrl) ? imageUrl(r.coverUrl || r.logoUrl) : ""}
                 alt=""
                 className="fd-card-image"
-                style={{ width: "100%", aspectRatio: "4/3", objectFit: "cover" }}
+                width={500}
+                height={375}
+                style={{ width: "100%", height: "auto", objectFit: "cover", aspectRatio: "4/3" }}
                 fallbackStyle={{ height: 140 }}
                 sizes="(max-width: 640px) 50vw, 320px"
               />
