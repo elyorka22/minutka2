@@ -83,7 +83,8 @@ export function RestaurantPageClient({
             alt=""
             className="fd-card-image"
             fill
-            sizes="(max-width: 768px) 50vw, 200px"
+            sizes="(max-width: 768px) 50vw, 400px"
+            quality={78}
             fallbackStyle={{ height: 72 }}
             priority={dishIndex < EAGER_IMAGE_COUNT}
           />

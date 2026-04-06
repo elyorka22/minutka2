@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { imageUrl } from "../lib/api";
 import {
@@ -7,17 +8,27 @@ import {
 } from "../lib/api-server";
 import { getCachedHomepage } from "../lib/homepage-cache";
 import { SafeImage } from "../components/SafeImage";
+import { HomePreloadLinks } from "../components/HomePreloadLinks";
 
-export const metadata = {
-  title: "Minutka — ovqat va oziq-ovqat mahsulotlarini yetkazib berish platformasi",
-  description:
-    "Tez ovqat yetkazib berish servis. Restoranlar va do‘konlardan qulay buyurtma berish, shahar bo‘ylab tez yetkazib berish. Minutka bilan hoziroq sinab ko‘ring.",
-  openGraph: {
+export async function generateMetadata(): Promise<Metadata> {
+  const home = await getCachedHomepage();
+  const first = home.banners?.[0]?.imageUrl;
+  const base = (process.env.NEXT_PUBLIC_SITE_URL || "https://minut-ka.uz").replace(/\/$/, "");
+  const ogImage = first
+    ? imageUrl(first)
+    : `${base}/web-app-manifest-512x512.png`;
+  return {
     title: "Minutka — ovqat va oziq-ovqat mahsulotlarini yetkazib berish platformasi",
     description:
-      "O‘z shahringizdagi restoranlar va do‘konlardan ovqat buyurtma qiling. Minutka bilan tez yetkazib berish, qulay to‘lov va bir necha daqiqada buyurtma berish.",
-  },
-};
+      "Tez ovqat yetkazib berish servis. Restoranlar va do‘konlardan qulay buyurtma berish, shahar bo‘ylab tez yetkazib berish. Minutka bilan hoziroq sinab ko‘ring.",
+    openGraph: {
+      title: "Minutka — ovqat va oziq-ovqat mahsulotlarini yetkazib berish platformasi",
+      description:
+        "O‘z shahringizdagi restoranlar va do‘konlardan ovqat buyurtma qiling. Minutka bilan tez yetkazib berish, qulay to‘lov va bir necha daqiqada buyurtma berish.",
+      images: [{ url: ogImage }],
+    },
+  };
+}
 
 function mapRestaurant(r: HomepageRestaurant) {
   return {
@@ -104,8 +115,13 @@ export default async function HomePage() {
           },
         ];
 
+  const heroHref =
+    displayBanners[0]?.imageUrl ? imageUrl(displayBanners[0].imageUrl) : "";
+
   return (
-    <div className="fd-shell">
+    <>
+      <HomePreloadLinks href={heroHref || null} />
+      <div className="fd-shell">
       <section className="fd-home-top">
         <div className="fd-home-search">
           <input
@@ -152,7 +168,12 @@ export default async function HomePage() {
                   className="fd-banner-img"
                   fill
                   priority={isPrimary}
-                  sizes="(max-width: 768px) 100vw, min(90vw, 720px)"
+                  quality={isPrimary ? 75 : 78}
+                  sizes={
+                    isPrimary
+                      ? "(max-width: 768px) 100vw, 600px"
+                      : "(max-width: 768px) 100vw, 480px"
+                  }
                 />
                 <div className="fd-banner-scrim" aria-hidden="true" />
               </div>
@@ -190,6 +211,7 @@ export default async function HomePage() {
                     className="fd-product-cat-image"
                     width={120}
                     height={120}
+                    quality={78}
                     fallbackStyle={{ height: 40 }}
                     sizes="120px"
                   />
@@ -225,6 +247,7 @@ export default async function HomePage() {
                     className="fd-product-cat-image"
                     width={120}
                     height={120}
+                    quality={78}
                     fallbackStyle={{ height: 40 }}
                     sizes="120px"
                   />
@@ -260,6 +283,7 @@ export default async function HomePage() {
                     className="fd-product-cat-image"
                     width={120}
                     height={120}
+                    quality={78}
                     fallbackStyle={{ height: 40 }}
                     sizes="120px"
                   />
@@ -291,6 +315,7 @@ export default async function HomePage() {
                     className="fd-product-cat-image"
                     width={120}
                     height={120}
+                    quality={78}
                     fallbackStyle={{ height: 40 }}
                     sizes="120px"
                   />
@@ -319,11 +344,12 @@ export default async function HomePage() {
                 src={(r.coverUrl || r.logoUrl) ? imageUrl(r.coverUrl || r.logoUrl) : ""}
                 alt=""
                 className="fd-card-image"
-                width={500}
-                height={375}
+                width={600}
+                height={450}
+                quality={78}
                 style={{ width: "100%", height: "auto", objectFit: "cover", aspectRatio: "4/3" }}
                 fallbackStyle={{ height: 140 }}
-                sizes="(max-width: 640px) 50vw, 320px"
+                sizes="(max-width: 640px) 50vw, min(50vw, 400px)"
               />
               <div className="fd-card-body">
                 <div className="fd-card-title-row">
@@ -344,5 +370,6 @@ export default async function HomePage() {
         </div>
       </section>
     </div>
+    </>
   );
 }

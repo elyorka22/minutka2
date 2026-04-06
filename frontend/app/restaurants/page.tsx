@@ -34,9 +34,10 @@ export default async function RestaurantsPage() {
                 className="fd-card-image"
                 width={500}
                 height={500}
+                quality={78}
                 style={{ width: "100%", aspectRatio: "1/1", objectFit: "cover" }}
                 fallbackStyle={{ aspectRatio: "1/1" }}
-                sizes="(max-width: 640px) 50vw, 320px"
+                sizes="(max-width: 640px) 50vw, min(50vw, 400px)"
               />
               <div className="fd-card-body">
                 <div className="fd-card-title-row">
