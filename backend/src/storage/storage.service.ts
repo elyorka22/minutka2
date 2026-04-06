@@ -39,11 +39,39 @@ export class StorageService {
     const { error } = await this.client.storage.from(bucket).upload(path, params.buffer, {
       contentType: params.contentType,
       upsert: true,
+      cacheControl: '31536000',
     });
     if (error) {
       throw new BadRequestException(`Storage upload failed: ${error.message}`);
     }
     const { data } = this.client.storage.from(bucket).getPublicUrl(path);
+    return data.publicUrl;
+  }
+
+  /**
+   * Upload processed WebP to Supabase with long cache. Path: `{folder}/{filename}`.
+   */
+  async uploadPublicWebp(params: {
+    buffer: Buffer;
+    folder: string;
+    filename: string;
+  }): Promise<string | null> {
+    if (!this.client) {
+      return null;
+    }
+    const bucket = this.bucketName();
+    const safeFile = params.filename.replace(/[^a-zA-Z0-9._-]/g, '_');
+    const safeFolder = params.folder.replace(/[^a-zA-Z0-9_-]/g, '_');
+    const storagePath = `${safeFolder}/${safeFile}`;
+    const { error } = await this.client.storage.from(bucket).upload(storagePath, params.buffer, {
+      contentType: 'image/webp',
+      cacheControl: '31536000',
+      upsert: true,
+    });
+    if (error) {
+      throw new BadRequestException(`Storage upload failed: ${error.message}`);
+    }
+    const { data } = this.client.storage.from(bucket).getPublicUrl(storagePath);
     return data.publicUrl;
   }
 }

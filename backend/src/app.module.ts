@@ -20,6 +20,7 @@ import { CacheModule } from './cache.module';
 import { HomepageModule } from './homepage/homepage.module';
 import { HealthController } from './health/health.controller';
 import { StorageService } from './storage/storage.service';
+import { ImageProcessingService } from './storage/image-processing.service';
 import { PartnershipController } from './partnership.controller';
 
 @Module({
@@ -59,6 +60,7 @@ import { PartnershipController } from './partnership.controller';
   providers: [
     AppService,
     StorageService,
+    ImageProcessingService,
     {
       provide: APP_GUARD,
       useClass: ThrottlerGuard,

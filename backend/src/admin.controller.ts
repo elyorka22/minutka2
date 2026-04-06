@@ -21,6 +21,8 @@ import { UsersService } from './users/users.service';
 import { VisitsService } from './visits.service';
 import { CacheService } from './cache.service';
 import { StorageService } from './storage/storage.service';
+import { ImageProcessingService } from './storage/image-processing.service';
+import { sanitizeUploadFolder } from './storage/upload-folder.util';
 import { UserRole } from '../generated/prisma/enums';
 import * as fs from 'fs';
 import * as path from 'path';
@@ -41,6 +43,7 @@ export class AdminController {
     private readonly visitsService: VisitsService,
     private readonly cache: CacheService,
     private readonly storage: StorageService,
+    private readonly imageProcessing: ImageProcessingService,
   ) {
     const publicKey = process.env.PUBLIC_VAPID_KEY;
     const privateKey = process.env.PRIVATE_VAPID_KEY;
@@ -445,13 +448,17 @@ export class AdminController {
     return { ok: true };
   }
 
-  private static readonly ALLOWED_MIMES = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
-  private static readonly MAX_SIZE = 5 * 1024 * 1024; // 5MB
+  private static readonly MAX_SIZE = 5 * 1024 * 1024; // 5MB (before WebP conversion)
 
+  /**
+   * JPEG/PNG → WebP (max width 500px, quality 80), then Supabase or local /uploads/{folder}/.
+   * Query: folder=menu | foods (default foods).
+   */
   @Post('upload')
   @UseInterceptors(FileInterceptor('file'))
   async uploadImage(
     @UploadedFile() file: { buffer: Buffer; originalname: string; mimetype: string; size: number } | undefined,
+    @Query('folder') folderRaw: string | undefined,
     @Req() req: RequestWithUser & { protocol?: string; get?(name: string): string },
   ) {
     if (req.user?.role !== 'PLATFORM_ADMIN') {
@@ -460,30 +467,30 @@ export class AdminController {
     if (!file || !file.buffer) {
       throw new BadRequestException('File is required');
     }
-    if (!AdminController.ALLOWED_MIMES.includes(file.mimetype)) {
-      throw new BadRequestException('Only JPEG, PNG, WebP, GIF allowed');
-    }
+    this.imageProcessing.validateImageMimeType(file.mimetype);
     if (file.size > AdminController.MAX_SIZE) {
       throw new BadRequestException('Max size 5MB');
     }
-    const ext = path.extname(file.originalname) || (file.mimetype === 'image/png' ? '.png' : file.mimetype === 'image/webp' ? '.webp' : file.mimetype === 'image/gif' ? '.gif' : '.jpg');
-    const filename = randomUUID() + ext;
+
+    const folder = sanitizeUploadFolder(folderRaw);
+    const webpBuffer = await this.imageProcessing.processToWebpBuffer(file.buffer);
+    const filename = `${randomUUID()}.webp`;
 
     if (this.storage.isEnabled()) {
-      const publicUrl = await this.storage.uploadPublicImage({
-        buffer: file.buffer,
+      const publicUrl = await this.storage.uploadPublicWebp({
+        buffer: webpBuffer,
+        folder,
         filename,
-        contentType: file.mimetype,
       });
       if (publicUrl) {
         this.invalidateHomeCache();
-        return { url: publicUrl };
+        return { url: publicUrl, folder, format: 'webp' as const };
       }
     }
 
-    const uploadsDir = path.join(process.cwd(), 'uploads');
+    const uploadsDir = path.join(process.cwd(), 'uploads', folder);
     fs.mkdirSync(uploadsDir, { recursive: true });
-    fs.writeFileSync(path.join(uploadsDir, filename), file.buffer);
+    fs.writeFileSync(path.join(uploadsDir, filename), webpBuffer);
     const header = (name: string) => (req.get ? req.get(name) : undefined);
     const forwardedProto = header('x-forwarded-proto')?.split(',')[0]?.trim();
     const forwardedHost = header('x-forwarded-host')?.split(',')[0]?.trim();
@@ -491,9 +498,10 @@ export class AdminController {
     const protocol = forwardedProto || req.protocol;
     const inferredBase = protocol && host ? `${protocol}://${host}` : '';
     const baseUrl = process.env.PUBLIC_API_URL || inferredBase;
-    const url = baseUrl ? `${baseUrl.replace(/\/$/, '')}/uploads/${filename}` : `/uploads/${filename}`;
+    const relPath = `uploads/${folder}/${filename}`;
+    const url = baseUrl ? `${baseUrl.replace(/\/$/, '')}/${relPath}` : `/${relPath}`;
     this.invalidateHomeCache();
-    return { url };
+    return { url, folder, format: 'webp' as const };
   }
 
   @Post('restaurants')

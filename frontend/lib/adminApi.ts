@@ -271,13 +271,17 @@ export const adminApi = {
     adminRequest<any>(`/admin/restaurants/${id}`, {
       method: "DELETE",
     }),
-  uploadImage: async (file: File): Promise<{ url: string }> => {
+  uploadImage: async (
+    file: File,
+    folder?: "menu" | "foods",
+  ): Promise<{ url: string; folder?: string; format?: string }> => {
     const postUpload = (accessToken: string | null) => {
       const fd = new FormData();
       fd.append("file", file);
       const headers: Record<string, string> = {};
       if (accessToken) headers.Authorization = `Bearer ${accessToken}`;
-      return fetch(`${API_BASE}/admin/upload`, {
+      const qs = folder ? `?folder=${encodeURIComponent(folder)}` : "";
+      return fetch(`${API_BASE}/admin/upload${qs}`, {
         method: "POST",
         headers,
         body: fd,
@@ -301,7 +305,7 @@ export const adminApi = {
         typeof err?.message === "string" ? err.message : `Upload failed: ${res.status}`;
       throw new Error(msg);
     }
-    return res.json() as Promise<{ url: string }>;
+    return res.json() as Promise<{ url: string; folder?: string; format?: string }>;
   },
   updateRestaurant: (
     id: string,
