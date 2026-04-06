@@ -1,10 +1,12 @@
 import type { Metadata, Viewport } from "next";
 import { Plus_Jakarta_Sans } from "next/font/google";
 import ClientRootLayout from "../components/ClientRootLayout";
+import { ResourceHints } from "../components/ResourceHints";
 import "../globals.css";
 
 const plusJakarta = Plus_Jakarta_Sans({
   subsets: ["latin"],
+  weight: ["400", "500", "600", "700"],
   variable: "--font-sans",
   display: "swap",
   preload: true,
@@ -47,6 +49,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="uz" className={plusJakarta.variable}>
       <body className={`fd-body ${plusJakarta.className}`}>
+        <ResourceHints />
         <ClientRootLayout>{children}</ClientRootLayout>
       </body>
     </html>

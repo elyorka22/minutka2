@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Image from "next/image";
 import Link from "next/link";
 import { imageUrl } from "../lib/api";
 import {
@@ -9,7 +10,6 @@ import {
 import { getCachedHomepage } from "../lib/homepage-cache";
 import { SafeImage } from "../components/SafeImage";
 import { HomePreloadLinks } from "../components/HomePreloadLinks";
-import { HeroBannerImage } from "../components/HeroBannerImage";
 
 export async function generateMetadata(): Promise<Metadata> {
   const home = await getCachedHomepage();
@@ -163,7 +163,22 @@ export default async function HomePage() {
           const content = imgSrc ? (
             <>
               <div className="fd-banner-media">
-                <HeroBannerImage src={imgSrc} isPrimary={isPrimary} />
+                <Image
+                  src={imgSrc}
+                  alt={b.title ?? ""}
+                  className="fd-banner-img"
+                  fill
+                  priority={isPrimary}
+                  fetchPriority={isPrimary ? "high" : "low"}
+                  loading={isPrimary ? undefined : "lazy"}
+                  decoding="async"
+                  sizes={
+                    isPrimary
+                      ? "(max-width: 768px) min(100vw, 600px), 600px"
+                      : "(max-width: 768px) min(100vw, 480px), 480px"
+                  }
+                  quality={isPrimary ? 75 : 76}
+                />
                 <div className="fd-banner-scrim" aria-hidden="true" />
               </div>
               <div className="fd-banner-body">{textBlock}</div>

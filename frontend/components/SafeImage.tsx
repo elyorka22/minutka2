@@ -46,7 +46,8 @@ export function SafeImage({
 
   const fp = fetchPriority ?? (priority ? "high" : "auto");
   const loading = priority ? "eager" : "lazy";
-  const decoding = priority ? "sync" : "async";
+  /** async decode avoids blocking main thread (better LCP/INP vs sync on hero). */
+  const decoding = "async";
 
   if (fill) {
     return (
