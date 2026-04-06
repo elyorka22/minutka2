@@ -69,7 +69,8 @@ export function RestaurantPageClient({
       ? categories.find((c) => c.id === selectedCategoryId)?.name ?? null
       : null;
 
-  const EAGER_IMAGE_COUNT = 8;
+  /** Only first tiles in viewport: avoid competing with LCP / hero. */
+  const EAGER_IMAGE_COUNT = 2;
 
   function renderDishCard(dish: any, dishIndex: number) {
     const id = String(dish.id);
@@ -84,7 +85,7 @@ export function RestaurantPageClient({
             className="fd-card-image"
             fill
             sizes="(max-width: 768px) 50vw, 400px"
-            quality={78}
+            quality={76}
             fallbackStyle={{ height: 72 }}
             priority={dishIndex < EAGER_IMAGE_COUNT}
           />

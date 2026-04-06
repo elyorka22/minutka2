@@ -9,6 +9,7 @@ import {
 import { getCachedHomepage } from "../lib/homepage-cache";
 import { SafeImage } from "../components/SafeImage";
 import { HomePreloadLinks } from "../components/HomePreloadLinks";
+import { HeroBannerImage } from "../components/HeroBannerImage";
 
 export async function generateMetadata(): Promise<Metadata> {
   const home = await getCachedHomepage();
@@ -162,19 +163,7 @@ export default async function HomePage() {
           const content = imgSrc ? (
             <>
               <div className="fd-banner-media">
-                <SafeImage
-                  src={imgSrc}
-                  alt=""
-                  className="fd-banner-img"
-                  fill
-                  priority={isPrimary}
-                  quality={isPrimary ? 75 : 78}
-                  sizes={
-                    isPrimary
-                      ? "(max-width: 768px) 100vw, 600px"
-                      : "(max-width: 768px) 100vw, 480px"
-                  }
-                />
+                <HeroBannerImage src={imgSrc} isPrimary={isPrimary} />
                 <div className="fd-banner-scrim" aria-hidden="true" />
               </div>
               <div className="fd-banner-body">{textBlock}</div>
@@ -211,7 +200,7 @@ export default async function HomePage() {
                     className="fd-product-cat-image"
                     width={120}
                     height={120}
-                    quality={78}
+                    quality={76}
                     fallbackStyle={{ height: 40 }}
                     sizes="120px"
                   />
@@ -247,7 +236,7 @@ export default async function HomePage() {
                     className="fd-product-cat-image"
                     width={120}
                     height={120}
-                    quality={78}
+                    quality={76}
                     fallbackStyle={{ height: 40 }}
                     sizes="120px"
                   />
@@ -283,7 +272,7 @@ export default async function HomePage() {
                     className="fd-product-cat-image"
                     width={120}
                     height={120}
-                    quality={78}
+                    quality={76}
                     fallbackStyle={{ height: 40 }}
                     sizes="120px"
                   />
@@ -315,7 +304,7 @@ export default async function HomePage() {
                     className="fd-product-cat-image"
                     width={120}
                     height={120}
-                    quality={78}
+                    quality={76}
                     fallbackStyle={{ height: 40 }}
                     sizes="120px"
                   />
@@ -344,12 +333,12 @@ export default async function HomePage() {
                 src={(r.coverUrl || r.logoUrl) ? imageUrl(r.coverUrl || r.logoUrl) : ""}
                 alt=""
                 className="fd-card-image"
-                width={600}
-                height={450}
-                quality={78}
+                width={400}
+                height={300}
+                quality={76}
                 style={{ width: "100%", height: "auto", objectFit: "cover", aspectRatio: "4/3" }}
                 fallbackStyle={{ height: 140 }}
-                sizes="(max-width: 640px) 50vw, min(50vw, 400px)"
+                sizes="(max-width: 640px) 50vw, 400px"
               />
               <div className="fd-card-body">
                 <div className="fd-card-title-row">

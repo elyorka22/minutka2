@@ -1,9 +1,14 @@
+import {
+  HERO_IMAGE_PRELOAD_WIDTH,
+  nextImageLoaderHref,
+} from "../lib/next-image-loader-href";
+
 /**
- * Server component: first-paint hint for LCP banner (original URL; Next/Image still optimizes).
- * Placed at top of home page; browsers pick up preload from document stream.
+ * Preloads the optimized hero URL (not the raw CDN URL) so it matches next/image.
  */
 export function HomePreloadLinks({ href }: { href: string | null | undefined }) {
   const u = (href || "").trim();
   if (!u) return null;
-  return <link rel="preload" as="image" href={u} fetchPriority="high" />;
+  const optimized = nextImageLoaderHref(u, HERO_IMAGE_PRELOAD_WIDTH, 75);
+  return <link rel="preload" as="image" href={optimized} fetchPriority="high" />;
 }

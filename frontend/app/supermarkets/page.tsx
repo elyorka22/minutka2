@@ -36,12 +36,12 @@ export default async function SupermarketsPage() {
                 src={(s.coverUrl || s.logoUrl) ? imageUrl(s.coverUrl || s.logoUrl) : ""}
                 alt=""
                 className="fd-card-image"
-                width={600}
-                height={375}
-                quality={78}
+                width={400}
+                height={250}
+                quality={76}
                 style={{ width: "100%", aspectRatio: "16/10", objectFit: "cover" }}
                 fallbackStyle={{ height: 160 }}
-                sizes="(max-width: 640px) 50vw, min(50vw, 500px)"
+                sizes="(max-width: 640px) 50vw, 400px"
               />
               <div className="fd-card-body">
                 <div className="fd-card-title-row">
