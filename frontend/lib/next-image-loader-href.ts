@@ -12,8 +12,8 @@ export function nextImageLoaderHref(
   return `/_next/image?url=${encodeURIComponent(u)}&w=${width}&q=${quality}`;
 }
 
-/** Matches typical next/image srcset pick for mobile hero (2× logical width ~375). */
-export const HERO_IMAGE_PRELOAD_WIDTH = 750;
+/** Mobile hero ~≤600px CSS — 640px asset balances sharpness vs bytes (<~100KB typical WebP). */
+export const HERO_IMAGE_PRELOAD_WIDTH = 640;
 
-/** Same `q` as primary hero `<Image quality={…} />` so preload hits one cached URL. */
-export const HERO_IMAGE_PRELOAD_QUALITY = 72;
+/** Same `q` as primary hero `<Image quality={…} />` so preload matches `/_next/image` request. */
+export const HERO_IMAGE_PRELOAD_QUALITY = 70;

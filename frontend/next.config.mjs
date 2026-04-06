@@ -3,13 +3,17 @@ const nextConfig = {
   reactStrictMode: true,
   compress: true,
   poweredByHeader: false,
+  compiler: {
+    removeConsole:
+      process.env.NODE_ENV === "production" ? { exclude: ["error", "warn"] } : false,
+  },
   images: {
     formats: ["image/webp", "image/avif"],
     deviceSizes: [640, 750, 828, 1080, 1200],
     imageSizes: [16, 32, 48, 64, 96, 120, 128, 256, 384, 400, 500, 600],
     /** 1 year cache for optimized images (CDN / Image Optimization API). */
     minimumCacheTTL: 31536000,
-    qualities: [70, 72, 75, 76, 78, 80, 85],
+    qualities: [68, 70, 72, 75, 76, 78, 80, 85],
     remotePatterns: [
       {
         protocol: "https",

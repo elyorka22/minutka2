@@ -144,7 +144,7 @@ export async function HomePageContent() {
                       ? "(max-width: 768px) min(100vw, 600px), 600px"
                       : "(max-width: 768px) min(100vw, 480px), 480px"
                   }
-                  quality={isPrimary ? 72 : 76}
+                  quality={isPrimary ? 70 : 76}
                 />
                 <div className="fd-banner-scrim" aria-hidden="true" />
               </div>

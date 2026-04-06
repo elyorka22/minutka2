@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { Plus_Jakarta_Sans } from "next/font/google";
 import ClientRootLayout from "../components/ClientRootLayout";
+import { CriticalCss } from "../components/CriticalCss";
 import { ResourceHints } from "../components/ResourceHints";
 import "../globals.css";
 
@@ -58,6 +59,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="uz" className={plusJakarta.variable}>
       <body className={`fd-body ${plusJakarta.className}`}>
+        <CriticalCss />
         <ResourceHints />
         <ClientRootLayout>{children}</ClientRootLayout>
       </body>
