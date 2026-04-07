@@ -900,7 +900,61 @@ export class OrdersService {
       select: TELEGRAM_COURIER_ORDER_SELECT,
     });
     if (!row) return null;
-    return this.buildTelegramCourierOrderPayload(row);
+    return this.buildTelegramRestaurantOrderPayload(row);
+  }
+
+  /** Restoran Telegram: mijozning to‘liq buyurtma summasi (subtotal + yetkazish + servis). */
+  private buildTelegramRestaurantOrderPayload(orderRow: {
+    id: string;
+    shortCode: number;
+    total: unknown;
+    comment: string | null;
+    restaurant: { name: string } | null;
+    address: {
+      street: string;
+      city: string;
+      details: string | null;
+      latitude: number;
+      longitude: number;
+    } | null;
+    customer: { name: string; phone: string | null } | null;
+    items: Array<{
+      quantity: number;
+      price: unknown;
+      dish: { name: string } | null;
+    }>;
+  }) {
+    const phone =
+      (orderRow.customer?.phone?.trim() ||
+        orderRow.address?.details?.replace(/^Tel:\s*/i, '').trim() ||
+        '') ??
+      '';
+
+    const telegramItems = orderRow.items.map((item) => {
+      const unit = Number(item.price);
+      const qty = item.quantity;
+      return {
+        name: item.dish?.name ?? '—',
+        quantity: qty,
+        unitPrice: unit,
+        lineTotal: unit * qty,
+      };
+    });
+
+    return {
+      id: orderRow.id,
+      shortCode: this.formatOrderCode(orderRow.shortCode),
+      restaurantName: orderRow.restaurant?.name ?? '—',
+      total: Number(orderRow.total),
+      customerName: orderRow.customer?.name ?? '',
+      phone,
+      lat: orderRow.address?.latitude,
+      lng: orderRow.address?.longitude,
+      addressLine:
+        [orderRow.address?.street, orderRow.address?.city].filter(Boolean).join(', ') || undefined,
+      comment: orderRow.comment?.trim() || undefined,
+      items: telegramItems,
+    };
   }
 
   private buildTelegramCourierOrderPayload(orderRow: {

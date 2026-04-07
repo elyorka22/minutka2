@@ -205,7 +205,7 @@ function buildRestaurantOrderFullText(order) {
   let text =
     `Qabul qilingan buyurtma #${code}\n` +
     `Restoran: ${order.restaurantName}\n` +
-    `Jami: ${formatMoney(order.total)} so'm\n` +
+    `Buyurtma summasi: ${formatMoney(order.total)} so'm\n` +
     `Mijoz: ${order.customerName || "-"}\n` +
     `Telefon: ${order.phone || "-"}`;
   if (order.addressLine) {
@@ -214,7 +214,7 @@ function buildRestaurantOrderFullText(order) {
   if (order.comment) {
     text += `\nIzoh: ${order.comment}`;
   }
-  text += formatOrderItemsBlock(order);
+  // Restoran: faqat umumiy «Jami» — pozitsiyalar bo‘yicha qo‘shimcha summalar ko‘rsatilmaydi.
   if (text.length > 4000) {
     text = text.slice(0, 3997) + "...";
   }
@@ -233,7 +233,7 @@ async function sendRestaurantNewPreview(chatId, preview) {
   const text =
     `Yangi buyurtma #${String(shortCode || "----")}\n` +
     `${String(restaurantName || "—")}\n` +
-    `Jami: ${formatMoney(total)} so'm`;
+    `Buyurtma summasi: ${formatMoney(total)} so'm`;
   const callbackData = `r|${orderId}|${sig}|a`;
   if (Buffer.byteLength(callbackData, "utf8") > 64) {
     throw new Error("callback_data > 64 bytes");
