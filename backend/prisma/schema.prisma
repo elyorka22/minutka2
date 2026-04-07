@@ -410,3 +410,9 @@ model Visit {
 
   @@index([createdAt(sort: Desc)])
 }
+
+/** Single row: id = "default". Telegram chat IDs for platform-wide new-order alerts (comma-separated). */
+model PlatformSettings {
+  id                  String  @id
+  adminTelegramChatId String?
+}

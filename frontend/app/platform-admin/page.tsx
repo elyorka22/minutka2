@@ -16,7 +16,8 @@ type TabId =
   | "visits"
   | "applications"
   | "settings"
-  | "push";
+  | "push"
+  | "telegram";
 
 export default function PlatformAdminPage() {
   const [data, setData] = useState<any | null>(null);
@@ -117,6 +118,10 @@ export default function PlatformAdminPage() {
     ordersCount: number;
   }>>([]);
   const [pushSubscribersLoading, setPushSubscribersLoading] = useState(false);
+  const [platformTelegramChatId, setPlatformTelegramChatId] = useState("");
+  const [platformTelegramChatIds, setPlatformTelegramChatIds] = useState<string[]>([]);
+  const [platformTelegramSaving, setPlatformTelegramSaving] = useState(false);
+  const [platformTelegramMessage, setPlatformTelegramMessage] = useState<string | null>(null);
   const [partnershipApplications, setPartnershipApplications] = useState<
     Array<{
       id: string;
@@ -276,6 +281,26 @@ export default function PlatformAdminPage() {
       .then((list) => setPushSubscribersCustomers(Array.isArray(list) ? list : []))
       .catch(() => setPushSubscribersCustomers([]))
       .finally(() => setPushSubscribersLoading(false));
+  }, [activeTab]);
+
+  useEffect(() => {
+    if (activeTab !== "telegram") return;
+    adminApi
+      .getPlatformSettings()
+      .then((s) => {
+        const raw = String(s?.telegramChatId ?? "");
+        setPlatformTelegramChatIds(
+          raw
+            .split(/[,;\n\r\s]+/g)
+            .map((x) => x.trim())
+            .filter(Boolean),
+        );
+        setPlatformTelegramChatId("");
+      })
+      .catch(() => {
+        setPlatformTelegramChatIds([]);
+        setPlatformTelegramChatId("");
+      });
   }, [activeTab]);
 
   useEffect(() => {
@@ -663,6 +688,55 @@ export default function PlatformAdminPage() {
     }
   }
 
+  async function savePlatformTelegramSettings() {
+    setPlatformTelegramSaving(true);
+    setPlatformTelegramMessage(null);
+    try {
+      const inputRaw = platformTelegramChatId.trim();
+      const toAdd = inputRaw
+        .split(/[,;\n\r\s]+/g)
+        .map((s) => s.trim())
+        .filter(Boolean);
+      if (toAdd.length === 0) {
+        setPlatformTelegramMessage("Telegram chat ID kiriting (yoki vergul/enter orqali bir nechta).");
+        return;
+      }
+      const nextIds = Array.from(new Set([...platformTelegramChatIds, ...toAdd]));
+      const saved = await adminApi.updatePlatformSettings({
+        telegramChatId: nextIds.join(","),
+      });
+      setPlatformTelegramChatIds(
+        String(saved?.telegramChatId ?? "")
+          .split(/[,;\n\r\s]+/g)
+          .map((s) => s.trim())
+          .filter(Boolean),
+      );
+      setPlatformTelegramChatId("");
+      setPlatformTelegramMessage("Qo‘shildi.");
+    } catch (err: any) {
+      setPlatformTelegramMessage(err?.message ?? "Sozlamani saqlashda xatolik.");
+    } finally {
+      setPlatformTelegramSaving(false);
+    }
+  }
+
+  async function deletePlatformTelegramChatId(id: string) {
+    setPlatformTelegramSaving(true);
+    setPlatformTelegramMessage(null);
+    try {
+      const nextIds = platformTelegramChatIds.filter((x) => x !== id);
+      await adminApi.updatePlatformSettings({
+        telegramChatId: nextIds.join(","),
+      });
+      setPlatformTelegramChatIds(nextIds);
+      setPlatformTelegramMessage("O‘chirildi.");
+    } catch (err: any) {
+      setPlatformTelegramMessage(err?.message ?? "O‘chirishda xatolik.");
+    } finally {
+      setPlatformTelegramSaving(false);
+    }
+  }
+
   const tabs: { id: TabId; label: string }[] = [
     { id: "stats", label: "Statistika" },
     { id: "users", label: "Foydalanuvchilar" },
@@ -672,6 +746,7 @@ export default function PlatformAdminPage() {
     { id: "visits", label: "Tashrifchilar" },
     { id: "applications", label: "Arizalar" },
     { id: "push", label: "Push xabar yuborish" },
+    { id: "telegram", label: "Telegram" },
     { id: "settings", label: "Sozlamalar" },
   ];
 
@@ -1640,6 +1715,65 @@ export default function PlatformAdminPage() {
                     {pushSending ? "Yuborilmoqda…" : "Yuborish"}
                   </button>
                 </form>
+              </section>
+            </div>
+
+            <div
+              className={`fd-admin-panel ${activeTab === "telegram" ? "fd-admin-panel-active" : ""}`}
+            >
+              <section>
+                <h2>Telegram — platforma admini</h2>
+                <div className="fd-card" style={{ padding: 16, marginBottom: 14 }}>
+                  <div className="fd-card-desc" style={{ fontWeight: 700, marginBottom: 10 }}>
+                    Barcha yangi buyurtmalar haqida xabar
+                  </div>
+                  <p className="fd-card-desc" style={{ marginTop: 0 }}>
+                    Shahardagi barcha restoranlardan keladigan yangi buyurtmalar uchun qisqa xabar olasiz (restoran va
+                    kuryer sozlamalaridan mustaqil). Bir xil Minutka botiga /start — Chat ID ni bu yerga kiriting;
+                    bir nechta ID — vergul yoki yangi qator bilan.
+                  </p>
+                  <label className="fd-label" htmlFor="platform-telegram-chat-id" style={{ marginBottom: 6, display: "block" }}>
+                    Telegram chat ID (yoki bir nechta)
+                  </label>
+                  <input
+                    id="platform-telegram-chat-id"
+                    className="fd-input"
+                    value={platformTelegramChatId}
+                    onChange={(e) => setPlatformTelegramChatId(e.target.value)}
+                    placeholder="-1001234567890, -1009876543210"
+                  />
+                  <div style={{ marginTop: 10, display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
+                    <button
+                      type="button"
+                      className="fd-btn fd-btn-primary"
+                      onClick={() => void savePlatformTelegramSettings()}
+                      disabled={platformTelegramSaving}
+                    >
+                      {platformTelegramSaving ? "Saqlanmoqda..." : "Qo‘shish"}
+                    </button>
+                    {platformTelegramMessage && (
+                      <span className="fd-checkout-meta">{platformTelegramMessage}</span>
+                    )}
+                  </div>
+                  {platformTelegramChatIds.length > 0 && (
+                    <ul style={{ margin: "14px 0 0", paddingLeft: 18 }}>
+                      {platformTelegramChatIds.map((id) => (
+                        <li key={id} style={{ marginBottom: 6 }}>
+                          <code style={{ fontSize: "0.9em" }}>{id}</code>{" "}
+                          <button
+                            type="button"
+                            className="fd-btn"
+                            style={{ padding: "2px 8px", fontSize: "0.85rem" }}
+                            onClick={() => void deletePlatformTelegramChatId(id)}
+                            disabled={platformTelegramSaving}
+                          >
+                            O‘chirish
+                          </button>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </div>
               </section>
             </div>
 

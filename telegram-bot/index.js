@@ -218,6 +218,23 @@ async function sendRestaurantNewPreview(chatId, preview) {
   });
 }
 
+/** Platforma admini: faqat xabar («Qabul qilish» tug‘masiz). */
+async function sendPlatformAdminNewPreview(chatId, preview) {
+  const { shortCode, restaurantName, total } = preview;
+  const text =
+    `Yangi buyurtma (platform) #${String(shortCode || "----")}\n` +
+    `${String(restaurantName || "—")}\n` +
+    `Jami: ${formatMoney(total)} so'm`;
+  await fetch(`${API}/sendMessage`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      chat_id: chatId,
+      text,
+    }),
+  });
+}
+
 async function answerCallbackQuery(callbackQueryId, text, showAlert) {
   await telegramRequest("answerCallbackQuery", {
     callback_query_id: callbackQueryId,
@@ -609,7 +626,8 @@ async function handleTelegramUpdate(update) {
         "Quyidagi xabarda Chat ID — nusxa olib sozlamaga kiriting.\n" +
         "• Restoran: «Qabul qilish» → to‘liq ma’lumot va «Tayyor» → kuryerlarga.\n" +
         "• Kuryer: qisqa xabar → «Buyurtmani olish» → batafsil.\n" +
-        "Sozlash: restoran — admin Telegram; kuryer — Kuryer paneli → Telegram.",
+        "• Platforma admini: barcha yangi buyurtmalar haqida qisqa xabar (Platform admin → Telegram).\n" +
+        "Sozlash: restoran — restoran admini; kuryer — Kuryer paneli; platforma — Platform admin.",
     });
     await telegramRequest("sendMessage", {
       chat_id: chatId,

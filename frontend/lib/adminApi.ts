@@ -161,6 +161,12 @@ export const adminApi = {
       method: "PATCH",
       body: JSON.stringify(body),
     }),
+  getPlatformSettings: () => adminRequest<{ telegramChatId: string }>("/admin/platform-settings"),
+  updatePlatformSettings: (body: { telegramChatId?: string }) =>
+    adminRequest<{ telegramChatId: string }>("/admin/platform-settings", {
+      method: "PATCH",
+      body: JSON.stringify(body),
+    }),
   takeOrder: (id: string) =>
     adminRequest<any>(`/orders/${id}/take`, {
       method: "POST",

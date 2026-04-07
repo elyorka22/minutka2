@@ -110,6 +110,31 @@ export class AdminController {
     return user.restaurants ?? [];
   }
 
+  @Get('platform-settings')
+  async getPlatformSettings(@Req() req: RequestWithUser) {
+    this.assertPlatformAdmin(req);
+    const row = await this.prisma.platformSettings.findUnique({
+      where: { id: 'default' },
+      select: { adminTelegramChatId: true },
+    });
+    return { telegramChatId: row?.adminTelegramChatId ?? '' };
+  }
+
+  @Patch('platform-settings')
+  async patchPlatformSettings(
+    @Req() req: RequestWithUser,
+    @Body() body: { telegramChatId?: string },
+  ) {
+    this.assertPlatformAdmin(req);
+    const value = typeof body.telegramChatId === 'string' ? body.telegramChatId.trim() || null : null;
+    const row = await this.prisma.platformSettings.upsert({
+      where: { id: 'default' },
+      create: { id: 'default', adminTelegramChatId: value },
+      update: { adminTelegramChatId: value },
+    });
+    return { telegramChatId: row.adminTelegramChatId ?? '' };
+  }
+
   @Get('overview')
   async overview(@Req() req: RequestWithUser) {
     this.assertPlatformAdmin(req);

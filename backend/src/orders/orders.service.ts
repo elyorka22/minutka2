@@ -283,68 +283,119 @@ export class OrdersService {
             .filter(Boolean)
         : [];
 
-    if (!skipTelegram && notifyUrl && chatIds.length > 0) {
+    if (!skipTelegram && notifyUrl) {
       void (async () => {
         const base = notifyUrl.replace(/\/$/, '');
+        const platformRow = await this.prisma.platformSettings.findUnique({
+          where: { id: 'default' },
+          select: { adminTelegramChatId: true },
+        });
+        const adminRaw = platformRow?.adminTelegramChatId;
+        const adminChatIds =
+          typeof adminRaw === 'string'
+            ? adminRaw
+                .split(/[,;\n\r\s]+/g)
+                .map((s) => s.trim())
+                .filter(Boolean)
+            : [];
+
         const restSig = this.signRestaurantTelegramOrderId(createdOrder.id);
         const apiBaseUrl = this.getPublicApiBaseUrlForTelegramCallbacks();
-        if (!restSig) {
-          this.logger.warn(
-            `[telegram] yangi buyurtma: restoran Telegram yuborilmadi (JWT_SECRET yoki TELEGRAM_*_CALLBACK_SECRET yo‘q) order=${createdOrder.id}`,
+        if (chatIds.length > 0) {
+          if (!restSig) {
+            this.logger.warn(
+              `[telegram] yangi buyurtma: restoran Telegram yuborilmadi (JWT_SECRET yoki TELEGRAM_*_CALLBACK_SECRET yo‘q) order=${createdOrder.id}`,
+            );
+          }
+
+          // Restoran: avvalo qisqa xabar + «Qabul qilish»; tugmadan keyin to‘liq ma’lumot va «Tayyor» (bot + internal API).
+          await Promise.all(
+            chatIds.map(async (chatId) => {
+              const payload = restSig
+                ? {
+                    chatId,
+                    kind: 'restaurant_new' as const,
+                    preview: {
+                      orderId: createdOrder.id,
+                      shortCode: this.formatOrderCode(createdOrder.shortCode),
+                      restaurantName: restaurant.name,
+                      total: Number(createdOrder.total),
+                      sig: restSig,
+                      ...(apiBaseUrl ? { apiBaseUrl } : {}),
+                    },
+                  }
+                : null;
+              if (!payload) return;
+              try {
+                const res = await fetchWithRetry(`${base}/notify`, {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify(payload),
+                });
+                if (!res.ok) {
+                  const text = await res.text().catch(() => '');
+                  this.logger.warn(
+                    `[telegram] /notify HTTP ${res.status} chatId=${String(chatId).slice(0, 30)} restaurantId=${dto.restaurantId} body=${text.slice(
+                      0,
+                      200,
+                    )}`,
+                  );
+                }
+              } catch (e: unknown) {
+                this.logger.warn(
+                  `[telegram] /notify failed chatId=${String(chatId).slice(0, 30)} restaurantId=${dto.restaurantId} err=${
+                    e instanceof Error ? e.message : String(e)
+                  }`,
+                );
+              }
+            }),
           );
         }
 
-        // Restoran: avvalo qisqa xabar + «Qabul qilish»; tugmadan keyin to‘liq ma’lumot va «Tayyor» (bot + internal API).
-        await Promise.all(
-          chatIds.map(async (chatId) => {
-            const payload = restSig
-              ? {
-                  chatId,
-                  kind: 'restaurant_new' as const,
-                  preview: {
-                    orderId: createdOrder.id,
-                    shortCode: this.formatOrderCode(createdOrder.shortCode),
-                    restaurantName: restaurant.name,
-                    total: Number(createdOrder.total),
-                    sig: restSig,
-                    ...(apiBaseUrl ? { apiBaseUrl } : {}),
-                  },
+        if (adminChatIds.length > 0) {
+          await Promise.all(
+            adminChatIds.map(async (chatId) => {
+              const payload = {
+                chatId,
+                kind: 'platform_admin_new' as const,
+                preview: {
+                  orderId: createdOrder.id,
+                  shortCode: this.formatOrderCode(createdOrder.shortCode),
+                  restaurantName: restaurant.name,
+                  total: Number(createdOrder.total),
+                },
+              };
+              try {
+                const res = await fetchWithRetry(`${base}/notify`, {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify(payload),
+                });
+                if (!res.ok) {
+                  const text = await res.text().catch(() => '');
+                  this.logger.warn(
+                    `[telegram] platform admin /notify HTTP ${res.status} chatId=${String(chatId).slice(0, 30)} order=${createdOrder.id} body=${text.slice(
+                      0,
+                      200,
+                    )}`,
+                  );
                 }
-              : null;
-            if (!payload) return;
-            try {
-              const res = await fetchWithRetry(`${base}/notify`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(payload),
-              });
-              if (!res.ok) {
-                const text = await res.text().catch(() => '');
+              } catch (e: unknown) {
                 this.logger.warn(
-                  `[telegram] /notify HTTP ${res.status} chatId=${String(chatId).slice(0, 30)} restaurantId=${dto.restaurantId} body=${text.slice(
-                    0,
-                    200,
-                  )}`,
+                  `[telegram] platform admin /notify failed chatId=${String(chatId).slice(0, 30)} order=${createdOrder.id} err=${
+                    e instanceof Error ? e.message : String(e)
+                  }`,
                 );
               }
-            } catch (e: unknown) {
-              this.logger.warn(
-                `[telegram] /notify failed chatId=${String(chatId).slice(0, 30)} restaurantId=${dto.restaurantId} err=${
-                  e instanceof Error ? e.message : String(e)
-                }`,
-              );
-            }
-          }),
-        );
+            }),
+          );
+        }
+
       })();
     } else if (!skipTelegram) {
       if (!notifyUrl) {
         this.logger.warn(
           `[telegram] skip: TELEGRAM_BOT_NOTIFY_URL is empty (set it on API and worker to your bot service URL) order=${createdOrder.id}`,
-        );
-      } else {
-        this.logger.warn(
-          `[telegram] skip: restaurant.telegramChatId empty restaurantId=${dto.restaurantId} order=${createdOrder.id}`,
         );
       }
     }

@@ -135,6 +135,10 @@ export class PrismaService implements OnModuleInit, OnModuleDestroy {
     return (this.client as any).partnershipApplication;
   }
 
+  get platformSettings() {
+    return (this.client as any).platformSettings;
+  }
+
   /**
    * Helper for interactive transactions.
    * We keep it in PrismaService so other services don't need access to the raw PrismaClient.
