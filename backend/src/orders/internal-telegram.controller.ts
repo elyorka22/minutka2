@@ -26,6 +26,20 @@ export class InternalTelegramController {
     return this.ordersService.getTelegramCourierOrderDetailsForBot(orderId, s);
   }
 
+  /** Telegram «Yetkazildi» — ON_THE_WAY → DONE (faqat biriktirilgan kuryerning telegramChatId si). */
+  @Get('courier-order/:orderId/delivered')
+  async courierOrderDelivered(
+    @Param('orderId') orderId: string,
+    @Query('sig') sig?: string,
+    @Query('telegramChatId') telegramChatId?: string,
+  ) {
+    const s = typeof sig === 'string' ? sig.trim() : '';
+    if (!s) throw new ForbiddenException('Missing sig');
+    const chat = typeof telegramChatId === 'string' ? telegramChatId.trim() : '';
+    if (!chat) throw new ForbiddenException('Missing telegramChatId');
+    return this.ordersService.telegramCourierMarkDelivered(orderId, s, chat);
+  }
+
   /** Telegram «Batafsil» — holatni o‘zgartirmaydi. */
   @Get('restaurant-order/:orderId/details')
   async restaurantOrderDetails(@Param('orderId') orderId: string, @Query('sig') sig?: string) {

@@ -702,6 +702,131 @@ export class OrdersService {
     }
   }
 
+  /** Kuryer telegramChatId qatorida berilgan chat ID bormi (vergul/yangi qator). */
+  private telegramChatIdListContains(raw: string | null | undefined, clickChatId: string): boolean {
+    if (typeof raw !== 'string' || !clickChatId.trim()) return false;
+    const needle = clickChatId.trim();
+    return raw
+      .split(/[,;\n\r\s]+/g)
+      .map((s) => s.trim())
+      .filter(Boolean)
+      .some((id) => id === needle);
+  }
+
+  /**
+   * Telegram: «Yetkazildi» tugmasi — faqat ON_THE_WAY va biriktirilgan kuryer (chat ID mos).
+   */
+  async telegramCourierMarkDelivered(orderId: string, sig: string, telegramChatIdClick: string): Promise<{ ok: true }> {
+    if (!this.verifyCourierTelegramOrderId(orderId, sig)) {
+      throw new ForbiddenException('Invalid sig');
+    }
+    const clickId = String(telegramChatIdClick || '').trim();
+    if (!clickId) {
+      throw new ForbiddenException('Missing telegramChatId');
+    }
+
+    const orderRow = await this.prisma.order.findUnique({
+      where: { id: orderId },
+      select: {
+        id: true,
+        status: true,
+        courier: {
+          select: { id: true, telegramChatId: true, userId: true },
+        },
+      },
+    });
+
+    if (!orderRow?.courier) {
+      throw new NotFoundException('Buyurtma topilmadi.');
+    }
+    if (orderRow.status !== 'ON_THE_WAY') {
+      throw new BadRequestException('Buyurtma hali yo‘lda emas yoki allaqachon yopilgan.');
+    }
+    if (!this.telegramChatIdListContains(orderRow.courier.telegramChatId, clickId)) {
+      throw new ForbiddenException('Bu Telegram chat uchun ruxsat yo‘q.');
+    }
+
+    await this.updateStatus(orderId, 'DONE', 'COURIER', orderRow.courier.userId);
+    return { ok: true };
+  }
+
+  /**
+   * Kuryer ON_THE_WAY qilganda — shu kuryerning Telegramiga «Yetkazildi» tugmasi bilan xabar.
+   */
+  private notifyCourierTelegramDeliverPrompt(orderId: string): void {
+    const disableTelegramEnv = process.env.DISABLE_TELEGRAM_NOTIFY === 'true';
+    if (disableTelegramEnv) return;
+    const notifyUrl = (process.env.TELEGRAM_BOT_NOTIFY_URL ?? '').trim();
+    if (!notifyUrl) return;
+
+    void (async () => {
+      const orderRow = await this.prisma.order.findUnique({
+        where: { id: orderId },
+        select: {
+          id: true,
+          shortCode: true,
+          status: true,
+          total: true,
+          restaurant: { select: { name: true } },
+          courier: { select: { telegramChatId: true } },
+        },
+      });
+      if (!orderRow || orderRow.status !== 'ON_THE_WAY' || !orderRow.courier) return;
+
+      const raw = orderRow.courier.telegramChatId;
+      if (typeof raw !== 'string' || !raw.trim()) return;
+
+      const sig = this.signCourierTelegramOrderId(orderRow.id);
+      if (!sig) return;
+
+      const chatIds = raw
+        .split(/[,;\n\r\s]+/g)
+        .map((s) => s.trim())
+        .filter(Boolean);
+      if (chatIds.length === 0) return;
+
+      const apiBaseUrl = this.getPublicApiBaseUrlForTelegramCallbacks();
+      const preview = {
+        orderId: orderRow.id,
+        shortCode: this.formatOrderCode(orderRow.shortCode),
+        restaurantName: orderRow.restaurant?.name ?? '—',
+        total: Number(orderRow.total),
+        sig,
+        ...(apiBaseUrl ? { apiBaseUrl } : {}),
+      };
+
+      const base = notifyUrl.replace(/\/$/, '');
+      await Promise.all(
+        chatIds.map(async (chatId) => {
+          const payload = {
+            chatId,
+            kind: 'courier_deliver' as const,
+            preview,
+          };
+          try {
+            const res = await fetchWithRetry(`${base}/notify`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify(payload),
+            });
+            if (!res.ok) {
+              const text = await res.text().catch(() => '');
+              this.logger.warn(
+                `[telegram] courier DELIVER prompt HTTP ${res.status} chatId=${String(chatId).slice(0, 30)} order=${orderId} body=${text.slice(0, 200)}`,
+              );
+            }
+          } catch (e: unknown) {
+            this.logger.warn(
+              `[telegram] courier DELIVER prompt failed chatId=${String(chatId).slice(0, 30)} order=${orderId} err=${
+                e instanceof Error ? e.message : String(e)
+              }`,
+            );
+          }
+        }),
+      );
+    })();
+  }
+
   private signRestaurantTelegramOrderId(orderId: string): string {
     const secret = this.getTelegramHmacSecret();
     if (!secret) return '';
@@ -1212,6 +1337,10 @@ export class OrdersService {
 
     if (status === 'ON_THE_WAY' && order?.customerId) {
       void this.notifyCustomerOnTheWay(order.customerId, this.formatOrderCode(order.shortCode)).catch(() => {});
+    }
+
+    if (status === 'ON_THE_WAY' && isCourier && oldStatus === 'READY') {
+      this.notifyCourierTelegramDeliverPrompt(id);
     }
 
     if (isCourier) {

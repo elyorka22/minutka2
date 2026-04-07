@@ -163,6 +163,39 @@ async function sendCourierReadyPreview(chatId, preview) {
   });
 }
 
+/** Kuryer yo‘lga chiqqandan keyin — «Yetkazildi» tugmasi (DONE). */
+async function sendCourierDeliverPreview(chatId, preview) {
+  const { orderId, shortCode, restaurantName, total, sig, apiBaseUrl } = preview;
+  if (!orderId || !sig) {
+    throw new Error("preview.orderId and preview.sig required");
+  }
+  const base = normalizeApiBase(apiBaseUrl);
+  if (base) {
+    orderApiBaseByOrderId.set(String(orderId), base);
+  }
+  const code = String(shortCode || "----");
+  const text =
+    `Buyurtma yo‘lda #${code}\n` +
+    `${String(restaurantName || "—")}\n` +
+    `Jami: ${formatMoney(total)} so'm\n\n` +
+    `Yetkazganingizdan keyin «Yetkazildi» tugmasini bosing.`;
+  const callbackData = `c|${orderId}|${sig}|d`;
+  if (Buffer.byteLength(callbackData, "utf8") > 64) {
+    throw new Error("callback_data > 64 bytes");
+  }
+  await fetch(`${API}/sendMessage`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      chat_id: chatId,
+      text,
+      reply_markup: {
+        inline_keyboard: [[{ text: "Yetkazildi", callback_data: callbackData }]],
+      },
+    }),
+  });
+}
+
 /** «Qabul qilish» dan keyin — to‘liq matn + «Tayyor». */
 function buildRestaurantOrderFullText(order) {
   const code =
@@ -307,6 +340,67 @@ async function handleCourierOrderCallback(q) {
     return;
   }
   const parts = data.split("|");
+  if (parts.length === 4 && parts[3] === "d") {
+    const [, orderId, sig] = parts;
+    const base = resolveApiBaseForCallback(orderId);
+    if (!base) {
+      await answerCallbackQuery(q.id, MSG_NO_BACKEND_URL, true);
+      return;
+    }
+    const msg = q.message;
+    const chatId = msg?.chat?.id;
+    if (chatId == null) {
+      await answerCallbackQuery(q.id, "Chat topilmadi.", true);
+      return;
+    }
+    const url = `${base}/internal/telegram/courier-order/${encodeURIComponent(orderId)}/delivered?sig=${encodeURIComponent(sig)}&telegramChatId=${encodeURIComponent(String(chatId))}`;
+    let res;
+    try {
+      res = await fetch(url, { method: "GET", headers: { Accept: "application/json" } });
+    } catch (e) {
+      console.error("courier delivered fetch", e);
+      await answerCallbackQuery(q.id, "Serverga ulanib bo‘lmadi.", true);
+      return;
+    }
+    let j = {};
+    try {
+      j = await res.json();
+    } catch {
+      j = {};
+    }
+    const errMsg = (m) => {
+      if (Array.isArray(m)) return m.join(", ");
+      if (typeof m === "string") return m;
+      return "";
+    };
+    if (!res.ok || !j.ok) {
+      const text =
+        errMsg(j.message) ||
+        (res.status === 403 ? "Ruxsat yo‘q (chat ID yoki buyurtma)." : "Yetkazilgan deb belgilab bo‘lmadi.");
+      await answerCallbackQuery(q.id, text || "Xatolik", true);
+      return;
+    }
+    await answerCallbackQuery(q.id, "Buyurtma yetkazildi deb belgilandi.", false);
+    if (!msg || !msg.chat) return;
+    const messageId = msg.message_id;
+    const prev = String(msg.text || "");
+    const extra = "\n\n✅ Yetkazildi.";
+    let newText = prev + extra;
+    if (newText.length > 4096) {
+      newText = newText.slice(0, 4093 - extra.length) + extra;
+    }
+    await fetch(`${API}/editMessageText`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        chat_id: msg.chat.id,
+        message_id: messageId,
+        text: newText,
+        reply_markup: { inline_keyboard: [] },
+      }),
+    });
+    return;
+  }
   if (parts.length !== 3) {
     await answerCallbackQuery(q.id);
     return;
@@ -625,7 +719,7 @@ async function handleTelegramUpdate(update) {
         "Assalomu alaykum! Bu Minutka boti.\n\n" +
         "Quyidagi xabarda Chat ID — nusxa olib sozlamaga kiriting.\n" +
         "• Restoran: «Qabul qilish» → to‘liq ma’lumot va «Tayyor» → kuryerlarga.\n" +
-        "• Kuryer: qisqa xabar → «Buyurtmani olish» → batafsil.\n" +
+        "• Kuryer: tayyor buyurtma → «Buyurtmani olish»; panelda olib yo‘lga chiqqach — «Yetkazildi» tugmasi.\n" +
         "• Platforma admini: barcha yangi buyurtmalar haqida qisqa xabar (Platform admin → Telegram).\n" +
         "Sozlash: restoran — restoran admini; kuryer — Kuryer paneli; platforma — Platform admin.",
     });
@@ -654,8 +748,12 @@ const server = http.createServer(async (req, res) => {
         }
         if (kind === "courier_ready" && preview && typeof preview === "object") {
           await sendCourierReadyPreview(chatId, preview);
+        } else if (kind === "courier_deliver" && preview && typeof preview === "object") {
+          await sendCourierDeliverPreview(chatId, preview);
         } else if (kind === "restaurant_new" && preview && typeof preview === "object") {
           await sendRestaurantNewPreview(chatId, preview);
+        } else if (kind === "platform_admin_new" && preview && typeof preview === "object") {
+          await sendPlatformAdminNewPreview(chatId, preview);
         } else if (order) {
           await sendOrderNotification(chatId, order, kind);
         } else {
