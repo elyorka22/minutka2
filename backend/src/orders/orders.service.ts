@@ -49,6 +49,7 @@ const TELEGRAM_COURIER_ORDER_SELECT = {
   shortCode: true,
   status: true,
   courierId: true,
+  subtotal: true,
   total: true,
   comment: true,
   restaurant: { select: { name: true } },
@@ -214,6 +215,7 @@ export class OrdersService {
       let createdOrder: {
         id: string;
         shortCode: number;
+        subtotal: unknown;
         total: unknown;
         createdAt: Date;
       } | null = null;
@@ -256,6 +258,7 @@ export class OrdersService {
             select: {
               id: true,
               shortCode: true,
+              subtotal: true,
               total: true,
               createdAt: true,
             },
@@ -332,7 +335,8 @@ export class OrdersService {
                       orderId: createdOrder.id,
                       shortCode: this.formatOrderCode(createdOrder.shortCode),
                       restaurantName: restaurant.name,
-                      total: Number(createdOrder.total),
+                      // Restoran admin panelidagi «Taomlar jami» bilan bir xil (faqat taomlar, yetkazish/servis yo‘q).
+                      total: Number(createdOrder.subtotal),
                       sig: restSig,
                       ...(apiBaseUrl ? { apiBaseUrl } : {}),
                     },
@@ -903,10 +907,11 @@ export class OrdersService {
     return this.buildTelegramRestaurantOrderPayload(row);
   }
 
-  /** Restoran Telegram: mijozning to‘liq buyurtma summasi (subtotal + yetkazish + servis). */
+  /** Restoran Telegram: admin paneldagi «Taomlar jami» — faqat subtotal (taomlar). */
   private buildTelegramRestaurantOrderPayload(orderRow: {
     id: string;
     shortCode: number;
+    subtotal: unknown;
     total: unknown;
     comment: string | null;
     restaurant: { name: string } | null;
@@ -945,7 +950,7 @@ export class OrdersService {
       id: orderRow.id,
       shortCode: this.formatOrderCode(orderRow.shortCode),
       restaurantName: orderRow.restaurant?.name ?? '—',
-      total: Number(orderRow.total),
+      total: Number(orderRow.subtotal),
       customerName: orderRow.customer?.name ?? '',
       phone,
       lat: orderRow.address?.latitude,

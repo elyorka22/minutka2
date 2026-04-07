@@ -205,7 +205,7 @@ function buildRestaurantOrderFullText(order) {
   let text =
     `Qabul qilingan buyurtma #${code}\n` +
     `Restoran: ${order.restaurantName}\n` +
-    `Buyurtma summasi: ${formatMoney(order.total)} so'm\n` +
+    `Taomlar jami: ${formatMoney(order.total)} so'm\n` +
     `Mijoz: ${order.customerName || "-"}\n` +
     `Telefon: ${order.phone || "-"}`;
   if (order.addressLine) {
@@ -233,7 +233,7 @@ async function sendRestaurantNewPreview(chatId, preview) {
   const text =
     `Yangi buyurtma #${String(shortCode || "----")}\n` +
     `${String(restaurantName || "—")}\n` +
-    `Buyurtma summasi: ${formatMoney(total)} so'm`;
+    `Taomlar jami: ${formatMoney(total)} so'm`;
   const callbackData = `r|${orderId}|${sig}|a`;
   if (Buffer.byteLength(callbackData, "utf8") > 64) {
     throw new Error("callback_data > 64 bytes");
