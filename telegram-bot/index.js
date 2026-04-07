@@ -119,7 +119,7 @@ function buildCourierOrderDetailText(order) {
   let text =
     `Yetkazib berishga tayyor buyurtma #${code}\n` +
     `Restoran: ${order.restaurantName}\n` +
-    `Jami: ${formatMoney(order.total)} so'm\n` +
+    `Taomlar jami: ${formatMoney(order.total)} so'm\n` +
     `Mijoz: ${order.customerName || "-"}\n` +
     `Telefon: ${order.phone || "-"}`;
   if (order.addressLine) {
@@ -145,7 +145,7 @@ async function sendCourierReadyPreview(chatId, preview) {
   if (base) {
     orderApiBaseByOrderId.set(String(orderId), base);
   }
-  const text = `${String(restaurantName || "—")}\nJami: ${formatMoney(total)} so'm`;
+  const text = `${String(restaurantName || "—")}\nTaomlar jami: ${formatMoney(total)} so'm`;
   const callbackData = `c|${orderId}|${sig}`;
   if (Buffer.byteLength(callbackData, "utf8") > 64) {
     throw new Error("callback_data > 64 bytes");
@@ -177,7 +177,7 @@ async function sendCourierDeliverPreview(chatId, preview) {
   const text =
     `Buyurtma yo‘lda #${code}\n` +
     `${String(restaurantName || "—")}\n` +
-    `Jami: ${formatMoney(total)} so'm\n\n` +
+    `Taomlar jami: ${formatMoney(total)} so'm\n\n` +
     `Yetkazganingizdan keyin «Yetkazildi» tugmasini bosing.`;
   const callbackData = `c|${orderId}|${sig}|d`;
   if (Buffer.byteLength(callbackData, "utf8") > 64) {
@@ -282,10 +282,11 @@ async function sendOrderNotification(chatId, order, kind) {
     kind === "courier_ready"
       ? `Yetkazib berishga tayyor buyurtma #${code}`
       : `Yangi buyurtma #${code}`;
+  const sumLabel = kind === "courier_ready" ? "Taomlar jami" : "Jami";
   let text =
     `${head}\n` +
     `Restoran: ${order.restaurantName}\n` +
-    `Jami: ${formatMoney(order.total)} so'm\n` +
+    `${sumLabel}: ${formatMoney(order.total)} so'm\n` +
     `Mijoz: ${order.customerName || "-"}\n` +
     `Telefon: ${order.phone || "-"}`;
 

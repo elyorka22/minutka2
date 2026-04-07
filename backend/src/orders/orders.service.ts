@@ -115,6 +115,19 @@ export class OrdersService {
   }
 
   /**
+   * Telegram / kuryer UI: faqat taomlar (narx × miqdor). Mijozning to‘liq order.total
+   * (subtotal + delivery + service fee) kuryerga ko‘rsatilmaydi.
+   */
+  private courierTelegramFoodTotalUzs(items: Array<{ quantity: number; price: unknown }> | undefined): number {
+    if (!Array.isArray(items)) return 0;
+    let sum = 0;
+    for (const it of items) {
+      sum += Number(it.price) * Number(it.quantity || 0);
+    }
+    return Math.round(sum * 100) / 100;
+  }
+
+  /**
    * Генерируем кандидат shortCode без предварительного SELECT.
    * Уникальность проверяется на уровне INSERT через catch (P2002) в create().
    *
@@ -766,9 +779,9 @@ export class OrdersService {
           id: true,
           shortCode: true,
           status: true,
-          total: true,
           restaurant: { select: { name: true } },
           courier: { select: { telegramChatId: true } },
+          items: { select: { quantity: true, price: true } },
         },
       });
       if (!orderRow || orderRow.status !== 'ON_THE_WAY' || !orderRow.courier) return;
@@ -790,7 +803,7 @@ export class OrdersService {
         orderId: orderRow.id,
         shortCode: this.formatOrderCode(orderRow.shortCode),
         restaurantName: orderRow.restaurant?.name ?? '—',
-        total: Number(orderRow.total),
+        total: this.courierTelegramFoodTotalUzs(orderRow.items),
         sig,
         ...(apiBaseUrl ? { apiBaseUrl } : {}),
       };
@@ -931,7 +944,7 @@ export class OrdersService {
       id: orderRow.id,
       shortCode: this.formatOrderCode(orderRow.shortCode),
       restaurantName: orderRow.restaurant?.name ?? '—',
-      total: Number(orderRow.total),
+      total: this.courierTelegramFoodTotalUzs(orderRow.items),
       customerName: orderRow.customer?.name ?? '',
       phone,
       lat: orderRow.address?.latitude,
@@ -1121,7 +1134,7 @@ export class OrdersService {
       const preview = {
         orderId: orderRow.id,
         restaurantName: orderRow.restaurant?.name ?? '—',
-        total: Number(orderRow.total),
+        total: this.courierTelegramFoodTotalUzs(orderRow.items),
         sig,
         ...(apiBaseUrl ? { apiBaseUrl } : {}),
       };
