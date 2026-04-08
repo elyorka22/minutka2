@@ -1,17 +1,40 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, type ChangeEvent } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { adminApi } from "../../lib/adminApi";
 import { imageUrl } from "../../lib/api";
 import { decodeJwtPayload } from "../../lib/jwt";
 import { clearAuthTokens, getAccessToken, logoutWithRefreshToken } from "../../lib/auth-tokens";
-import {
-  padImageUrlsToVariantCount,
-  parseHeroImageTextareaToUrls,
-  parseHeroTextareaToVariants,
-} from "../../lib/heroTaglines";
+import { padImageUrlsToVariantCount } from "../../lib/heroTaglines";
+
+type HomeHeroSlideRow = { id: string; line1: string; line2: string; imageUrl: string };
+
+function newHeroSlideId() {
+  if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") {
+    return crypto.randomUUID();
+  }
+  return `hero-${Date.now()}-${Math.floor(Math.random() * 1e6)}`;
+}
+
+function platformSettingsToHeroSlides(s: {
+  heroLine1Texts?: string[];
+  heroLine2Texts?: string[];
+  heroLine1ImageUrls?: (string | null)[];
+}): HomeHeroSlideRow[] {
+  const a1 = Array.isArray(s?.heroLine1Texts) ? s.heroLine1Texts : [];
+  const a2 = Array.isArray(s?.heroLine2Texts) ? s.heroLine2Texts : [];
+  const imgs = Array.isArray(s?.heroLine1ImageUrls) ? s.heroLine1ImageUrls : [];
+  const n = Math.max(a1.length, a2.length, 1);
+  return Array.from({ length: n }, (_, i) => ({
+    id: newHeroSlideId(),
+    line1: String(a1[i] ?? "").trim() || (i === 0 ? "TAOMLAR." : ""),
+    line2: String(a2[i] ?? "").trim() || (i === 0 ? "YETKAZILADI." : ""),
+    imageUrl: imgs[i] != null && String(imgs[i]).trim() ? String(imgs[i]).trim() : "",
+  }));
+}
+
 type TabId =
   | "stats"
   | "users"
@@ -135,9 +158,15 @@ export default function PlatformAdminPage() {
   const [platformTelegramChatIds, setPlatformTelegramChatIds] = useState<string[]>([]);
   const [platformTelegramSaving, setPlatformTelegramSaving] = useState(false);
   const [platformTelegramMessage, setPlatformTelegramMessage] = useState<string | null>(null);
-  const [heroTaglineLine1, setHeroTaglineLine1] = useState("TAOMLAR.");
-  const [heroTaglineLine2, setHeroTaglineLine2] = useState("YETKAZILADI.");
-  const [heroTaglineImg1, setHeroTaglineImg1] = useState("");
+  const [heroSlides, setHeroSlides] = useState<HomeHeroSlideRow[]>(() => [
+    {
+      id: newHeroSlideId(),
+      line1: "TAOMLAR.",
+      line2: "YETKAZILADI.",
+      imageUrl: "",
+    },
+  ]);
+  const [heroSlideUploadingId, setHeroSlideUploadingId] = useState<string | null>(null);
   const [heroTaglineSaving, setHeroTaglineSaving] = useState(false);
   const [heroTaglineMessage, setHeroTaglineMessage] = useState<string | null>(null);
   const [partnershipApplications, setPartnershipApplications] = useState<
@@ -329,14 +358,7 @@ export default function PlatformAdminPage() {
       .getPlatformSettings()
       .then((s) => {
         if (cancelled) return;
-        const a1 = Array.isArray(s?.heroLine1Texts) ? s.heroLine1Texts : [];
-        const a2 = Array.isArray(s?.heroLine2Texts) ? s.heroLine2Texts : [];
-        setHeroTaglineLine1(a1.length > 0 ? a1.join("\n") : "TAOMLAR.");
-        setHeroTaglineLine2(a2.length > 0 ? a2.join("\n") : "YETKAZILADI.");
-        const i1 = Array.isArray(s?.heroLine1ImageUrls) ? s.heroLine1ImageUrls : [];
-        setHeroTaglineImg1(
-          i1.map((u) => (u == null ? "" : String(u))).join("\n"),
-        );
+        setHeroSlides(platformSettingsToHeroSlides(s));
         setHeroTaglineMessage(null);
       })
       .catch(() => {
@@ -863,31 +885,54 @@ export default function PlatformAdminPage() {
     }
   }
 
+  function updateHeroSlide(id: string, patch: Partial<Pick<HomeHeroSlideRow, "line1" | "line2" | "imageUrl">>) {
+    setHeroSlides((prev) => prev.map((s) => (s.id === id ? { ...s, ...patch } : s)));
+  }
+
+  function addHeroSlide() {
+    setHeroSlides((prev) => [...prev, { id: newHeroSlideId(), line1: "", line2: "", imageUrl: "" }]);
+  }
+
+  function removeHeroSlide(id: string) {
+    setHeroSlides((prev) => (prev.length <= 1 ? prev : prev.filter((s) => s.id !== id)));
+  }
+
+  async function handleHeroSlideImageFile(id: string, e: ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file) return;
+    setHeroSlideUploadingId(id);
+    setHeroTaglineMessage(null);
+    try {
+      const { url } = await adminApi.uploadImage(file);
+      setHeroSlides((prev) => prev.map((s) => (s.id === id ? { ...s, imageUrl: url } : s)));
+    } catch (err: any) {
+      setHeroTaglineMessage(err?.message ?? "Rasm yuklashda xatolik.");
+    } finally {
+      setHeroSlideUploadingId(null);
+    }
+  }
+
   async function saveHeroTaglines() {
     setHeroTaglineSaving(true);
     setHeroTaglineMessage(null);
     try {
-      const a1 = parseHeroTextareaToVariants(heroTaglineLine1);
-      const a2 = parseHeroTextareaToVariants(heroTaglineLine2);
-      if (a1.length === 0 || a2.length === 0) {
-        setHeroTaglineMessage(
-          "Har ikkala qatorda kamida bitta variant bo‘lishi kerak (yangi qator yoki vergul bilan ajrating).",
-        );
+      const valid = heroSlides.filter((s) => s.line1.trim() && s.line2.trim());
+      if (valid.length === 0) {
+        setHeroTaglineMessage("Kamida bitta slydda 1 va 2-qator matnlari to‘ldirilishi kerak.");
         return;
       }
-      const img1 = padImageUrlsToVariantCount(parseHeroImageTextareaToUrls(heroTaglineImg1), a1.length);
-      const img2empty = padImageUrlsToVariantCount([], a2.length);
+      const a1 = valid.map((s) => s.line1.trim());
+      const a2 = valid.map((s) => s.line2.trim());
+      const img1 = valid.map((s) => s.imageUrl.trim());
+      const img2empty = padImageUrlsToVariantCount([], valid.length);
       const saved = await adminApi.updatePlatformSettings({
         heroLine1Texts: a1,
         heroLine2Texts: a2,
         heroLine1ImageUrls: img1,
         heroLine2ImageUrls: img2empty,
       });
-      setHeroTaglineLine1((saved.heroLine1Texts ?? []).join("\n"));
-      setHeroTaglineLine2((saved.heroLine2Texts ?? []).join("\n"));
-      setHeroTaglineImg1(
-        (saved.heroLine1ImageUrls ?? []).map((u) => (u == null ? "" : String(u))).join("\n"),
-      );
+      setHeroSlides(platformSettingsToHeroSlides(saved));
       setHeroTaglineMessage("Saqlandi. Bosh sahifa tez orada yangilanadi.");
     } catch (err: any) {
       setHeroTaglineMessage(err?.message ?? "Saqlashda xatolik.");
@@ -1978,57 +2023,176 @@ export default function PlatformAdminPage() {
               <section>
                 <h2>Sayt sozlamalari</h2>
                 <div className="fd-form-block" style={{ marginTop: 16 }}>
-                  <h3>Bosh sahifa sarlavhasi (qidiruv ostidagi ikki qator)</h3>
+                  <h3>Bosh sahifa sarlavhasi (slydlar)</h3>
                   <p className="fd-checkout-meta">
-                    Har bir qatorda bir vaqtning o‘zida faqat bitta so‘z ko‘rinadi. Bir nechta variant: har birini
-                    alohida qatorga yozing yoki bir qatorda vergul bilan ajrating (masalan:{" "}
-                    <code style={{ fontSize: "0.9em" }}>TAOMLAR, GULLAR</code>). Bosh sahifada variantlar
-                    navbat bilan almashadi. Bitta karta: chapda ikkala qator, o‘ngda bitta katta rasm — har bir
-                    variant uchun bitta rasm URL (pastdagi ro‘yxat, matn bilan bir xil tartib).
+                    Har bir slyd — bosh sahifada almashadigan blok: 1 va 2-qator matn + bitta rasm. Telefondan
+                    rasm yuklash uchun <strong>Galereya</strong> yoki <strong>Kamera</strong> tugmasini bosing;
+                    yoki rasm URL ni yozing. Yangi variant uchun <strong>Slyd qo‘shish</strong>.
                   </p>
                   <div className="fd-form" style={{ marginTop: 12 }}>
-                    <label className="fd-field">
-                      <span>1-qator (masalan: TAOMLAR.)</span>
-                      <textarea
-                        value={heroTaglineLine1}
-                        onChange={(e) => setHeroTaglineLine1(e.target.value)}
-                        rows={4}
-                        placeholder={"TAOMLAR.\nGULLAR.\n\nyoki: TAOMLAR, GULLAR"}
-                        style={{ minHeight: 88, resize: "vertical" }}
-                      />
-                    </label>
-                    <label className="fd-field">
-                      <span>2-qator (masalan: YETKAZILADI.)</span>
-                      <textarea
-                        value={heroTaglineLine2}
-                        onChange={(e) => setHeroTaglineLine2(e.target.value)}
-                        rows={4}
-                        placeholder={"YETKAZILADI.\nTEZ.\nISITIB."}
-                        style={{ minHeight: 88, resize: "vertical" }}
-                      />
-                    </label>
-                    <label className="fd-field">
-                      <span>Slyd uchun rasmlar (1-variant = 1-URL, ikkala qator matni bilan bir vaqtda almashadi)</span>
-                      <textarea
-                        value={heroTaglineImg1}
-                        onChange={(e) => setHeroTaglineImg1(e.target.value)}
-                        rows={4}
-                        placeholder={"https://...\nhttps://..."}
-                        style={{ minHeight: 88, resize: "vertical", fontFamily: "inherit", fontSize: "0.9rem" }}
-                      />
-                    </label>
+                    {heroSlides.map((slide, slideIndex) => {
+                      const uploading = heroSlideUploadingId === slide.id;
+                      const galId = `hero-slide-gal-${slide.id}`;
+                      const camId = `hero-slide-cam-${slide.id}`;
+                      return (
+                        <div
+                          key={slide.id}
+                          className="fd-card"
+                          style={{
+                            padding: 14,
+                            marginTop: slideIndex === 0 ? 0 : 14,
+                            border: "1px solid var(--color-border)",
+                          }}
+                        >
+                          <div style={{ fontWeight: 700, marginBottom: 10 }}>Slyd {slideIndex + 1}</div>
+                          <label className="fd-field">
+                            <span>1-qator (masalan: TAOMLAR yoki GULLAR YETKAZAMIZ)</span>
+                            <input
+                              type="text"
+                              value={slide.line1}
+                              onChange={(e) => updateHeroSlide(slide.id, { line1: e.target.value })}
+                              placeholder="TAOMLAR."
+                              autoComplete="off"
+                            />
+                          </label>
+                          <label className="fd-field">
+                            <span>2-qator (masalan: YETKAZILADI)</span>
+                            <input
+                              type="text"
+                              value={slide.line2}
+                              onChange={(e) => updateHeroSlide(slide.id, { line2: e.target.value })}
+                              placeholder="YETKAZILADI."
+                              autoComplete="off"
+                            />
+                          </label>
+                          <div style={{ marginTop: 4 }}>
+                            <span className="fd-checkout-meta" style={{ fontWeight: 600 }}>
+                              Rasm
+                            </span>
+                            <div
+                              style={{
+                                marginTop: 8,
+                                display: "flex",
+                                flexWrap: "wrap",
+                                gap: 10,
+                                alignItems: "center",
+                              }}
+                            >
+                              {slide.imageUrl.trim() ? (
+                                <img
+                                  src={imageUrl(slide.imageUrl.trim())}
+                                  alt=""
+                                  style={{
+                                    width: 80,
+                                    height: 80,
+                                    borderRadius: 14,
+                                    objectFit: "cover",
+                                    border: "1px solid var(--color-border)",
+                                  }}
+                                  onError={(e) => {
+                                    (e.target as HTMLImageElement).style.display = "none";
+                                  }}
+                                />
+                              ) : (
+                                <div
+                                  style={{
+                                    width: 80,
+                                    height: 80,
+                                    borderRadius: 14,
+                                    background: "var(--color-bg)",
+                                    border: "1px dashed var(--color-border)",
+                                  }}
+                                />
+                              )}
+                              <input
+                                type="file"
+                                accept="image/*"
+                                id={galId}
+                                style={{ display: "none" }}
+                                disabled={uploading || heroTaglineSaving}
+                                onChange={(e) => void handleHeroSlideImageFile(slide.id, e)}
+                              />
+                              <input
+                                type="file"
+                                accept="image/*"
+                                capture="environment"
+                                id={camId}
+                                style={{ display: "none" }}
+                                disabled={uploading || heroTaglineSaving}
+                                onChange={(e) => void handleHeroSlideImageFile(slide.id, e)}
+                              />
+                              <label htmlFor={galId} style={{ margin: 0 }}>
+                                <span
+                                  className="fd-btn fd-btn-primary"
+                                  style={{
+                                    cursor: uploading ? "wait" : "pointer",
+                                    display: "inline-block",
+                                    opacity: uploading ? 0.7 : 1,
+                                  }}
+                                >
+                                  {uploading ? "Yuklanmoqda..." : "Galereya"}
+                                </span>
+                              </label>
+                              <label htmlFor={camId} style={{ margin: 0 }}>
+                                <span
+                                  className="fd-btn"
+                                  style={{
+                                    cursor: uploading ? "wait" : "pointer",
+                                    display: "inline-block",
+                                    opacity: uploading ? 0.7 : 1,
+                                  }}
+                                >
+                                  Kamera
+                                </span>
+                              </label>
+                            </div>
+                            <label className="fd-field" style={{ marginTop: 10 }}>
+                              <span>Yoki rasm manzili (URL)</span>
+                              <input
+                                type="url"
+                                value={slide.imageUrl}
+                                onChange={(e) => updateHeroSlide(slide.id, { imageUrl: e.target.value })}
+                                placeholder="https://..."
+                                autoComplete="off"
+                              />
+                            </label>
+                          </div>
+                          {heroSlides.length > 1 && (
+                            <button
+                              type="button"
+                              className="fd-btn"
+                              style={{ marginTop: 12, fontSize: "0.9rem" }}
+                              disabled={heroTaglineSaving}
+                              onClick={() => removeHeroSlide(slide.id)}
+                            >
+                              Bu slydni o‘chirish
+                            </button>
+                          )}
+                        </div>
+                      );
+                    })}
+                    <button
+                      type="button"
+                      className="fd-btn"
+                      style={{ marginTop: 12 }}
+                      disabled={heroTaglineSaving}
+                      onClick={() => addHeroSlide()}
+                    >
+                      + Slyd qo‘shish
+                    </button>
                     {heroTaglineMessage && (
-                      <p className="fd-checkout-meta" style={{ color: "var(--color-text-secondary)" }}>
+                      <p className="fd-checkout-meta" style={{ color: "var(--color-text-secondary)", marginTop: 12 }}>
                         {heroTaglineMessage}
                       </p>
                     )}
                     <button
                       type="button"
                       className="fd-btn fd-btn-primary"
+                      style={{ marginTop: 12 }}
                       disabled={heroTaglineSaving}
                       onClick={() => void saveHeroTaglines()}
                     >
-                      {heroTaglineSaving ? "Saqlanmoqda..." : "Sarlavhani saqlash"}
+                      {heroTaglineSaving ? "Saqlanmoqda..." : "Barcha slydlarni saqlash"}
                     </button>
                   </div>
                 </div>
