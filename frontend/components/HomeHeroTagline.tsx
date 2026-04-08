@@ -37,14 +37,15 @@ function RotatingLine({ lines }: { lines: string[] }) {
 type Props = {
   heroLine1Texts?: string[];
   heroLine2Texts?: string[];
+  className?: string;
 };
 
-export function HomeHeroTagline({ heroLine1Texts, heroLine2Texts }: Props) {
+export function HomeHeroTagline({ heroLine1Texts, heroLine2Texts, className }: Props) {
   const line1 = useMemo(() => normalizeLines(heroLine1Texts, "TAOMLAR."), [heroLine1Texts]);
   const line2 = useMemo(() => normalizeLines(heroLine2Texts, "YETKAZILADI."), [heroLine2Texts]);
 
   return (
-    <h1 className="fd-home-hero-tagline">
+    <h1 className={`fd-home-hero-tagline${className ? ` ${className}` : ""}`}>
       <RotatingLine lines={line1} />
       <RotatingLine lines={line2} />
     </h1>

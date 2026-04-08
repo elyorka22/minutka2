@@ -7,10 +7,10 @@ import { getCachedHomepage } from "../lib/homepage-cache";
 import { SafeImage } from "../components/SafeImage";
 import { HomeHeroTagline } from "../components/HomeHeroTagline";
 
-/** Qalin yumaloq shrift — Wolt uslubidagi tagline uchun */
+/** Tagline uchun eng qalin Fredoka (700) */
 const homeHeroFont = Fredoka({
   subsets: ["latin", "latin-ext"],
-  weight: ["600", "700"],
+  weight: ["700"],
   display: "swap",
 });
 
@@ -67,7 +67,7 @@ export default async function HomePage() {
 
   return (
     <div className="fd-shell">
-      <div className={`fd-home-hero-wolt ${homeHeroFont.className}`}>
+      <div className="fd-home-hero-wolt">
         <div className="fd-home-hero-inner">
           <form action="/search" method="get" className="fd-home-search fd-home-search--hero" role="search">
             <label htmlFor="home-hero-search" className="fd-sr-only">
@@ -83,7 +83,11 @@ export default async function HomePage() {
             />
           </form>
 
-          <HomeHeroTagline heroLine1Texts={heroLine1Texts} heroLine2Texts={heroLine2Texts} />
+          <HomeHeroTagline
+            heroLine1Texts={heroLine1Texts}
+            heroLine2Texts={heroLine2Texts}
+            className={homeHeroFont.className}
+          />
 
           {exploreCategories.length > 0 && (
             <div className="fd-home-explore-section fd-home-explore-section--in-hero" aria-label="Tezkor kategoriyalar">
