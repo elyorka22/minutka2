@@ -484,28 +484,72 @@ body {
   box-shadow: 0 0 0 3px rgba(234, 88, 12, 0.35), 0 2px 12px rgba(0, 0, 0, 0.12);
 }
 
-.fd-home-hero-tagline {
+.fd-home-hero-tagline-outer {
+  width: 100%;
+}
+
+.fd-home-hero-tagline.fd-home-hero-tagline--split {
   margin: 20px 0 0;
-  padding: 0 4px;
-  font-size: clamp(2.85rem, 12.5vw, 4.5rem);
+  padding: 0;
+  font-size: clamp(1.45rem, 5.2vw, 2.05rem);
   font-weight: 900;
   line-height: 0.95;
   letter-spacing: -0.02em;
   text-transform: uppercase;
   color: var(--color-orange);
-  text-align: center;
+  text-align: left;
   text-shadow: none;
+}
+
+/* Matn chapda, o‘ngda kichik kvadrat rasm (variant bilan sinxron) */
+.fd-home-hero-tagline-row {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 10px;
+  width: 100%;
+}
+
+.fd-home-hero-tagline-row + .fd-home-hero-tagline-row {
+  margin-top: 0.18em;
+}
+
+.fd-home-hero-tagline-text {
+  flex: 1;
+  min-width: 0;
+  text-align: left;
+}
+
+.fd-home-hero-thumb {
+  width: 56px;
+  height: 56px;
+  flex-shrink: 0;
+  border-radius: 12px;
+  overflow: hidden;
+  background: #f1f5f9;
+  border: 1px solid rgba(15, 23, 42, 0.08);
+  box-sizing: border-box;
+}
+
+.fd-home-hero-thumb-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.fd-home-hero-thumb-empty {
+  display: block;
+  width: 100%;
+  height: 100%;
 }
 
 /* Bir qatorda faqat bitta variant — navbat bilan almashadi */
 .fd-home-hero-line-wrap {
   display: block;
-  text-align: center;
-  min-height: 1.08em;
-}
-
-.fd-home-hero-line-wrap + .fd-home-hero-line-wrap {
-  margin-top: 0.04em;
+  text-align: left;
+  min-height: 1.05em;
 }
 
 .fd-home-hero-line {

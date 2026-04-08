@@ -435,4 +435,7 @@ model PlatformSettings {
   heroLine1Texts Json @default("[]")
   /** JSON array of strings — 2-qator tagline. */
   heroLine2Texts Json @default("[]")
+  /** JSON massiv — har bir matn variantiga mos rasm URL (bir xil tartibda). */
+  heroLine1ImageUrls Json @default("[]")
+  heroLine2ImageUrls Json @default("[]")
 }

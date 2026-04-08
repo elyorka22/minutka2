@@ -1,7 +1,12 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma.service';
 import { CacheService } from '../cache.service';
-import { DEFAULT_HERO_LINE1, DEFAULT_HERO_LINE2, heroLinesForPublicApi } from '../hero-taglines.util';
+import {
+  DEFAULT_HERO_LINE1,
+  DEFAULT_HERO_LINE2,
+  heroImageUrlsForPublicApi,
+  heroLinesForPublicApi,
+} from '../hero-taglines.util';
 import { buildNationalAndFastCarousels, cardSelect } from './homepage-carousel.util';
 
 @Injectable()
@@ -57,7 +62,12 @@ export class HomepageService {
         }),
         this.prisma.platformSettings.findUnique({
           where: { id: 'default' },
-          select: { heroLine1Texts: true, heroLine2Texts: true },
+          select: {
+            heroLine1Texts: true,
+            heroLine2Texts: true,
+            heroLine1ImageUrls: true,
+            heroLine2ImageUrls: true,
+          },
         }),
       ]);
 
@@ -70,6 +80,8 @@ export class HomepageService {
 
       const heroLine1Texts = heroLinesForPublicApi(platformRow?.heroLine1Texts, DEFAULT_HERO_LINE1);
       const heroLine2Texts = heroLinesForPublicApi(platformRow?.heroLine2Texts, DEFAULT_HERO_LINE2);
+      const heroLine1ImageUrls = heroImageUrlsForPublicApi(heroLine1Texts, platformRow?.heroLine1ImageUrls);
+      const heroLine2ImageUrls = heroImageUrlsForPublicApi(heroLine2Texts, platformRow?.heroLine2ImageUrls);
 
       return {
         restaurants: restaurantRows,
@@ -81,6 +93,8 @@ export class HomepageService {
         exploreCategories,
         heroLine1Texts,
         heroLine2Texts,
+        heroLine1ImageUrls,
+        heroLine2ImageUrls,
       };
     });
   }

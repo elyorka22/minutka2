@@ -166,16 +166,22 @@ export const adminApi = {
       telegramChatId: string;
       heroLine1Texts: string[];
       heroLine2Texts: string[];
+      heroLine1ImageUrls: (string | null)[];
+      heroLine2ImageUrls: (string | null)[];
     }>("/admin/platform-settings"),
   updatePlatformSettings: (body: {
     telegramChatId?: string;
     heroLine1Texts?: string[];
     heroLine2Texts?: string[];
+    heroLine1ImageUrls?: string[];
+    heroLine2ImageUrls?: string[];
   }) =>
     adminRequest<{
       telegramChatId: string;
       heroLine1Texts: string[];
       heroLine2Texts: string[];
+      heroLine1ImageUrls: (string | null)[];
+      heroLine2ImageUrls: (string | null)[];
     }>("/admin/platform-settings", {
       method: "PATCH",
       body: JSON.stringify(body),

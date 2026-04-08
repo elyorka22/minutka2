@@ -58,6 +58,9 @@ export type HomepagePayload = {
   /** Bosh sahifa hero: 1-qator (bir nechta bo‘lsa navbat bilan animatsiya). */
   heroLine1Texts?: string[];
   heroLine2Texts?: string[];
+  /** Har bir matn variantiga mos rasm URL (bir xil tartibda), bo‘lsa null. */
+  heroLine1ImageUrls?: (string | null)[];
+  heroLine2ImageUrls?: (string | null)[];
 };
 
 export function buildCarouselsFromList(restaurants: HomepageRestaurant[]): {
@@ -168,6 +171,8 @@ export async function fetchHomepageStable(): Promise<HomepagePayload> {
       exploreCategories: [],
       heroLine1Texts: ["TAOMLAR."],
       heroLine2Texts: ["YETKAZILADI."],
+      heroLine1ImageUrls: [null],
+      heroLine2ImageUrls: [null],
     };
   }
 }

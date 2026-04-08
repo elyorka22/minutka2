@@ -27,7 +27,10 @@ import { UserRole } from '../generated/prisma/enums';
 import {
   DEFAULT_HERO_LINE1,
   DEFAULT_HERO_LINE2,
+  heroImageUrlsForPublicApi,
   heroLinesForPublicApi,
+  padImageUrlsToTextCount,
+  sanitizeHeroImageUrlsInput,
   sanitizeHeroLinesInput,
 } from './hero-taglines.util';
 import * as fs from 'fs';
@@ -121,14 +124,24 @@ export class AdminController {
     this.assertPlatformAdmin(req);
     const row = await this.prisma.platformSettings.findUnique({
       where: { id: 'default' },
-      select: { adminTelegramChatId: true, heroLine1Texts: true, heroLine2Texts: true },
+      select: {
+        adminTelegramChatId: true,
+        heroLine1Texts: true,
+        heroLine2Texts: true,
+        heroLine1ImageUrls: true,
+        heroLine2ImageUrls: true,
+      },
     });
     const stored1 = heroLinesForPublicApi(row?.heroLine1Texts, []);
     const stored2 = heroLinesForPublicApi(row?.heroLine2Texts, []);
+    const t1 = stored1.length > 0 ? stored1 : [...DEFAULT_HERO_LINE1];
+    const t2 = stored2.length > 0 ? stored2 : [...DEFAULT_HERO_LINE2];
     return {
       telegramChatId: row?.adminTelegramChatId ?? '',
-      heroLine1Texts: stored1.length > 0 ? stored1 : [...DEFAULT_HERO_LINE1],
-      heroLine2Texts: stored2.length > 0 ? stored2 : [...DEFAULT_HERO_LINE2],
+      heroLine1Texts: t1,
+      heroLine2Texts: t2,
+      heroLine1ImageUrls: heroImageUrlsForPublicApi(t1, row?.heroLine1ImageUrls),
+      heroLine2ImageUrls: heroImageUrlsForPublicApi(t2, row?.heroLine2ImageUrls),
     };
   }
 
@@ -140,6 +153,8 @@ export class AdminController {
       telegramChatId?: string;
       heroLine1Texts?: unknown;
       heroLine2Texts?: unknown;
+      heroLine1ImageUrls?: unknown;
+      heroLine2ImageUrls?: unknown;
     },
   ) {
     this.assertPlatformAdmin(req);
@@ -151,35 +166,92 @@ export class AdminController {
       update.adminTelegramChatId = value;
     }
 
-    if (body.heroLine1Texts !== undefined) {
-      try {
-        const lines = sanitizeHeroLinesInput(body.heroLine1Texts);
-        update.heroLine1Texts = lines.length > 0 ? lines : [...DEFAULT_HERO_LINE1];
-      } catch {
-        throw new BadRequestException('heroLine1Texts must be an array of strings');
-      }
-    }
+    const touchesHero =
+      body.heroLine1Texts !== undefined ||
+      body.heroLine2Texts !== undefined ||
+      body.heroLine1ImageUrls !== undefined ||
+      body.heroLine2ImageUrls !== undefined;
 
-    if (body.heroLine2Texts !== undefined) {
-      try {
-        const lines = sanitizeHeroLinesInput(body.heroLine2Texts);
-        update.heroLine2Texts = lines.length > 0 ? lines : [...DEFAULT_HERO_LINE2];
-      } catch {
-        throw new BadRequestException('heroLine2Texts must be an array of strings');
+    if (touchesHero) {
+      const row = await this.prisma.platformSettings.findUnique({
+        where: { id: 'default' },
+        select: {
+          heroLine1Texts: true,
+          heroLine2Texts: true,
+          heroLine1ImageUrls: true,
+          heroLine2ImageUrls: true,
+        },
+      });
+
+      let next1 = heroLinesForPublicApi(row?.heroLine1Texts, DEFAULT_HERO_LINE1);
+      let next2 = heroLinesForPublicApi(row?.heroLine2Texts, DEFAULT_HERO_LINE2);
+
+      if (body.heroLine1Texts !== undefined) {
+        try {
+          const lines = sanitizeHeroLinesInput(body.heroLine1Texts);
+          next1 = lines.length > 0 ? lines : [...DEFAULT_HERO_LINE1];
+        } catch {
+          throw new BadRequestException('heroLine1Texts must be an array of strings');
+        }
       }
+
+      if (body.heroLine2Texts !== undefined) {
+        try {
+          const lines = sanitizeHeroLinesInput(body.heroLine2Texts);
+          next2 = lines.length > 0 ? lines : [...DEFAULT_HERO_LINE2];
+        } catch {
+          throw new BadRequestException('heroLine2Texts must be an array of strings');
+        }
+      }
+
+      let img1 = padImageUrlsToTextCount(next1.length, row?.heroLine1ImageUrls);
+      let img2 = padImageUrlsToTextCount(next2.length, row?.heroLine2ImageUrls);
+
+      if (body.heroLine1ImageUrls !== undefined) {
+        try {
+          const urls = sanitizeHeroImageUrlsInput(body.heroLine1ImageUrls);
+          img1 = padImageUrlsToTextCount(next1.length, urls);
+        } catch {
+          throw new BadRequestException('heroLine1ImageUrls must be an array of strings');
+        }
+      }
+
+      if (body.heroLine2ImageUrls !== undefined) {
+        try {
+          const urls = sanitizeHeroImageUrlsInput(body.heroLine2ImageUrls);
+          img2 = padImageUrlsToTextCount(next2.length, urls);
+        } catch {
+          throw new BadRequestException('heroLine2ImageUrls must be an array of strings');
+        }
+      }
+
+      update.heroLine1Texts = next1;
+      update.heroLine2Texts = next2;
+      update.heroLine1ImageUrls = img1;
+      update.heroLine2ImageUrls = img2;
     }
 
     if (Object.keys(update).length === 0) {
       const row = await this.prisma.platformSettings.findUnique({
         where: { id: 'default' },
-        select: { adminTelegramChatId: true, heroLine1Texts: true, heroLine2Texts: true },
+        select: {
+          adminTelegramChatId: true,
+          heroLine1Texts: true,
+          heroLine2Texts: true,
+          heroLine1ImageUrls: true,
+          heroLine2ImageUrls: true,
+        },
       });
       const stored1 = heroLinesForPublicApi(row?.heroLine1Texts, []);
       const stored2 = heroLinesForPublicApi(row?.heroLine2Texts, []);
+      const t1 = stored1.length > 0 ? stored1 : [...DEFAULT_HERO_LINE1];
+      const t2 = stored2.length > 0 ? stored2 : [...DEFAULT_HERO_LINE2];
       return {
         telegramChatId: row?.adminTelegramChatId ?? '',
-        heroLine1Texts: stored1.length > 0 ? stored1 : [...DEFAULT_HERO_LINE1],
-        heroLine2Texts: stored2.length > 0 ? stored2 : [...DEFAULT_HERO_LINE2],
+        heroLine1Texts: t1,
+        heroLine2Texts: t2,
+        heroLine1ImageUrls: heroImageUrlsForPublicApi(t1, row?.heroLine1ImageUrls),
+        heroLine2ImageUrls: heroImageUrlsForPublicApi(t2, row?.heroLine2ImageUrls),
       };
     }
 
@@ -190,6 +262,8 @@ export class AdminController {
         adminTelegramChatId: null,
         heroLine1Texts: [...DEFAULT_HERO_LINE1],
         heroLine2Texts: [...DEFAULT_HERO_LINE2],
+        heroLine1ImageUrls: [],
+        heroLine2ImageUrls: [],
         ...update,
       },
       update,
@@ -197,6 +271,8 @@ export class AdminController {
         adminTelegramChatId: true,
         heroLine1Texts: true,
         heroLine2Texts: true,
+        heroLine1ImageUrls: true,
+        heroLine2ImageUrls: true,
       },
     });
 
@@ -204,10 +280,14 @@ export class AdminController {
 
     const stored1 = heroLinesForPublicApi(row.heroLine1Texts, []);
     const stored2 = heroLinesForPublicApi(row.heroLine2Texts, []);
+    const t1 = stored1.length > 0 ? stored1 : [...DEFAULT_HERO_LINE1];
+    const t2 = stored2.length > 0 ? stored2 : [...DEFAULT_HERO_LINE2];
     return {
       telegramChatId: row.adminTelegramChatId ?? '',
-      heroLine1Texts: stored1.length > 0 ? stored1 : [...DEFAULT_HERO_LINE1],
-      heroLine2Texts: stored2.length > 0 ? stored2 : [...DEFAULT_HERO_LINE2],
+      heroLine1Texts: t1,
+      heroLine2Texts: t2,
+      heroLine1ImageUrls: heroImageUrlsForPublicApi(t1, row.heroLine1ImageUrls),
+      heroLine2ImageUrls: heroImageUrlsForPublicApi(t2, row.heroLine2ImageUrls),
     };
   }
 

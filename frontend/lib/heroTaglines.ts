@@ -30,3 +30,28 @@ export function normalizeHeroLines(raw: string[] | undefined, fallback: string):
   const expanded = expandHeroVariantsFromApi(raw);
   return expanded.length > 0 ? expanded : [fallback];
 }
+
+/** API dan kelgan rasm URLlari matn variantlari bilan bir xil indeksda. */
+export function alignHeroImagesToLines(
+  textLines: string[],
+  urls: (string | null)[] | undefined,
+): (string | null)[] {
+  return textLines.map((_, i) => {
+    const u = urls?.[i];
+    if (u == null || typeof u !== "string") return null;
+    const t = u.trim();
+    return t.length > 0 ? t : null;
+  });
+}
+
+/** Admin: har bir qatorda bitta URL (vergul URL ichida — yangi qator). */
+export function parseHeroImageTextareaToUrls(text: string): string[] {
+  return text.split(/\r?\n/).map((x) => x.trim());
+}
+
+/** Matn variantlari soniga qadar URL (kam bo‘lsa bo‘sh qator). */
+export function padImageUrlsToVariantCount(urls: string[], variantCount: number): string[] {
+  const out = urls.slice(0, variantCount);
+  while (out.length < variantCount) out.push("");
+  return out;
+}
