@@ -17,10 +17,19 @@ export type HomeExploreHomeRow = {
   searchQuery: string | null;
 };
 
-/** PostgreSQL / Prisma: migratsiya qo‘llanmagan bo‘lsa `carouselRow` ustuni yo‘q */
+/**
+ * Migratsiya qo‘llanmagan bo‘lsa `carouselRow` ustuni yo‘q.
+ * Prisma ba’zan xabarda ustun nomini berib yubormaydi: «The column `(not available)` does not exist» — shuning uchun P2022 va umumiy matn ham tekshiriladi.
+ */
 export function isMissingCarouselRowColumnError(err: unknown): boolean {
+  const code = String((err as { code?: string })?.code ?? '');
+  if (code === 'P2022') return true;
+
   const m = String((err as { message?: string })?.message ?? '');
+  if (/P2022/.test(m)) return true;
   if (/42703/.test(m)) return true;
+  if (/does not exist in the current database/i.test(m)) return true;
+  if (/\(not available\)/i.test(m) && /does not exist/i.test(m)) return true;
   if (/\bcarouselRow\b/i.test(m) && /does not exist|Unknown column|undefined_column|not find/i.test(m)) {
     return true;
   }
