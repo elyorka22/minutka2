@@ -440,6 +440,7 @@ export const adminApi = {
     sortOrder?: number;
     isActive?: boolean;
     searchQuery?: string;
+    carouselRow?: 1 | 2;
   }) =>
     adminRequest<any>("/admin/home-explore-categories", {
       method: "POST",
@@ -453,6 +454,7 @@ export const adminApi = {
       sortOrder?: number;
       isActive?: boolean;
       searchQuery?: string | null;
+      carouselRow?: 1 | 2;
     }
   ) =>
     adminRequest<any>(`/admin/home-explore-categories/${id}`, {

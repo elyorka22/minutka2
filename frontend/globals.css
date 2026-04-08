@@ -930,6 +930,11 @@ body {
   width: 0;
 }
 
+.fd-home-explore-scroll--stacked {
+  margin-top: 14px;
+  padding-top: 2px;
+}
+
 .fd-home-explore-item {
   flex: 0 0 auto;
   width: 88px;
@@ -945,7 +950,7 @@ body {
 .fd-home-explore-tile {
   width: 80px;
   height: 80px;
-  margin: 0 auto 8px;
+  margin: 0 auto;
   border-radius: 20px;
   overflow: hidden;
   background: linear-gradient(145deg, #f8fafc 0%, #eef2f7 100%);

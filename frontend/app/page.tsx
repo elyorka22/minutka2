@@ -1,9 +1,10 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { imageUrl } from "../lib/api";
-import { type HomepageRestaurant, type HomepageExploreCategory } from "../lib/api-server";
+import { type HomepageRestaurant } from "../lib/api-server";
 import { getCachedHomepage } from "../lib/homepage-cache";
 import { SafeImage } from "../components/SafeImage";
+import { HomeExploreCarousel } from "../components/HomeExploreCarousel";
 import { HomeHeroTagline } from "../components/HomeHeroTagline";
 
 /** ISR: HTML кэшируется на CDN (Vercel edge и т.д.) — повторные визиты без холодного /homepage. */
@@ -49,7 +50,8 @@ export default async function HomePage() {
   const home = await getCachedHomepage();
   const restaurants = (home.restaurants || []).map(mapRestaurant);
   const topCategories = home.topCategories || [];
-  const exploreCategories: HomepageExploreCategory[] = home.exploreCategories ?? [];
+  const exploreCategories = home.exploreCategories ?? [];
+  const exploreCategoriesRow2 = home.exploreCategoriesRow2 ?? [];
   const heroLine1Texts = home.heroLine1Texts;
   const heroLine2Texts = home.heroLine2Texts;
   const heroLine1ImageUrls = home.heroLine1ImageUrls;
@@ -118,38 +120,17 @@ export default async function HomePage() {
         </section>
       )}
 
-      {exploreCategories.length > 0 && (
-        <section className="fd-section fd-home-explore-section" aria-label="Tezkor kategoriyalar">
-          <div className="fd-home-explore-scroll">
-            {exploreCategories.map((c) => {
-              const q = (c.searchQuery?.trim() || c.name).trim();
-              const href = `/search?q=${encodeURIComponent(q)}`;
-              return (
-                <Link key={c.id} href={href} className="fd-home-explore-item">
-                  <div className="fd-home-explore-tile">
-                    {c.imageUrl ? (
-                      <SafeImage
-                        src={imageUrl(c.imageUrl)}
-                        alt=""
-                        className="fd-home-explore-tile-img"
-                        width={160}
-                        height={160}
-                        quality={76}
-                        priority={false}
-                        fallbackStyle={{ height: 80 }}
-                        sizes="80px"
-                      />
-                    ) : (
-                      <span className="fd-home-explore-placeholder" aria-hidden>
-                        {c.name.trim().charAt(0).toUpperCase() || "?"}
-                      </span>
-                    )}
-                  </div>
-                  <span className="fd-home-explore-label">{c.name}</span>
-                </Link>
-              );
-            })}
-          </div>
+      {(exploreCategories.length > 0 || exploreCategoriesRow2.length > 0) && (
+        <section className="fd-section fd-home-explore-section">
+          <HomeExploreCarousel
+            categories={exploreCategories}
+            ariaLabel="Tezkor kategoriyalar — birinchi qator"
+          />
+          <HomeExploreCarousel
+            categories={exploreCategoriesRow2}
+            ariaLabel="Tezkor kategoriyalar — ikkinchi qator"
+            classNameScroll={exploreCategories.length > 0 ? "fd-home-explore-scroll--stacked" : undefined}
+          />
         </section>
       )}
 

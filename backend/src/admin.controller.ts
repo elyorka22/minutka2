@@ -1287,7 +1287,7 @@ export class AdminController {
   async getHomeExploreCategories(@Req() req: RequestWithUser) {
     this.assertPlatformAdmin(req);
     return this.prisma.homeExploreCategory.findMany({
-      orderBy: [{ sortOrder: 'asc' }, { createdAt: 'desc' }],
+      orderBy: [{ carouselRow: 'asc' }, { sortOrder: 'asc' }, { createdAt: 'desc' }],
     });
   }
 
@@ -1300,6 +1300,8 @@ export class AdminController {
       sortOrder?: number;
       isActive?: boolean;
       searchQuery?: string | null;
+      /** 1 = birinchi karusel, 2 = ikkinchi */
+      carouselRow?: number;
     },
     @Req() req: RequestWithUser,
   ) {
@@ -1307,12 +1309,14 @@ export class AdminController {
     if (!body.name || typeof body.name !== 'string') {
       throw new BadRequestException('name is required');
     }
+    const carouselRow = body.carouselRow === 2 ? 2 : 1;
     const row = await this.prisma.homeExploreCategory.create({
       data: {
         name: body.name.trim(),
         imageUrl: body.imageUrl?.trim() || null,
         sortOrder: typeof body.sortOrder === 'number' ? body.sortOrder : 0,
         isActive: body.isActive ?? true,
+        carouselRow,
         searchQuery:
           body.searchQuery === undefined || body.searchQuery === null
             ? null
@@ -1333,10 +1337,17 @@ export class AdminController {
       sortOrder?: number;
       isActive?: boolean;
       searchQuery?: string | null;
+      carouselRow?: number;
     },
     @Req() req: RequestWithUser,
   ) {
     this.assertPlatformAdmin(req);
+    const patchRow =
+      body.carouselRow !== undefined
+        ? body.carouselRow === 2
+          ? 2
+          : 1
+        : undefined;
     const row = await this.prisma.homeExploreCategory.update({
       where: { id },
       data: {
@@ -1344,6 +1355,7 @@ export class AdminController {
         ...(body.imageUrl !== undefined && { imageUrl: body.imageUrl?.trim() || null }),
         ...(body.sortOrder !== undefined && { sortOrder: body.sortOrder }),
         ...(body.isActive !== undefined && { isActive: body.isActive }),
+        ...(patchRow !== undefined && { carouselRow: patchRow }),
         ...(body.searchQuery !== undefined && {
           searchQuery:
             body.searchQuery === null || body.searchQuery === ''

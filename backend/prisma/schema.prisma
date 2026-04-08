@@ -288,7 +288,7 @@ model ProductCategory {
   products Product[]
 }
 
-/// Bosh sahifada banner ostidagi gorizontal «Burger / Pizza» karuseli (`/search?q=`).
+/// Bosh sahifada gorizontal «Burger / Pizza» karuseli (`/search?q=`). `carouselRow`: 1 — yuqori qator, 2 — pastki qator.
 model HomeExploreCategory {
   id        String   @id @default(cuid())
   createdAt DateTime @default(now())
@@ -300,8 +300,10 @@ model HomeExploreCategory {
   isActive  Boolean @default(true)
   /// Bo‘sh bo‘lsa — qidiruvda `name` ishlatiladi.
   searchQuery String?
+  /// 1 = birinchi karusel, 2 = ikkinchi karusel (bosh sahifada ustma-ust).
+  carouselRow Int @default(1)
 
-  @@index([isActive, sortOrder])
+  @@index([isActive, carouselRow, sortOrder])
 }
 
 model PushSubscription {
