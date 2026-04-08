@@ -6,6 +6,30 @@ import { adminApi } from "../../../lib/adminApi";
 
 type TabId = "orders" | "archive" | "stats" | "telegram";
 
+/** Manzil matnida «Tel: …» takrorlanmasin — alohida «Telefon» qatori ko‘rsatiladi. */
+function stripTelSegmentsFromDetails(details: string | null | undefined): string {
+  if (typeof details !== "string" || !details.trim()) return "";
+  return details
+    .split(/[·\n\r]+/)
+    .map((p) => p.trim())
+    .filter((p) => p.length > 0 && !/^tel\s*:/i.test(p))
+    .join(" · ");
+}
+
+function displayCustomerPhone(order: {
+  customer?: { phone?: string | null };
+  address?: { details?: string | null };
+}): string {
+  const p = order.customer?.phone?.trim();
+  if (p) return p;
+  const raw = order.address?.details?.trim() ?? "";
+  if (!raw) return "";
+  const m = raw.match(/(?:^|[·\n\r])\s*Tel:\s*([^·\n\r]+)/i);
+  if (m) return m[1].trim();
+  const m2 = raw.match(/^\s*Tel:\s*([^·\n\r]+)/i);
+  return m2 ? m2[1].trim() : "";
+}
+
 function OrderCard({
   o,
   onStatusChange,
@@ -20,6 +44,7 @@ function OrderCard({
   const [addressOpen, setAddressOpen] = useState(false);
   const displayCode = o?.shortCode != null ? String(o.shortCode).padStart(6, "0") : String(o.id).slice(0, 6);
   const addr = o.address;
+  const addrDetailsWithoutTel = addr ? stripTelSegmentsFromDetails(addr.details) : "";
   const hasCoords =
     addr &&
     (addr.latitude != null || addr.longitude != null) &&
@@ -177,6 +202,20 @@ function OrderCard({
           </div>
         </div>
       </div>
+      {(() => {
+        const tel = displayCustomerPhone(o);
+        if (!tel) return null;
+        const digits = tel.replace(/\s/g, "");
+        const href = `tel:${digits}`;
+        return (
+          <div style={{ marginTop: 12, fontSize: "0.9rem" }}>
+            <span style={{ fontWeight: 600 }}>Telefon: </span>
+            <a href={href} style={{ color: "var(--color-orange)" }}>
+              {tel}
+            </a>
+          </div>
+        );
+      })()}
       {addr && (
         <div style={{ marginTop: 12 }}>
           <button
@@ -196,7 +235,7 @@ function OrderCard({
               <p className="fd-card-desc" style={{ margin: 0 }}>
                 {addr.street}
                 {addr.city ? `, ${addr.city}` : ""}
-                {addr.details ? ` · ${addr.details}` : ""}
+                {addrDetailsWithoutTel ? ` · ${addrDetailsWithoutTel}` : ""}
               </p>
               {o.comment && (
                 <p className="fd-card-desc" style={{ margin: "4px 0 0 0" }}>

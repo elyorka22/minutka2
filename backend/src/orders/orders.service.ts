@@ -898,6 +898,47 @@ export class OrdersService {
     );
   }
 
+  /** `address.details` ichidagi «Tel: …» qatorlari manzil matnida telefonni takrorlamasin. */
+  private stripTelFromAddressDetails(details: string | null | undefined): string {
+    if (details == null || typeof details !== 'string') return '';
+    const s = details.trim();
+    if (!s) return '';
+    return s
+      .split(/[·\n\r]+/)
+      .map((p) => p.trim())
+      .filter((p) => p.length > 0 && !/^tel\s*:/i.test(p))
+      .join(' · ');
+  }
+
+  private telegramAddressLine(address: {
+    street: string;
+    city: string;
+    details: string | null;
+  } | null): string | undefined {
+    if (!address) return undefined;
+    const sc = [address.street, address.city]
+      .filter((x): x is string => typeof x === 'string' && x.trim().length > 0)
+      .map((x) => x.trim())
+      .join(', ');
+    const det = this.stripTelFromAddressDetails(address.details);
+    const parts = [sc, det].filter((x) => x.length > 0);
+    return parts.length ? parts.join(' · ') : undefined;
+  }
+
+  private telegramCustomerPhoneFromRow(orderRow: {
+    customer?: { phone: string | null } | null;
+    address?: { details: string | null } | null;
+  }): string {
+    const direct = orderRow.customer?.phone?.trim();
+    if (direct) return direct;
+    const raw = orderRow.address?.details?.trim() ?? '';
+    if (!raw) return '';
+    const m = raw.match(/(?:^|[·\n\r])\s*Tel:\s*([^·\n\r]+)/i);
+    if (m) return m[1].trim();
+    const m2 = raw.match(/^\s*Tel:\s*([^·\n\r]+)/i);
+    return m2 ? m2[1].trim() : '';
+  }
+
   private async buildTelegramOrderPayloadFromOrderId(orderId: string) {
     const row = await this.prisma.order.findUnique({
       where: { id: orderId },
@@ -929,11 +970,7 @@ export class OrdersService {
       dish: { name: string } | null;
     }>;
   }) {
-    const phone =
-      (orderRow.customer?.phone?.trim() ||
-        orderRow.address?.details?.replace(/^Tel:\s*/i, '').trim() ||
-        '') ??
-      '';
+    const phone = this.telegramCustomerPhoneFromRow(orderRow);
 
     const telegramItems = orderRow.items.map((item) => {
       const unit = Number(item.price);
@@ -955,8 +992,7 @@ export class OrdersService {
       phone,
       lat: orderRow.address?.latitude,
       lng: orderRow.address?.longitude,
-      addressLine:
-        [orderRow.address?.street, orderRow.address?.city].filter(Boolean).join(', ') || undefined,
+      addressLine: this.telegramAddressLine(orderRow.address),
       comment: orderRow.comment?.trim() || undefined,
       items: telegramItems,
     };
@@ -982,11 +1018,7 @@ export class OrdersService {
       dish: { name: string } | null;
     }>;
   }) {
-    const phone =
-      (orderRow.customer?.phone?.trim() ||
-        orderRow.address?.details?.replace(/^Tel:\s*/i, '').trim() ||
-        '') ??
-      '';
+    const phone = this.telegramCustomerPhoneFromRow(orderRow);
 
     const telegramItems = orderRow.items.map((item) => {
       const unit = Number(item.price);
@@ -1008,8 +1040,7 @@ export class OrdersService {
       phone,
       lat: orderRow.address?.latitude,
       lng: orderRow.address?.longitude,
-      addressLine:
-        [orderRow.address?.street, orderRow.address?.city].filter(Boolean).join(', ') || undefined,
+      addressLine: this.telegramAddressLine(orderRow.address),
       comment: orderRow.comment?.trim() || undefined,
       items: telegramItems,
     };

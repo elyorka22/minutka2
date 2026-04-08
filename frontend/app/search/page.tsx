@@ -8,13 +8,6 @@ import { api, imageUrl } from "../../lib/api";
 
 const POPULAR = ["Osh", "Burger", "Pizza", "Somsa", "Lag‘mon"];
 
-const BROWSE = [
-  { q: "milliy", label: "Milliy taomlar", emoji: "🍛", bg: "#fde8e8" },
-  { q: "burger", label: "Burger", emoji: "🍔", bg: "#fff3e0" },
-  { q: "pizza", label: "Pizza", emoji: "🍕", bg: "#e3f2fd" },
-  { q: "sushi", label: "Sushi", emoji: "🍣", bg: "#e8f5e9" },
-];
-
 export default function SearchPage() {
   const [query, setQuery] = useState("");
   const [list, setList] = useState<any[]>([]);
@@ -99,33 +92,6 @@ export default function SearchPage() {
               onClick={() => setQuery(tag)}
             >
               {tag}
-            </button>
-          ))}
-        </div>
-
-        <p className="fd-checkout-meta" style={{ marginBottom: 12, fontWeight: 600 }}>
-          Kategoriya bo‘yicha
-        </p>
-        <div className="fd-grid fd-grid--2" style={{ marginBottom: 24 }}>
-          {BROWSE.map((c) => (
-            <button
-              key={c.q}
-              type="button"
-              className="fd-card"
-              style={{
-                padding: 16,
-                textAlign: "center",
-                border: "1px solid var(--color-border)",
-                background: c.bg,
-                cursor: "pointer",
-                textDecoration: "none",
-                color: "inherit",
-                font: "inherit",
-              }}
-              onClick={() => setQuery(c.label.split(" ")[0] ?? c.q)}
-            >
-              <div style={{ fontSize: "2.25rem", lineHeight: 1.2, marginBottom: 8 }}>{c.emoji}</div>
-              <div style={{ fontWeight: 700, fontSize: "0.95rem" }}>{c.label}</div>
             </button>
           ))}
         </div>
