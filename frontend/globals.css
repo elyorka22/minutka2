@@ -497,12 +497,19 @@ body {
   text-shadow: none;
 }
 
-.fd-home-hero-line {
+/* Bir qatorda faqat bitta variant — navbat bilan almashadi */
+.fd-home-hero-line-wrap {
   display: block;
+  text-align: center;
+  min-height: 1.08em;
 }
 
-.fd-home-hero-line + .fd-home-hero-line {
+.fd-home-hero-line-wrap + .fd-home-hero-line-wrap {
   margin-top: 0.12em;
+}
+
+.fd-home-hero-line {
+  display: block;
 }
 
 @keyframes fd-home-hero-line-in {

@@ -7,6 +7,7 @@ import { adminApi } from "../../lib/adminApi";
 import { imageUrl } from "../../lib/api";
 import { decodeJwtPayload } from "../../lib/jwt";
 import { clearAuthTokens, getAccessToken, logoutWithRefreshToken } from "../../lib/auth-tokens";
+import { parseHeroTextareaToVariants } from "../../lib/heroTaglines";
 type TabId =
   | "stats"
   | "users"
@@ -857,11 +858,11 @@ export default function PlatformAdminPage() {
     setHeroTaglineSaving(true);
     setHeroTaglineMessage(null);
     try {
-      const a1 = heroTaglineLine1.split(/\r?\n/).map((x) => x.trim()).filter(Boolean);
-      const a2 = heroTaglineLine2.split(/\r?\n/).map((x) => x.trim()).filter(Boolean);
+      const a1 = parseHeroTextareaToVariants(heroTaglineLine1);
+      const a2 = parseHeroTextareaToVariants(heroTaglineLine2);
       if (a1.length === 0 || a2.length === 0) {
         setHeroTaglineMessage(
-          "Har ikkala qatorda kamida bitta matn bo‘lishi kerak (yangi qator bilan bir nechta variant qo‘shing).",
+          "Har ikkala qatorda kamida bitta variant bo‘lishi kerak (yangi qator yoki vergul bilan ajrating).",
         );
         return;
       }
@@ -1960,8 +1961,10 @@ export default function PlatformAdminPage() {
                 <div className="fd-form-block" style={{ marginTop: 16 }}>
                   <h3>Bosh sahifa sarlavhasi (qidiruv ostidagi ikki qator)</h3>
                   <p className="fd-checkout-meta">
-                    Bir qatorda bir nechta variant kiriting: har birini yangi qatordan yozing. Bir nechta bo‘lsa,
-                    bosh sahifada matnlar navbat bilan animatsiya bilan almashadi.
+                    Har bir qatorda bir vaqtning o‘zida faqat bitta so‘z ko‘rinadi. Bir nechta variant: har birini
+                    alohida qatorga yozing yoki bir qatorda vergul bilan ajrating (masalan:{" "}
+                    <code style={{ fontSize: "0.9em" }}>TAOMLAR, GULLAR</code>). Bosh sahifada variantlar
+                    navbat bilan almashadi.
                   </p>
                   <div className="fd-form" style={{ marginTop: 12 }}>
                     <label className="fd-field">
@@ -1970,7 +1973,7 @@ export default function PlatformAdminPage() {
                         value={heroTaglineLine1}
                         onChange={(e) => setHeroTaglineLine1(e.target.value)}
                         rows={4}
-                        placeholder={"TAOMLAR.\nBURGER.\nPIZZA."}
+                        placeholder={"TAOMLAR.\nGULLAR.\n\nyoki: TAOMLAR, GULLAR"}
                         style={{ minHeight: 88, resize: "vertical" }}
                       />
                     </label>

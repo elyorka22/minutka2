@@ -1,21 +1,17 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { normalizeHeroLines } from "../lib/heroTaglines";
 
 const ROTATE_MS = 3800;
 
-function normalizeLines(raw: string[] | undefined, fallback: string): string[] {
-  if (!Array.isArray(raw) || raw.length === 0) return [fallback];
-  const lines = raw.map((s) => String(s ?? "").trim()).filter(Boolean);
-  return lines.length > 0 ? lines : [fallback];
-}
-
 function RotatingLine({ lines }: { lines: string[] }) {
   const [index, setIndex] = useState(0);
+  const linesKey = useMemo(() => JSON.stringify(lines), [lines]);
 
   useEffect(() => {
     setIndex(0);
-  }, [JSON.stringify(lines)]);
+  }, [linesKey]);
 
   useEffect(() => {
     if (lines.length <= 1) return;
@@ -23,13 +19,15 @@ function RotatingLine({ lines }: { lines: string[] }) {
       setIndex((i) => (i + 1) % lines.length);
     }, ROTATE_MS);
     return () => window.clearInterval(id);
-  }, [lines.length]);
+  }, [linesKey]);
 
   const text = lines[index] ?? "";
 
   return (
-    <span key={index} className="fd-home-hero-line fd-home-hero-line-rotate">
-      {text}
+    <span className="fd-home-hero-line-wrap">
+      <span key={linesKey + String(index)} className="fd-home-hero-line fd-home-hero-line-rotate">
+        {text}
+      </span>
     </span>
   );
 }
@@ -41,8 +39,8 @@ type Props = {
 };
 
 export function HomeHeroTagline({ heroLine1Texts, heroLine2Texts, className }: Props) {
-  const line1 = useMemo(() => normalizeLines(heroLine1Texts, "TAOMLAR."), [heroLine1Texts]);
-  const line2 = useMemo(() => normalizeLines(heroLine2Texts, "YETKAZILADI."), [heroLine2Texts]);
+  const line1 = useMemo(() => normalizeHeroLines(heroLine1Texts, "TAOMLAR."), [heroLine1Texts]);
+  const line2 = useMemo(() => normalizeHeroLines(heroLine2Texts, "YETKAZILADI."), [heroLine2Texts]);
 
   return (
     <h1 className={`fd-home-hero-tagline${className ? ` ${className}` : ""}`}>
