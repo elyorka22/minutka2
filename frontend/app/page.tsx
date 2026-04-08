@@ -61,7 +61,6 @@ export default async function HomePage() {
   const heroLine1Texts = home.heroLine1Texts;
   const heroLine2Texts = home.heroLine2Texts;
   const heroLine1ImageUrls = home.heroLine1ImageUrls;
-  const heroLine2ImageUrls = home.heroLine2ImageUrls;
 
   const normalRestaurants = restaurants.filter((r) => !r.isSupermarket);
 
@@ -124,7 +123,6 @@ export default async function HomePage() {
             heroLine1Texts={heroLine1Texts}
             heroLine2Texts={heroLine2Texts}
             heroLine1ImageUrls={heroLine1ImageUrls}
-            heroLine2ImageUrls={heroLine2ImageUrls}
             className={homeHeroFont.className}
           />
         </div>

@@ -138,7 +138,6 @@ export default function PlatformAdminPage() {
   const [heroTaglineLine1, setHeroTaglineLine1] = useState("TAOMLAR.");
   const [heroTaglineLine2, setHeroTaglineLine2] = useState("YETKAZILADI.");
   const [heroTaglineImg1, setHeroTaglineImg1] = useState("");
-  const [heroTaglineImg2, setHeroTaglineImg2] = useState("");
   const [heroTaglineSaving, setHeroTaglineSaving] = useState(false);
   const [heroTaglineMessage, setHeroTaglineMessage] = useState<string | null>(null);
   const [partnershipApplications, setPartnershipApplications] = useState<
@@ -335,12 +334,8 @@ export default function PlatformAdminPage() {
         setHeroTaglineLine1(a1.length > 0 ? a1.join("\n") : "TAOMLAR.");
         setHeroTaglineLine2(a2.length > 0 ? a2.join("\n") : "YETKAZILADI.");
         const i1 = Array.isArray(s?.heroLine1ImageUrls) ? s.heroLine1ImageUrls : [];
-        const i2 = Array.isArray(s?.heroLine2ImageUrls) ? s.heroLine2ImageUrls : [];
         setHeroTaglineImg1(
           i1.map((u) => (u == null ? "" : String(u))).join("\n"),
-        );
-        setHeroTaglineImg2(
-          i2.map((u) => (u == null ? "" : String(u))).join("\n"),
         );
         setHeroTaglineMessage(null);
       })
@@ -881,20 +876,17 @@ export default function PlatformAdminPage() {
         return;
       }
       const img1 = padImageUrlsToVariantCount(parseHeroImageTextareaToUrls(heroTaglineImg1), a1.length);
-      const img2 = padImageUrlsToVariantCount(parseHeroImageTextareaToUrls(heroTaglineImg2), a2.length);
+      const img2empty = padImageUrlsToVariantCount([], a2.length);
       const saved = await adminApi.updatePlatformSettings({
         heroLine1Texts: a1,
         heroLine2Texts: a2,
         heroLine1ImageUrls: img1,
-        heroLine2ImageUrls: img2,
+        heroLine2ImageUrls: img2empty,
       });
       setHeroTaglineLine1((saved.heroLine1Texts ?? []).join("\n"));
       setHeroTaglineLine2((saved.heroLine2Texts ?? []).join("\n"));
       setHeroTaglineImg1(
         (saved.heroLine1ImageUrls ?? []).map((u) => (u == null ? "" : String(u))).join("\n"),
-      );
-      setHeroTaglineImg2(
-        (saved.heroLine2ImageUrls ?? []).map((u) => (u == null ? "" : String(u))).join("\n"),
       );
       setHeroTaglineMessage("Saqlandi. Bosh sahifa tez orada yangilanadi.");
     } catch (err: any) {
@@ -1991,8 +1983,8 @@ export default function PlatformAdminPage() {
                     Har bir qatorda bir vaqtning o‘zida faqat bitta so‘z ko‘rinadi. Bir nechta variant: har birini
                     alohida qatorga yozing yoki bir qatorda vergul bilan ajrating (masalan:{" "}
                     <code style={{ fontSize: "0.9em" }}>TAOMLAR, GULLAR</code>). Bosh sahifada variantlar
-                    navbat bilan almashadi. O‘ngdagi kichik rasm ham xuddi shu tartibda (1-variant = 1-qator
-                    rasm URL) almashadi; rasm URL har birini yangi qatordan yozing.
+                    navbat bilan almashadi. Bitta karta: chapda ikkala qator, o‘ngda bitta katta rasm — har bir
+                    variant uchun bitta rasm URL (pastdagi ro‘yxat, matn bilan bir xil tartib).
                   </p>
                   <div className="fd-form" style={{ marginTop: 12 }}>
                     <label className="fd-field">
@@ -2016,23 +2008,13 @@ export default function PlatformAdminPage() {
                       />
                     </label>
                     <label className="fd-field">
-                      <span>1-qator uchun rasmlar (ixtiyoriy, matn variantlari bilan bir xil tartibda)</span>
+                      <span>Slyd uchun rasmlar (1-variant = 1-URL, ikkala qator matni bilan bir vaqtda almashadi)</span>
                       <textarea
                         value={heroTaglineImg1}
                         onChange={(e) => setHeroTaglineImg1(e.target.value)}
-                        rows={3}
+                        rows={4}
                         placeholder={"https://...\nhttps://..."}
-                        style={{ minHeight: 72, resize: "vertical", fontFamily: "inherit", fontSize: "0.9rem" }}
-                      />
-                    </label>
-                    <label className="fd-field">
-                      <span>2-qator uchun rasmlar (ixtiyoriy)</span>
-                      <textarea
-                        value={heroTaglineImg2}
-                        onChange={(e) => setHeroTaglineImg2(e.target.value)}
-                        rows={3}
-                        placeholder={"https://...\nhttps://..."}
-                        style={{ minHeight: 72, resize: "vertical", fontFamily: "inherit", fontSize: "0.9rem" }}
+                        style={{ minHeight: 88, resize: "vertical", fontFamily: "inherit", fontSize: "0.9rem" }}
                       />
                     </label>
                     {heroTaglineMessage && (
