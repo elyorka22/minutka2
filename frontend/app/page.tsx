@@ -174,18 +174,18 @@ export default async function HomePage() {
                 const href = `/search?q=${encodeURIComponent(q)}`;
                 return (
                   <Link key={c.id} href={href} className="fd-home-explore-item">
-                    <div className="fd-home-explore-circle">
+                    <div className="fd-home-explore-tile">
                       {c.imageUrl ? (
                         <SafeImage
                           src={imageUrl(c.imageUrl)}
                           alt=""
-                          className="fd-home-explore-circle-img"
-                          width={144}
-                          height={144}
+                          className="fd-home-explore-tile-img"
+                          width={160}
+                          height={160}
                           quality={76}
                           priority={thumbLcp(index === 0)}
-                          fallbackStyle={{ height: 72 }}
-                          sizes="72px"
+                          fallbackStyle={{ height: 80 }}
+                          sizes="80px"
                         />
                       ) : (
                         <span className="fd-home-explore-placeholder" aria-hidden>

@@ -696,7 +696,7 @@ body {
   scrollbar-width: none;
 }
 
-/* Bosh sahifa: banner ostidagi dumaloq kategoriya karuseli (Burger, Pizza…) */
+/* Bosh sahifa: banner ostidagi kategoriya karuseli — kvadrat, yumaloq burchaklar */
 .fd-home-explore-section {
   padding-top: 4px;
   margin-bottom: 4px;
@@ -720,7 +720,7 @@ body {
 
 .fd-home-explore-item {
   flex: 0 0 auto;
-  width: 76px;
+  width: 88px;
   text-align: center;
   text-decoration: none;
   color: inherit;
@@ -730,20 +730,23 @@ body {
   opacity: 0.92;
 }
 
-.fd-home-explore-circle {
-  width: 72px;
-  height: 72px;
+.fd-home-explore-tile {
+  width: 80px;
+  height: 80px;
   margin: 0 auto 8px;
-  border-radius: 50%;
+  border-radius: 20px;
   overflow: hidden;
   background: linear-gradient(145deg, #f8fafc 0%, #eef2f7 100%);
-  box-shadow: 0 1px 4px rgba(15, 23, 42, 0.08);
+  box-shadow:
+    0 1px 2px rgba(15, 23, 42, 0.06),
+    0 4px 10px rgba(15, 23, 42, 0.07);
+  border: 1px solid rgba(15, 23, 42, 0.06);
   display: flex;
   align-items: center;
   justify-content: center;
 }
 
-.fd-home-explore-circle-img {
+.fd-home-explore-tile-img {
   width: 100%;
   height: 100%;
   object-fit: cover;
