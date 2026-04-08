@@ -46,6 +46,12 @@ const nextConfig = {
         hostname: "www.minut-ka.uz",
         pathname: "/**",
       },
+      /** API va boshqa subdomainlar (masalan api.minut-ka.uz) — rasm URLlari uchun */
+      {
+        protocol: "https",
+        hostname: "**.minut-ka.uz",
+        pathname: "/**",
+      },
     ],
   },
   async headers() {

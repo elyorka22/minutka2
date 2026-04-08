@@ -82,8 +82,9 @@ export function HomeHeroTagline({ heroLine1Texts, heroLine2Texts, heroLine1Image
               className="fd-home-hero-promo-img"
               width={640}
               height={400}
-              quality={82}
+              quality={80}
               sizes="(max-width: 520px) 42vw, 220px"
+              fallbackClassName="fd-home-hero-promo-img-empty"
               fallbackStyle={{ width: "100%", height: "100%", minHeight: 168 }}
             />
           ) : (
