@@ -76,41 +76,6 @@ export default async function HomePage() {
             />
           </form>
 
-          {exploreCategories.length > 0 && (
-            <div className="fd-home-explore-section fd-home-explore-section--in-hero" aria-label="Tezkor kategoriyalar">
-              <div className="fd-home-explore-scroll fd-home-explore-scroll--in-hero">
-                {exploreCategories.map((c, index) => {
-                  const q = (c.searchQuery?.trim() || c.name).trim();
-                  const href = `/search?q=${encodeURIComponent(q)}`;
-                  return (
-                    <Link key={c.id} href={href} className="fd-home-explore-item">
-                      <div className="fd-home-explore-tile">
-                        {c.imageUrl ? (
-                          <SafeImage
-                            src={imageUrl(c.imageUrl)}
-                            alt=""
-                            className="fd-home-explore-tile-img"
-                            width={160}
-                            height={160}
-                            quality={76}
-                            priority={thumbLcp(index === 0)}
-                            fallbackStyle={{ height: 80 }}
-                            sizes="80px"
-                          />
-                        ) : (
-                          <span className="fd-home-explore-placeholder" aria-hidden>
-                            {c.name.trim().charAt(0).toUpperCase() || "?"}
-                          </span>
-                        )}
-                      </div>
-                      <span className="fd-home-explore-label">{c.name}</span>
-                    </Link>
-                  );
-                })}
-              </div>
-            </div>
-          )}
-
           <HomeHeroTagline
             heroLine1Texts={heroLine1Texts}
             heroLine2Texts={heroLine2Texts}
@@ -149,6 +114,41 @@ export default async function HomePage() {
                 </div>
               </Link>
             ))}
+          </div>
+        </section>
+      )}
+
+      {exploreCategories.length > 0 && (
+        <section className="fd-section fd-home-explore-section" aria-label="Tezkor kategoriyalar">
+          <div className="fd-home-explore-scroll">
+            {exploreCategories.map((c) => {
+              const q = (c.searchQuery?.trim() || c.name).trim();
+              const href = `/search?q=${encodeURIComponent(q)}`;
+              return (
+                <Link key={c.id} href={href} className="fd-home-explore-item">
+                  <div className="fd-home-explore-tile">
+                    {c.imageUrl ? (
+                      <SafeImage
+                        src={imageUrl(c.imageUrl)}
+                        alt=""
+                        className="fd-home-explore-tile-img"
+                        width={160}
+                        height={160}
+                        quality={76}
+                        priority={false}
+                        fallbackStyle={{ height: 80 }}
+                        sizes="80px"
+                      />
+                    ) : (
+                      <span className="fd-home-explore-placeholder" aria-hidden>
+                        {c.name.trim().charAt(0).toUpperCase() || "?"}
+                      </span>
+                    )}
+                  </div>
+                  <span className="fd-home-explore-label">{c.name}</span>
+                </Link>
+              );
+            })}
           </div>
         </section>
       )}

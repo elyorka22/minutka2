@@ -641,28 +641,6 @@ body {
   animation: fd-home-hero-line-in 0.55s ease-out;
 }
 
-.fd-home-explore-section--in-hero {
-  padding-top: 0;
-  margin-top: 0;
-  margin-bottom: 4px;
-}
-
-.fd-home-explore-scroll--in-hero {
-  margin: 0 -20px;
-  padding-left: 20px;
-  padding-right: 20px;
-  padding-bottom: 4px;
-}
-
-.fd-home-hero-wolt .fd-home-explore-label {
-  color: var(--color-text);
-  text-shadow: none;
-}
-
-.fd-home-hero-wolt .fd-home-explore-placeholder {
-  color: var(--color-text-secondary);
-}
-
 /* Home screen layout */
 .fd-home-top {
   padding-top: 8px;
