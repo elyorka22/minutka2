@@ -145,10 +145,8 @@ function BottomBar() {
   const activeKey =
     pathname === "/"
       ? "home"
-      : pathname.startsWith("/restaurants")
-        ? "restaurants"
-        : pathname.startsWith("/supermarkets")
-          ? "supermarkets"
+      : pathname.startsWith("/search")
+        ? "search"
         : pathname.startsWith("/checkout")
           ? "checkout"
           : pathname.startsWith("/profile") ||
@@ -158,50 +156,54 @@ function BottomBar() {
             : null;
 
   return (
-    <nav className="fd-bottom-bar">
+    <nav className="fd-bottom-bar fd-bottom-bar--icons-only" aria-label="Asosiy navigatsiya">
       <Link
         href="/"
         className={`fd-bottom-item ${activeKey === "home" ? "fd-bottom-item--active" : ""}`}
         aria-current={activeKey === "home" ? "page" : undefined}
+        aria-label="Bosh sahifa"
       >
-        <span className="fd-bottom-icon material-symbols-rounded">home</span>
+        <span className="fd-bottom-icon material-symbols-rounded" aria-hidden={true}>
+          home
+        </span>
         <span className="fd-bottom-label">Bosh sahifa</span>
       </Link>
       <Link
-        href="/restaurants"
-        className={`fd-bottom-item ${activeKey === "restaurants" ? "fd-bottom-item--active" : ""}`}
-        aria-current={activeKey === "restaurants" ? "page" : undefined}
+        href="/search"
+        className={`fd-bottom-item ${activeKey === "search" ? "fd-bottom-item--active" : ""}`}
+        aria-current={activeKey === "search" ? "page" : undefined}
+        aria-label="Qidiruv"
       >
-        <span className="fd-bottom-icon material-symbols-rounded">restaurant</span>
-        <span className="fd-bottom-label">Restoranlar</span>
-      </Link>
-      <Link
-        href="/supermarkets"
-        className={`fd-bottom-item ${activeKey === "supermarkets" ? "fd-bottom-item--active" : ""}`}
-        aria-current={activeKey === "supermarkets" ? "page" : undefined}
-      >
-        <span className="fd-bottom-icon material-symbols-rounded">storefront</span>
-        <span className="fd-bottom-label">Do‘konlar</span>
+        <span className="fd-bottom-icon material-symbols-rounded" aria-hidden={true}>
+          search
+        </span>
+        <span className="fd-bottom-label">Qidiruv</span>
       </Link>
       <Link
         href="/checkout"
         className={`fd-bottom-item ${activeKey === "checkout" ? "fd-bottom-item--active" : ""}`}
         aria-current={activeKey === "checkout" ? "page" : undefined}
+        aria-label="Savat"
       >
-        <span className="fd-bottom-icon material-symbols-rounded">shopping_bag</span>
-        <span className="fd-bottom-label">Savat</span>
-        {cartCount > 0 && (
-          <span className="fd-bottom-badge">
-            {cartCount > 99 ? "99+" : cartCount}
+        <span className="fd-bottom-icon-wrap">
+          <span className="fd-bottom-icon material-symbols-rounded" aria-hidden={true}>
+            shopping_bag
           </span>
-        )}
+          {cartCount > 0 && (
+            <span className="fd-bottom-badge">{cartCount > 99 ? "99+" : cartCount}</span>
+          )}
+        </span>
+        <span className="fd-bottom-label">Savat</span>
       </Link>
       <Link
         href="/profile"
-        className={`fd-bottom-item fd-bottom-item--ghost ${activeKey === "profile" ? "fd-bottom-item--active" : ""}`}
+        className={`fd-bottom-item ${activeKey === "profile" ? "fd-bottom-item--active" : ""}`}
         aria-current={activeKey === "profile" ? "page" : undefined}
+        aria-label="Profil"
       >
-        <span className="fd-bottom-icon material-symbols-rounded">person</span>
+        <span className="fd-bottom-icon material-symbols-rounded" aria-hidden={true}>
+          person
+        </span>
         <span className="fd-bottom-label">Profil</span>
       </Link>
     </nav>

@@ -305,7 +305,7 @@ body {
 }
 
 .fd-main {
-  padding: 24px 20px 140px;
+  padding: 24px 20px 100px;
 }
 
 .fd-main--no-bottom-bar {
@@ -1199,13 +1199,40 @@ body {
   min-height: 14px;
   padding: 0 4px;
   border-radius: 9999px;
-  background: var(--color-orange);
+  background: #dc2626;
   color: #fff;
   font-size: 0.6rem;
   font-weight: 600;
   line-height: 1.4;
   box-sizing: border-box;
   text-align: center;
+}
+
+.fd-bottom-icon-wrap {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.fd-bottom-icon-wrap .fd-bottom-badge {
+  top: -4px;
+  right: -8px;
+}
+
+.fd-bottom-bar--icons-only .fd-bottom-label {
+  display: none;
+}
+
+.fd-bottom-bar--icons-only .fd-bottom-item {
+  min-height: 44px;
+  gap: 0;
+  padding: 10px 0;
+  justify-content: center;
+}
+
+.fd-bottom-bar--icons-only .fd-bottom-icon {
+  font-size: 1.5rem;
 }
 
 .fd-bottom-item--active {
