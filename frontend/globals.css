@@ -529,25 +529,46 @@ body {
   text-align: left;
 }
 
-/* 1-qator: asosiy sarlavha */
+/* 1-qator: asosiy sarlavha (oldingisiga qaraganda biroz kichikroq) */
 .fd-home-hero-promo-title {
-  font-size: clamp(1.85rem, 7.5vw, 2.85rem);
+  font-size: clamp(1.55rem, 6.5vw, 2.4rem);
   line-height: 1.08;
   letter-spacing: -0.03em;
   text-transform: uppercase;
   color: #0f172a;
 }
 
-/* 2-qator: tavsif — karta/izoh matni uslubi, ancha kichik */
+/* 2-qator: tavsif — oldingi kichik o‘lchamning ~2 barobari */
 .fd-home-hero-promo-sub {
   margin-top: 8px;
   max-width: 22em;
-  font-size: clamp(0.6875rem, 2vw, 0.8125rem);
+  font-size: clamp(1.375rem, 4vw, 1.625rem);
   font-weight: 400;
-  line-height: 1.5;
+  line-height: 1.45;
   letter-spacing: 0.01em;
   text-transform: none;
   color: #64748b;
+}
+
+.fd-home-hero-promo-sub-type {
+  display: inline;
+}
+
+.fd-home-hero-promo-type-cursor {
+  display: inline-block;
+  width: 2px;
+  height: 0.95em;
+  margin-left: 3px;
+  vertical-align: -0.12em;
+  background: currentColor;
+  opacity: 0.85;
+  animation: fd-home-hero-cursor-blink 0.9s step-end infinite;
+}
+
+@keyframes fd-home-hero-cursor-blink {
+  50% {
+    opacity: 0;
+  }
 }
 
 .fd-home-hero-promo-line-anim {

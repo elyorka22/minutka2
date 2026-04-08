@@ -22,6 +22,10 @@ const heroSubFont = DM_Sans({
 
 const ROTATE_MS = 6200;
 
+/** Ikkinchi qator: «yozib kelayotgan» effekt (harflar ketma-ket) */
+const SUB_TYPE_MS = 48;
+const SUB_TYPE_START_MS = 300;
+
 function padToLength(lines: string[], n: number, fallback: string): string[] {
   if (n <= 0) return [fallback];
   const out = lines.slice(0, n);
@@ -94,6 +98,40 @@ export function HomeHeroTagline({ heroLine1Texts, heroLine2Texts, heroLine1Image
   const subText = subs[displayIndex] ?? "";
   const img = slideImages[displayIndex] ?? null;
 
+  const [typedSub, setTypedSub] = useState("");
+
+  useEffect(() => {
+    setTypedSub("");
+    const full = subText;
+    if (!full) return;
+
+    let cancelled = false;
+    let tid: number | undefined;
+
+    function delayBeforeNextChar(index: number): number {
+      const ch = full[index];
+      if (ch === " " || ch === "\u00a0") return Math.round(SUB_TYPE_MS * 0.55);
+      if (ch === "." || ch === "," || ch === "!" || ch === "?") return Math.round(SUB_TYPE_MS * 1.35);
+      return SUB_TYPE_MS;
+    }
+
+    function typeNext(len: number) {
+      if (cancelled) return;
+      if (len > full.length) return;
+      setTypedSub(full.slice(0, len));
+      if (len >= full.length) return;
+      tid = window.setTimeout(() => typeNext(len + 1), delayBeforeNextChar(len));
+    }
+
+    const startId = window.setTimeout(() => typeNext(1), SUB_TYPE_START_MS);
+
+    return () => {
+      cancelled = true;
+      window.clearTimeout(startId);
+      if (tid !== undefined) window.clearTimeout(tid);
+    };
+  }, [subText]);
+
   const slideAnimClass = exiting ? "fd-home-hero-promo-slide--out" : "fd-home-hero-promo-slide--in";
 
   return (
@@ -106,7 +144,15 @@ export function HomeHeroTagline({ heroLine1Texts, heroLine2Texts, heroLine1Image
         >
           <div className="fd-home-hero-promo-left">
             <div className={`fd-home-hero-promo-title ${heroTitleFont.className}`}>{titleText}</div>
-            <div className={`fd-home-hero-promo-sub ${heroSubFont.className}`}>{subText}</div>
+            <div className={`fd-home-hero-promo-sub ${heroSubFont.className}`}>
+              <span className="fd-sr-only">{subText}</span>
+              {subText ? (
+                <span className="fd-home-hero-promo-sub-type" aria-hidden="true">
+                  {typedSub}
+                  <span className="fd-home-hero-promo-type-cursor" />
+                </span>
+              ) : null}
+            </div>
           </div>
           <div className="fd-home-hero-promo-right">
             {img ? (
