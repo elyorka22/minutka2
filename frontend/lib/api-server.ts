@@ -55,6 +55,9 @@ export type HomepagePayload = {
   banners: HomepageBanner[];
   topCategories: HomepageTopCategory[];
   exploreCategories?: HomepageExploreCategory[];
+  /** Bosh sahifa hero: 1-qator (bir nechta bo‘lsa navbat bilan animatsiya). */
+  heroLine1Texts?: string[];
+  heroLine2Texts?: string[];
 };
 
 export function buildCarouselsFromList(restaurants: HomepageRestaurant[]): {
@@ -163,6 +166,8 @@ export async function fetchHomepageStable(): Promise<HomepagePayload> {
       fastFoodCarousel,
       topCategories,
       exploreCategories: [],
+      heroLine1Texts: ["TAOMLAR."],
+      heroLine2Texts: ["YETKAZILADI."],
     };
   }
 }

@@ -431,4 +431,8 @@ model Visit {
 model PlatformSettings {
   id                  String  @id
   adminTelegramChatId String?
+  /** JSON array of strings — bosh sahifa 1-qator tagline (bir nechta bo‘lsa navbat bilan animatsiya). */
+  heroLine1Texts Json @default("[]")
+  /** JSON array of strings — 2-qator tagline. */
+  heroLine2Texts Json @default("[]")
 }

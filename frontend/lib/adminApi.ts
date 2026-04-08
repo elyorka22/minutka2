@@ -161,9 +161,22 @@ export const adminApi = {
       method: "PATCH",
       body: JSON.stringify(body),
     }),
-  getPlatformSettings: () => adminRequest<{ telegramChatId: string }>("/admin/platform-settings"),
-  updatePlatformSettings: (body: { telegramChatId?: string }) =>
-    adminRequest<{ telegramChatId: string }>("/admin/platform-settings", {
+  getPlatformSettings: () =>
+    adminRequest<{
+      telegramChatId: string;
+      heroLine1Texts: string[];
+      heroLine2Texts: string[];
+    }>("/admin/platform-settings"),
+  updatePlatformSettings: (body: {
+    telegramChatId?: string;
+    heroLine1Texts?: string[];
+    heroLine2Texts?: string[];
+  }) =>
+    adminRequest<{
+      telegramChatId: string;
+      heroLine1Texts: string[];
+      heroLine2Texts: string[];
+    }>("/admin/platform-settings", {
       method: "PATCH",
       body: JSON.stringify(body),
     }),

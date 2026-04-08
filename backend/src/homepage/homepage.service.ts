@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma.service';
 import { CacheService } from '../cache.service';
+import { DEFAULT_HERO_LINE1, DEFAULT_HERO_LINE2, heroLinesForPublicApi } from '../hero-taglines.util';
 import { buildNationalAndFastCarousels, cardSelect } from './homepage-carousel.util';
 
 @Injectable()
@@ -12,7 +13,7 @@ export class HomepageService {
 
   getHomepage() {
     return this.cache.getOrSet('homepage:aggregate', 30_000, async () => {
-      const [restaurantRows, banners, topCategories, exploreCategories] = await Promise.all([
+      const [restaurantRows, banners, topCategories, exploreCategories, platformRow] = await Promise.all([
         this.prisma.restaurant.findMany({
           where: { isActive: true },
           orderBy: { rating: 'desc' },
@@ -54,6 +55,10 @@ export class HomepageService {
             searchQuery: true,
           },
         }),
+        this.prisma.platformSettings.findUnique({
+          where: { id: 'default' },
+          select: { heroLine1Texts: true, heroLine2Texts: true },
+        }),
       ]);
 
       const { nationalCarousel, fastFoodCarousel } = buildNationalAndFastCarousels(restaurantRows);
@@ -63,6 +68,9 @@ export class HomepageService {
         .sort((a, b) => a.featuredSortOrder - b.featuredSortOrder || b.rating - a.rating)
         .slice(0, 20);
 
+      const heroLine1Texts = heroLinesForPublicApi(platformRow?.heroLine1Texts, DEFAULT_HERO_LINE1);
+      const heroLine2Texts = heroLinesForPublicApi(platformRow?.heroLine2Texts, DEFAULT_HERO_LINE2);
+
       return {
         restaurants: restaurantRows,
         featured,
@@ -71,6 +79,8 @@ export class HomepageService {
         banners,
         topCategories,
         exploreCategories,
+        heroLine1Texts,
+        heroLine2Texts,
       };
     });
   }

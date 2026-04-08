@@ -130,6 +130,10 @@ export default function PlatformAdminPage() {
   const [platformTelegramChatIds, setPlatformTelegramChatIds] = useState<string[]>([]);
   const [platformTelegramSaving, setPlatformTelegramSaving] = useState(false);
   const [platformTelegramMessage, setPlatformTelegramMessage] = useState<string | null>(null);
+  const [heroTaglineLine1, setHeroTaglineLine1] = useState("TAOMLAR.");
+  const [heroTaglineLine2, setHeroTaglineLine2] = useState("YETKAZILADI.");
+  const [heroTaglineSaving, setHeroTaglineSaving] = useState(false);
+  const [heroTaglineMessage, setHeroTaglineMessage] = useState<string | null>(null);
   const [partnershipApplications, setPartnershipApplications] = useState<
     Array<{
       id: string;
@@ -310,6 +314,29 @@ export default function PlatformAdminPage() {
         setPlatformTelegramChatIds([]);
         setPlatformTelegramChatId("");
       });
+  }, [activeTab]);
+
+  useEffect(() => {
+    if (activeTab !== "settings") return;
+    let cancelled = false;
+    adminApi
+      .getPlatformSettings()
+      .then((s) => {
+        if (cancelled) return;
+        const a1 = Array.isArray(s?.heroLine1Texts) ? s.heroLine1Texts : [];
+        const a2 = Array.isArray(s?.heroLine2Texts) ? s.heroLine2Texts : [];
+        setHeroTaglineLine1(a1.length > 0 ? a1.join("\n") : "TAOMLAR.");
+        setHeroTaglineLine2(a2.length > 0 ? a2.join("\n") : "YETKAZILADI.");
+        setHeroTaglineMessage(null);
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setHeroTaglineMessage("Sozlamalarni yuklashda xatolik.");
+        }
+      });
+    return () => {
+      cancelled = true;
+    };
   }, [activeTab]);
 
   useEffect(() => {
@@ -823,6 +850,29 @@ export default function PlatformAdminPage() {
       setPlatformTelegramMessage(err?.message ?? "O‘chirishda xatolik.");
     } finally {
       setPlatformTelegramSaving(false);
+    }
+  }
+
+  async function saveHeroTaglines() {
+    setHeroTaglineSaving(true);
+    setHeroTaglineMessage(null);
+    try {
+      const a1 = heroTaglineLine1.split(/\r?\n/).map((x) => x.trim()).filter(Boolean);
+      const a2 = heroTaglineLine2.split(/\r?\n/).map((x) => x.trim()).filter(Boolean);
+      if (a1.length === 0 || a2.length === 0) {
+        setHeroTaglineMessage(
+          "Har ikkala qatorda kamida bitta matn bo‘lishi kerak (yangi qator bilan bir nechta variant qo‘shing).",
+        );
+        return;
+      }
+      const saved = await adminApi.updatePlatformSettings({ heroLine1Texts: a1, heroLine2Texts: a2 });
+      setHeroTaglineLine1((saved.heroLine1Texts ?? []).join("\n"));
+      setHeroTaglineLine2((saved.heroLine2Texts ?? []).join("\n"));
+      setHeroTaglineMessage("Saqlandi. Bosh sahifa tez orada yangilanadi.");
+    } catch (err: any) {
+      setHeroTaglineMessage(err?.message ?? "Saqlashda xatolik.");
+    } finally {
+      setHeroTaglineSaving(false);
     }
   }
 
@@ -1908,6 +1958,49 @@ export default function PlatformAdminPage() {
               <section>
                 <h2>Sayt sozlamalari</h2>
                 <div className="fd-form-block" style={{ marginTop: 16 }}>
+                  <h3>Bosh sahifa sarlavhasi (qidiruv ostidagi ikki qator)</h3>
+                  <p className="fd-checkout-meta">
+                    Bir qatorda bir nechta variant kiriting: har birini yangi qatordan yozing. Bir nechta bo‘lsa,
+                    bosh sahifada matnlar navbat bilan animatsiya bilan almashadi.
+                  </p>
+                  <div className="fd-form" style={{ marginTop: 12 }}>
+                    <label className="fd-field">
+                      <span>1-qator (masalan: TAOMLAR.)</span>
+                      <textarea
+                        value={heroTaglineLine1}
+                        onChange={(e) => setHeroTaglineLine1(e.target.value)}
+                        rows={4}
+                        placeholder={"TAOMLAR.\nBURGER.\nPIZZA."}
+                        style={{ minHeight: 88, resize: "vertical" }}
+                      />
+                    </label>
+                    <label className="fd-field">
+                      <span>2-qator (masalan: YETKAZILADI.)</span>
+                      <textarea
+                        value={heroTaglineLine2}
+                        onChange={(e) => setHeroTaglineLine2(e.target.value)}
+                        rows={4}
+                        placeholder={"YETKAZILADI.\nTEZ.\nISITIB."}
+                        style={{ minHeight: 88, resize: "vertical" }}
+                      />
+                    </label>
+                    {heroTaglineMessage && (
+                      <p className="fd-checkout-meta" style={{ color: "var(--color-text-secondary)" }}>
+                        {heroTaglineMessage}
+                      </p>
+                    )}
+                    <button
+                      type="button"
+                      className="fd-btn fd-btn-primary"
+                      disabled={heroTaglineSaving}
+                      onClick={() => void saveHeroTaglines()}
+                    >
+                      {heroTaglineSaving ? "Saqlanmoqda..." : "Sarlavhani saqlash"}
+                    </button>
+                  </div>
+                </div>
+
+                <div className="fd-form-block" style={{ marginTop: 28 }}>
                   <h3>Banner ostidagi kategoriya karuseli</h3>
                   <p className="fd-checkout-meta">
                     Kvadrat kartochkalar (yumaloq burchaklar). Foydalanuvchi bosganda qidiruv sahifasiga

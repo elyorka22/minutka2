@@ -24,6 +24,12 @@ import { StorageService } from './storage/storage.service';
 import { ImageProcessingService } from './storage/image-processing.service';
 import { sanitizeUploadFolder } from './storage/upload-folder.util';
 import { UserRole } from '../generated/prisma/enums';
+import {
+  DEFAULT_HERO_LINE1,
+  DEFAULT_HERO_LINE2,
+  heroLinesForPublicApi,
+  sanitizeHeroLinesInput,
+} from './hero-taglines.util';
 import * as fs from 'fs';
 import * as path from 'path';
 import { randomUUID } from 'crypto';
@@ -115,24 +121,94 @@ export class AdminController {
     this.assertPlatformAdmin(req);
     const row = await this.prisma.platformSettings.findUnique({
       where: { id: 'default' },
-      select: { adminTelegramChatId: true },
+      select: { adminTelegramChatId: true, heroLine1Texts: true, heroLine2Texts: true },
     });
-    return { telegramChatId: row?.adminTelegramChatId ?? '' };
+    const stored1 = heroLinesForPublicApi(row?.heroLine1Texts, []);
+    const stored2 = heroLinesForPublicApi(row?.heroLine2Texts, []);
+    return {
+      telegramChatId: row?.adminTelegramChatId ?? '',
+      heroLine1Texts: stored1.length > 0 ? stored1 : [...DEFAULT_HERO_LINE1],
+      heroLine2Texts: stored2.length > 0 ? stored2 : [...DEFAULT_HERO_LINE2],
+    };
   }
 
   @Patch('platform-settings')
   async patchPlatformSettings(
     @Req() req: RequestWithUser,
-    @Body() body: { telegramChatId?: string },
+    @Body()
+    body: {
+      telegramChatId?: string;
+      heroLine1Texts?: unknown;
+      heroLine2Texts?: unknown;
+    },
   ) {
     this.assertPlatformAdmin(req);
-    const value = typeof body.telegramChatId === 'string' ? body.telegramChatId.trim() || null : null;
+
+    const update: Record<string, unknown> = {};
+
+    if ('telegramChatId' in body) {
+      const value = typeof body.telegramChatId === 'string' ? body.telegramChatId.trim() || null : null;
+      update.adminTelegramChatId = value;
+    }
+
+    if (body.heroLine1Texts !== undefined) {
+      try {
+        const lines = sanitizeHeroLinesInput(body.heroLine1Texts);
+        update.heroLine1Texts = lines.length > 0 ? lines : [...DEFAULT_HERO_LINE1];
+      } catch {
+        throw new BadRequestException('heroLine1Texts must be an array of strings');
+      }
+    }
+
+    if (body.heroLine2Texts !== undefined) {
+      try {
+        const lines = sanitizeHeroLinesInput(body.heroLine2Texts);
+        update.heroLine2Texts = lines.length > 0 ? lines : [...DEFAULT_HERO_LINE2];
+      } catch {
+        throw new BadRequestException('heroLine2Texts must be an array of strings');
+      }
+    }
+
+    if (Object.keys(update).length === 0) {
+      const row = await this.prisma.platformSettings.findUnique({
+        where: { id: 'default' },
+        select: { adminTelegramChatId: true, heroLine1Texts: true, heroLine2Texts: true },
+      });
+      const stored1 = heroLinesForPublicApi(row?.heroLine1Texts, []);
+      const stored2 = heroLinesForPublicApi(row?.heroLine2Texts, []);
+      return {
+        telegramChatId: row?.adminTelegramChatId ?? '',
+        heroLine1Texts: stored1.length > 0 ? stored1 : [...DEFAULT_HERO_LINE1],
+        heroLine2Texts: stored2.length > 0 ? stored2 : [...DEFAULT_HERO_LINE2],
+      };
+    }
+
     const row = await this.prisma.platformSettings.upsert({
       where: { id: 'default' },
-      create: { id: 'default', adminTelegramChatId: value },
-      update: { adminTelegramChatId: value },
+      create: {
+        id: 'default',
+        adminTelegramChatId: null,
+        heroLine1Texts: [...DEFAULT_HERO_LINE1],
+        heroLine2Texts: [...DEFAULT_HERO_LINE2],
+        ...update,
+      },
+      update,
+      select: {
+        adminTelegramChatId: true,
+        heroLine1Texts: true,
+        heroLine2Texts: true,
+      },
     });
-    return { telegramChatId: row.adminTelegramChatId ?? '' };
+
+    this.invalidateHomeCache();
+
+    const stored1 = heroLinesForPublicApi(row.heroLine1Texts, []);
+    const stored2 = heroLinesForPublicApi(row.heroLine2Texts, []);
+    return {
+      telegramChatId: row.adminTelegramChatId ?? '',
+      heroLine1Texts: stored1.length > 0 ? stored1 : [...DEFAULT_HERO_LINE1],
+      heroLine2Texts: stored2.length > 0 ? stored2 : [...DEFAULT_HERO_LINE2],
+    };
   }
 
   @Get('overview')

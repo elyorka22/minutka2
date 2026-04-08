@@ -14,6 +14,13 @@ export default function SearchPage() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    if (typeof window !== "undefined") {
+      const q = new URLSearchParams(window.location.search).get("q");
+      if (q) setQuery(q);
+    }
+  }, []);
+
+  useEffect(() => {
     let active = true;
     api
       .getRestaurants()
