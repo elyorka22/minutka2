@@ -87,6 +87,14 @@ export default function PlatformAdminPage() {
   const [bannerImageUploading, setBannerImageUploading] = useState(false);
   const [bannerSubmitting, setBannerSubmitting] = useState(false);
   const [bannerError, setBannerError] = useState<string | null>(null);
+  const [homeExploreCategories, setHomeExploreCategories] = useState<any[]>([]);
+  const [exploreName, setExploreName] = useState("");
+  const [exploreSearchQuery, setExploreSearchQuery] = useState("");
+  const [exploreSortOrder, setExploreSortOrder] = useState("");
+  const [exploreImageUrl, setExploreImageUrl] = useState("");
+  const [exploreSubmitting, setExploreSubmitting] = useState(false);
+  const [exploreImageUploading, setExploreImageUploading] = useState(false);
+  const [exploreError, setExploreError] = useState<string | null>(null);
   const [addAdminEmails, setAddAdminEmails] = useState<Record<string, string>>({});
   const [addAdminSubmitting, setAddAdminSubmitting] = useState<Record<string, boolean>>({});
   const [restaurantStats, setRestaurantStats] = useState<{
@@ -260,6 +268,7 @@ export default function PlatformAdminPage() {
         setData(overview);
         setBanners(overview.banners ?? []);
         setProductCategories(overview.productCategories ?? []);
+        setHomeExploreCategories(overview.homeExploreCategories ?? []);
       } catch (err: any) {
         if (!active) return;
         setError(err.message ?? "Yuklashda xatolik");
@@ -355,7 +364,7 @@ export default function PlatformAdminPage() {
 
   async function fetchOverview() {
     try {
-      const [stats, restaurants, users, recentOrders, banners, productCategories] =
+      const [stats, restaurants, users, recentOrders, banners, productCategories, homeExploreCategoriesList] =
         await Promise.all([
           adminApi.getOverviewStats(),
           adminApi.getOverviewRestaurants({ limit: 20, offset: 0 }),
@@ -363,8 +372,17 @@ export default function PlatformAdminPage() {
           adminApi.getOverviewRecentOrders({ limit: 20, offset: 0 }),
           adminApi.getBanners(),
           adminApi.getProductCategories(),
+          adminApi.getHomeExploreCategories(),
         ]);
-      return { stats, restaurants, users, recentOrders, banners, productCategories } as any;
+      return {
+        stats,
+        restaurants,
+        users,
+        recentOrders,
+        banners,
+        productCategories,
+        homeExploreCategories: homeExploreCategoriesList,
+      } as any;
     } catch (e: any) {
       const msg = String(e?.message ?? "");
       const looksForbidden =
@@ -468,6 +486,9 @@ export default function PlatformAdminPage() {
       setCreateAdminName("");
       const overview = await fetchOverview();
       setData(overview);
+      setBanners(overview.banners ?? []);
+      setProductCategories(overview.productCategories ?? []);
+      setHomeExploreCategories(overview.homeExploreCategories ?? []);
       setActiveTab(isSupermarket ? "supermarkets" : "restaurants");
     } catch (err: any) {
       setCreateError(err.message ?? "Restoran qo‘shishda xatolik");
@@ -648,6 +669,74 @@ export default function PlatformAdminPage() {
       await handleUpdateBanner(bannerId, { imageUrl: url });
     } catch (err: any) {
       setBannerError(err?.message ?? "Yuklashda xatolik");
+    }
+  }
+
+  async function handleCreateExploreCategory(e: React.FormEvent) {
+    e.preventDefault();
+    if (!exploreName.trim()) {
+      setExploreError("Kategoriya nomi kiritilishi shart");
+      return;
+    }
+    setExploreError(null);
+    setExploreSubmitting(true);
+    try {
+      const created = await adminApi.createHomeExploreCategory({
+        name: exploreName.trim(),
+        imageUrl: exploreImageUrl.trim() || undefined,
+        searchQuery: exploreSearchQuery.trim() || undefined,
+        sortOrder: exploreSortOrder ? Number(exploreSortOrder) : undefined,
+        isActive: true,
+      });
+      setHomeExploreCategories((prev) =>
+        [...prev, created].sort((a: any, b: any) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0)),
+      );
+      setExploreName("");
+      setExploreSearchQuery("");
+      setExploreSortOrder("");
+      setExploreImageUrl("");
+    } catch (err: any) {
+      setExploreError(err.message ?? "Qo‘shishda xatolik");
+    } finally {
+      setExploreSubmitting(false);
+    }
+  }
+
+  async function handleUpdateExploreCategory(id: string, patch: Record<string, unknown>) {
+    try {
+      const updated = await adminApi.updateHomeExploreCategory(id, patch);
+      setHomeExploreCategories((prev) => prev.map((x) => (x.id === id ? updated : x)));
+    } catch (err: any) {
+      setExploreError(err.message ?? "Yangilashda xatolik");
+    }
+  }
+
+  async function handleUploadExploreImage(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    e.target.value = "";
+    setExploreImageUploading(true);
+    setExploreError(null);
+    try {
+      const { url } = await adminApi.uploadImage(file);
+      setExploreImageUrl(url);
+    } catch (err: any) {
+      setExploreError(err.message ?? "Yuklashda xatolik");
+    } finally {
+      setExploreImageUploading(false);
+    }
+  }
+
+  async function handleUploadExistingExploreImage(id: string, e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    e.target.value = "";
+    setExploreError(null);
+    try {
+      const { url } = await adminApi.uploadImage(file);
+      await handleUpdateExploreCategory(id, { imageUrl: url });
+    } catch (err: any) {
+      setExploreError(err.message ?? "Yuklashda xatolik");
     }
   }
 
@@ -1819,6 +1908,202 @@ export default function PlatformAdminPage() {
               <section>
                 <h2>Sayt sozlamalari</h2>
                 <div className="fd-form-block" style={{ marginTop: 16 }}>
+                  <h3>Banner ostidagi kategoriya karuseli</h3>
+                  <p className="fd-checkout-meta">
+                    Burger, pizza, sushi kabi dumaloq rasmlar — foydalanuvchi bosganda qidiruv sahifasiga
+                    o‘tadi. Rasm tavsiya etiladi (kvadrat yoki dumaloq kesilgan).
+                  </p>
+                  <form onSubmit={handleCreateExploreCategory} className="fd-form" style={{ marginTop: 12 }}>
+                    <label className="fd-field">
+                      <span>Ko‘rinadigan nom (masalan: Burger)</span>
+                      <input
+                        value={exploreName}
+                        onChange={(e) => setExploreName(e.target.value)}
+                        placeholder="Burger"
+                        required
+                      />
+                    </label>
+                    <label className="fd-field">
+                      <span>Qidiruv so‘zi (ixtiyoriy, bo‘sh bo‘lsa nom ishlatiladi)</span>
+                      <input
+                        value={exploreSearchQuery}
+                        onChange={(e) => setExploreSearchQuery(e.target.value)}
+                        placeholder="burger"
+                      />
+                    </label>
+                    <label className="fd-field">
+                      <span>Rasm URL</span>
+                      <input
+                        type="url"
+                        value={exploreImageUrl}
+                        onChange={(e) => setExploreImageUrl(e.target.value)}
+                        placeholder="Yoki fayl yuklang"
+                      />
+                      <div style={{ marginTop: 8, display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
+                        <input
+                          type="file"
+                          accept="image/*"
+                          id="create-explore-image-file"
+                          style={{ display: "none" }}
+                          onChange={handleUploadExploreImage}
+                        />
+                        <label htmlFor="create-explore-image-file" style={{ margin: 0 }}>
+                          <span className="fd-btn fd-btn-primary" style={{ cursor: "pointer", display: "inline-block" }}>
+                            {exploreImageUploading ? "Yuklanmoqda..." : "Rasm yuklash"}
+                          </span>
+                        </label>
+                      </div>
+                      {exploreImageUrl.trim() ? (
+                        <img
+                          src={imageUrl(exploreImageUrl.trim())}
+                          alt=""
+                          style={{
+                            marginTop: 10,
+                            width: 72,
+                            height: 72,
+                            borderRadius: "50%",
+                            objectFit: "cover",
+                            border: "1px solid var(--color-border)",
+                          }}
+                          onError={(e) => {
+                            (e.target as HTMLImageElement).style.display = "none";
+                          }}
+                        />
+                      ) : null}
+                    </label>
+                    <label className="fd-field">
+                      <span>Tartib (0 = birinchi)</span>
+                      <input
+                        type="number"
+                        value={exploreSortOrder}
+                        onChange={(e) => setExploreSortOrder(e.target.value)}
+                        placeholder="0"
+                      />
+                    </label>
+                    {exploreError && (
+                      <p className="fd-checkout-meta" style={{ color: "var(--color-orange)" }}>
+                        {exploreError}
+                      </p>
+                    )}
+                    <button type="submit" className="fd-btn fd-btn-primary" disabled={exploreSubmitting || exploreImageUploading}>
+                      {exploreSubmitting ? "Saqlanmoqda..." : "Kategoriya qo‘shish"}
+                    </button>
+                  </form>
+
+                  {homeExploreCategories.length > 0 && (
+                    <div style={{ marginTop: 20 }}>
+                      <p className="fd-checkout-meta" style={{ fontWeight: 600 }}>
+                        Mavjud kategoriyalar
+                      </p>
+                      <div style={{ display: "flex", flexDirection: "column", gap: 14, marginTop: 10 }}>
+                        {homeExploreCategories.map((c: any) => (
+                          <div
+                            key={c.id}
+                            className="fd-card"
+                            style={{ padding: 12, display: "flex", flexWrap: "wrap", gap: 12, alignItems: "flex-start" }}
+                          >
+                            <div style={{ width: 72, height: 72, borderRadius: "50%", overflow: "hidden", flexShrink: 0, background: "var(--color-bg)" }}>
+                              {c.imageUrl ? (
+                                <img
+                                  src={imageUrl(String(c.imageUrl))}
+                                  alt=""
+                                  style={{ width: "100%", height: "100%", objectFit: "cover" }}
+                                />
+                              ) : (
+                                <div
+                                  style={{
+                                    width: "100%",
+                                    height: "100%",
+                                    display: "flex",
+                                    alignItems: "center",
+                                    justifyContent: "center",
+                                    fontWeight: 700,
+                                    color: "var(--color-text-secondary)",
+                                  }}
+                                >
+                                  {String(c.name || "?").charAt(0).toUpperCase()}
+                                </div>
+                              )}
+                            </div>
+                            <div style={{ flex: "1 1 200px", minWidth: 0 }}>
+                              <div style={{ fontWeight: 700 }}>{c.name}</div>
+                              <div className="fd-checkout-meta" style={{ marginTop: 4 }}>
+                                Qidiruv: {c.searchQuery?.trim() || c.name}
+                              </div>
+                              <div style={{ marginTop: 8, display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
+                                <input
+                                  type="file"
+                                  accept="image/*"
+                                  id={`explore-img-${c.id}`}
+                                  style={{ display: "none" }}
+                                  onChange={(e) => void handleUploadExistingExploreImage(c.id, e)}
+                                />
+                                <label htmlFor={`explore-img-${c.id}`} style={{ margin: 0 }}>
+                                  <span className="fd-btn" style={{ cursor: "pointer", display: "inline-block", fontSize: "0.85rem", padding: "6px 12px" }}>
+                                    Rasmni almashtirish
+                                  </span>
+                                </label>
+                              </div>
+                              <div
+                                style={{
+                                  marginTop: 8,
+                                  display: "flex",
+                                  gap: 8,
+                                  alignItems: "center",
+                                  flexWrap: "wrap",
+                                }}
+                              >
+                                <label className="fd-checkout-meta">
+                                  <input
+                                    type="checkbox"
+                                    checked={!!c.isActive}
+                                    onChange={(e) => void handleUpdateExploreCategory(c.id, { isActive: e.target.checked })}
+                                  />{" "}
+                                  Faol
+                                </label>
+                                <label className="fd-checkout-meta">
+                                  Tartib:{" "}
+                                  <input
+                                    type="number"
+                                    defaultValue={c.sortOrder ?? 0}
+                                    style={{ width: 72, marginLeft: 4, padding: "2px 6px", fontSize: "0.8rem" }}
+                                    onBlur={(e) =>
+                                      void handleUpdateExploreCategory(c.id, {
+                                        sortOrder: Number(e.target.value) || 0,
+                                      })
+                                    }
+                                  />
+                                </label>
+                                <button
+                                  type="button"
+                                  className="fd-btn"
+                                  onClick={async () => {
+                                    try {
+                                      await adminApi.deleteHomeExploreCategory(c.id);
+                                      setHomeExploreCategories((prev) => prev.filter((x) => x.id !== c.id));
+                                    } catch (err: any) {
+                                      setExploreError(err?.message ?? "O‘chirishda xatolik");
+                                    }
+                                  }}
+                                >
+                                  O‘chirish
+                                </button>
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  <hr
+                    style={{
+                      margin: "28px 0",
+                      border: 0,
+                      borderTop: "1px solid var(--color-border)",
+                    }}
+                  />
+
                   <h3>Bosh sahifa bannerlari</h3>
                   <p className="fd-checkout-meta">
                     Bu yerda kategoriya tugmalarining ostida ko‘rinadigan reklama bannerlarini

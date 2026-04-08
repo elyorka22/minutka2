@@ -12,7 +12,7 @@ export class HomepageService {
 
   getHomepage() {
     return this.cache.getOrSet('homepage:aggregate', 30_000, async () => {
-      const [restaurantRows, banners, topCategories] = await Promise.all([
+      const [restaurantRows, banners, topCategories, exploreCategories] = await Promise.all([
         this.prisma.restaurant.findMany({
           where: { isActive: true },
           orderBy: { rating: 'desc' },
@@ -42,6 +42,18 @@ export class HomepageService {
             sortOrder: true,
           },
         }),
+        this.prisma.homeExploreCategory.findMany({
+          where: { isActive: true },
+          orderBy: [{ sortOrder: 'asc' }, { createdAt: 'asc' }],
+          take: 40,
+          select: {
+            id: true,
+            name: true,
+            imageUrl: true,
+            sortOrder: true,
+            searchQuery: true,
+          },
+        }),
       ]);
 
       const { nationalCarousel, fastFoodCarousel } = buildNationalAndFastCarousels(restaurantRows);
@@ -58,6 +70,7 @@ export class HomepageService {
         fastFoodCarousel,
         banners,
         topCategories,
+        exploreCategories,
       };
     });
   }

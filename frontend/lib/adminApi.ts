@@ -411,6 +411,39 @@ export const adminApi = {
     adminRequest<any>(`/admin/product-categories/${id}`, {
       method: "DELETE",
     }),
+  getHomeExploreCategories: () =>
+    adminRequest<any>("/admin/home-explore-categories", {
+      method: "GET",
+    }),
+  createHomeExploreCategory: (body: {
+    name: string;
+    imageUrl?: string;
+    sortOrder?: number;
+    isActive?: boolean;
+    searchQuery?: string;
+  }) =>
+    adminRequest<any>("/admin/home-explore-categories", {
+      method: "POST",
+      body: JSON.stringify(body),
+    }),
+  updateHomeExploreCategory: (
+    id: string,
+    body: {
+      name?: string;
+      imageUrl?: string | null;
+      sortOrder?: number;
+      isActive?: boolean;
+      searchQuery?: string | null;
+    }
+  ) =>
+    adminRequest<any>(`/admin/home-explore-categories/${id}`, {
+      method: "PATCH",
+      body: JSON.stringify(body),
+    }),
+  deleteHomeExploreCategory: (id: string) =>
+    adminRequest<any>(`/admin/home-explore-categories/${id}`, {
+      method: "DELETE",
+    }),
   getBanners: () =>
     adminRequest<any>("/admin/banners", {
       method: "GET",

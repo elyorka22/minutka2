@@ -3,9 +3,9 @@ import Image from "next/image";
 import Link from "next/link";
 import { imageUrl } from "../lib/api";
 import {
-  buildCarouselsFromList,
   type HomepageRestaurant,
   type HomepageBanner,
+  type HomepageExploreCategory,
 } from "../lib/api-server";
 import { getCachedHomepage } from "../lib/homepage-cache";
 import { SafeImage } from "../components/SafeImage";
@@ -64,35 +64,11 @@ function createThumbLcpGate(hasHeroImage: boolean) {
 export default async function HomePage() {
   const home = await getCachedHomepage();
   const restaurants = (home.restaurants || []).map(mapRestaurant);
-  const featuredRestaurants = (home.featured || []).map(mapRestaurant);
   const banners = (home.banners || []).map(mapBanner);
   const topCategories = home.topCategories || [];
+  const exploreCategories: HomepageExploreCategory[] = home.exploreCategories ?? [];
 
-  const supermarkets = restaurants.filter((r) => r.isSupermarket);
   const normalRestaurants = restaurants.filter((r) => !r.isSupermarket);
-
-  const hasNationalCarousel = Array.isArray(home.nationalCarousel);
-  const hasFastFoodCarousel = Array.isArray(home.fastFoodCarousel);
-  const builtFromList =
-    !hasNationalCarousel || !hasFastFoodCarousel
-      ? buildCarouselsFromList(home.restaurants ?? [])
-      : null;
-
-  const topCarouselRestaurants = hasNationalCarousel
-    ? (home.nationalCarousel ?? []).map(mapRestaurant)
-    : builtFromList
-      ? builtFromList.nationalCarousel.map(mapRestaurant)
-      : featuredRestaurants.length > 0
-        ? featuredRestaurants
-        : normalRestaurants.slice(0, 8);
-
-  const fastFoodCarouselRestaurants = hasFastFoodCarousel
-    ? (home.fastFoodCarousel ?? []).map(mapRestaurant)
-    : builtFromList
-      ? builtFromList.fastFoodCarousel.map(mapRestaurant)
-      : normalRestaurants.length > 8
-        ? normalRestaurants.slice(8, 16)
-        : normalRestaurants.slice(0, 8);
 
   const displayBanners =
     banners.length > 0
@@ -131,15 +107,6 @@ export default async function HomePage() {
               className="fd-home-search-input"
               placeholder="Taom, restoran yoki mahsulot izlash"
             />
-          </div>
-
-          <div className="fd-home-chips">
-            <Link href="/restaurants" className="fd-chip fd-chip--active">
-              Restoranlar
-            </Link>
-            <Link href="/supermarkets" className="fd-chip">
-              Do‘konlar
-            </Link>
           </div>
         </section>
 
@@ -196,112 +163,43 @@ export default async function HomePage() {
           })}
         </section>
 
-        <section className="fd-section">
-          <h2 className="fd-section-title">
-            <Link href="/restaurants" style={{ color: "inherit", textDecoration: "none" }}>
-              Milliy taomlar
-            </Link>
-          </h2>
-          {topCarouselRestaurants.length > 0 ? (
-            <div className="fd-home-stores">
-              {topCarouselRestaurants.map((r, index) => (
-                <Link
-                  key={r.id}
-                  href={`/restaurants/${r.id}`}
-                  className="fd-card fd-product-cat-card"
-                >
-                  <div className="fd-product-cat-image-wrap">
-                    <SafeImage
-                      src={(r.coverUrl || r.logoUrl) ? imageUrl(r.coverUrl || r.logoUrl) : ""}
-                      alt=""
-                      className="fd-product-cat-image"
-                      width={120}
-                      height={120}
-                      quality={76}
-                      priority={thumbLcp(index === 0)}
-                      fallbackStyle={{ height: 40 }}
-                      sizes="120px"
-                    />
-                  </div>
-                </Link>
-              ))}
+        {exploreCategories.length > 0 && (
+          <section
+            className="fd-section fd-home-explore-section"
+            aria-label="Tezkor kategoriyalar"
+          >
+            <div className="fd-home-explore-scroll">
+              {exploreCategories.map((c, index) => {
+                const q = (c.searchQuery?.trim() || c.name).trim();
+                const href = `/search?q=${encodeURIComponent(q)}`;
+                return (
+                  <Link key={c.id} href={href} className="fd-home-explore-item">
+                    <div className="fd-home-explore-circle">
+                      {c.imageUrl ? (
+                        <SafeImage
+                          src={imageUrl(c.imageUrl)}
+                          alt=""
+                          className="fd-home-explore-circle-img"
+                          width={144}
+                          height={144}
+                          quality={76}
+                          priority={thumbLcp(index === 0)}
+                          fallbackStyle={{ height: 72 }}
+                          sizes="72px"
+                        />
+                      ) : (
+                        <span className="fd-home-explore-placeholder" aria-hidden>
+                          {c.name.trim().charAt(0).toUpperCase() || "?"}
+                        </span>
+                      )}
+                    </div>
+                    <span className="fd-home-explore-label">{c.name}</span>
+                  </Link>
+                );
+              })}
             </div>
-          ) : (
-            <p className="fd-empty fd-checkout-meta">
-              Restoranlar yo‘q. Admin panelda restoranlar qo‘shing va «Top karuselda» belgilang.
-            </p>
-          )}
-        </section>
-
-        <section className="fd-section">
-          <h2 className="fd-section-title">
-            <Link href="/restaurants" style={{ color: "inherit", textDecoration: "none" }}>
-              Fast food
-            </Link>
-          </h2>
-          {fastFoodCarouselRestaurants.length > 0 ? (
-            <div className="fd-home-stores">
-              {fastFoodCarouselRestaurants.map((r, index) => (
-                <Link
-                  key={`fast-${r.id}`}
-                  href={`/restaurants/${r.id}`}
-                  className="fd-card fd-product-cat-card"
-                >
-                  <div className="fd-product-cat-image-wrap">
-                    <SafeImage
-                      src={(r.coverUrl || r.logoUrl) ? imageUrl(r.coverUrl || r.logoUrl) : ""}
-                      alt=""
-                      className="fd-product-cat-image"
-                      width={120}
-                      height={120}
-                      quality={76}
-                      priority={thumbLcp(index === 0)}
-                      fallbackStyle={{ height: 40 }}
-                      sizes="120px"
-                    />
-                  </div>
-                </Link>
-              ))}
-            </div>
-          ) : (
-            <p className="fd-empty fd-checkout-meta">
-              Restoranlar yo‘q. Admin panelda restoranlar qo‘shing.
-            </p>
-          )}
-        </section>
-
-        <section className="fd-section">
-          <h2 className="fd-section-title">
-            <Link href="/supermarkets" style={{ color: "inherit", textDecoration: "none" }}>
-              Do‘konlardan mahsulotlar
-            </Link>
-          </h2>
-          {supermarkets.length > 0 && (
-            <div className="fd-home-stores">
-              {supermarkets.map((s, index) => (
-                <Link
-                  key={s.id}
-                  href={`/restaurants/${s.id}`}
-                  className="fd-card fd-product-cat-card"
-                >
-                  <div className="fd-product-cat-image-wrap">
-                    <SafeImage
-                      src={(s.coverUrl || s.logoUrl) ? imageUrl(s.coverUrl || s.logoUrl) : ""}
-                      alt=""
-                      className="fd-product-cat-image"
-                      width={120}
-                      height={120}
-                      quality={76}
-                      priority={thumbLcp(index === 0)}
-                      fallbackStyle={{ height: 40 }}
-                      sizes="120px"
-                    />
-                  </div>
-                </Link>
-              ))}
-            </div>
-          )}
-        </section>
+          </section>
+        )}
 
         {topCategories.length > 0 && (
           <section className="fd-section">

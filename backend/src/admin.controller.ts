@@ -1127,6 +1127,87 @@ export class AdminController {
     return { ok: true };
   }
 
+  @Get('home-explore-categories')
+  async getHomeExploreCategories(@Req() req: RequestWithUser) {
+    this.assertPlatformAdmin(req);
+    return this.prisma.homeExploreCategory.findMany({
+      orderBy: [{ sortOrder: 'asc' }, { createdAt: 'desc' }],
+    });
+  }
+
+  @Post('home-explore-categories')
+  async createHomeExploreCategory(
+    @Body()
+    body: {
+      name: string;
+      imageUrl?: string;
+      sortOrder?: number;
+      isActive?: boolean;
+      searchQuery?: string | null;
+    },
+    @Req() req: RequestWithUser,
+  ) {
+    this.assertPlatformAdmin(req);
+    if (!body.name || typeof body.name !== 'string') {
+      throw new BadRequestException('name is required');
+    }
+    const row = await this.prisma.homeExploreCategory.create({
+      data: {
+        name: body.name.trim(),
+        imageUrl: body.imageUrl?.trim() || null,
+        sortOrder: typeof body.sortOrder === 'number' ? body.sortOrder : 0,
+        isActive: body.isActive ?? true,
+        searchQuery:
+          body.searchQuery === undefined || body.searchQuery === null
+            ? null
+            : String(body.searchQuery).trim() || null,
+      },
+    });
+    this.invalidateHomeCache();
+    return row;
+  }
+
+  @Patch('home-explore-categories/:id')
+  async updateHomeExploreCategory(
+    @Param('id') id: string,
+    @Body()
+    body: {
+      name?: string;
+      imageUrl?: string | null;
+      sortOrder?: number;
+      isActive?: boolean;
+      searchQuery?: string | null;
+    },
+    @Req() req: RequestWithUser,
+  ) {
+    this.assertPlatformAdmin(req);
+    const row = await this.prisma.homeExploreCategory.update({
+      where: { id },
+      data: {
+        ...(body.name !== undefined && { name: body.name.trim() }),
+        ...(body.imageUrl !== undefined && { imageUrl: body.imageUrl?.trim() || null }),
+        ...(body.sortOrder !== undefined && { sortOrder: body.sortOrder }),
+        ...(body.isActive !== undefined && { isActive: body.isActive }),
+        ...(body.searchQuery !== undefined && {
+          searchQuery:
+            body.searchQuery === null || body.searchQuery === ''
+              ? null
+              : String(body.searchQuery).trim(),
+        }),
+      },
+    });
+    this.invalidateHomeCache();
+    return row;
+  }
+
+  @Delete('home-explore-categories/:id')
+  async deleteHomeExploreCategory(@Param('id') id: string, @Req() req: RequestWithUser) {
+    this.assertPlatformAdmin(req);
+    await this.prisma.homeExploreCategory.delete({ where: { id } });
+    this.invalidateHomeCache();
+    return { ok: true };
+  }
+
   @Get('banners')
   async getBanners(@Req() req: RequestWithUser) {
     if (req.user?.role !== 'PLATFORM_ADMIN') {

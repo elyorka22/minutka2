@@ -288,6 +288,22 @@ model ProductCategory {
   products Product[]
 }
 
+/// Bosh sahifada banner ostidagi gorizontal «Burger / Pizza» karuseli (`/search?q=`).
+model HomeExploreCategory {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  name      String
+  imageUrl  String?
+  sortOrder Int     @default(0)
+  isActive  Boolean @default(true)
+  /// Bo‘sh bo‘lsa — qidiruvda `name` ishlatiladi.
+  searchQuery String?
+
+  @@index([isActive, sortOrder])
+}
+
 model PushSubscription {
   id        Int      @id @default(autoincrement())
   endpoint  String   @unique

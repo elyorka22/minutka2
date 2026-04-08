@@ -39,6 +39,14 @@ export type HomepageTopCategory = {
   sortOrder?: number | null;
 };
 
+export type HomepageExploreCategory = {
+  id: string;
+  name: string;
+  imageUrl?: string | null;
+  sortOrder?: number | null;
+  searchQuery?: string | null;
+};
+
 export type HomepagePayload = {
   restaurants: HomepageRestaurant[];
   featured: HomepageRestaurant[];
@@ -46,6 +54,7 @@ export type HomepagePayload = {
   fastFoodCarousel?: HomepageRestaurant[];
   banners: HomepageBanner[];
   topCategories: HomepageTopCategory[];
+  exploreCategories?: HomepageExploreCategory[];
 };
 
 export function buildCarouselsFromList(restaurants: HomepageRestaurant[]): {
@@ -153,6 +162,7 @@ export async function fetchHomepageStable(): Promise<HomepagePayload> {
       nationalCarousel,
       fastFoodCarousel,
       topCategories,
+      exploreCategories: [],
     };
   }
 }
