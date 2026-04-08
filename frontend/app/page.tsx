@@ -108,6 +108,44 @@ export default async function HomePage() {
               placeholder="Taom, restoran yoki mahsulot izlash"
             />
           </div>
+
+          {exploreCategories.length > 0 && (
+            <div
+              className="fd-home-explore-section fd-home-explore-section--under-search"
+              aria-label="Tezkor kategoriyalar"
+            >
+              <div className="fd-home-explore-scroll">
+                {exploreCategories.map((c, index) => {
+                  const q = (c.searchQuery?.trim() || c.name).trim();
+                  const href = `/search?q=${encodeURIComponent(q)}`;
+                  return (
+                    <Link key={c.id} href={href} className="fd-home-explore-item">
+                      <div className="fd-home-explore-card">
+                        {c.imageUrl ? (
+                          <SafeImage
+                            src={imageUrl(c.imageUrl)}
+                            alt=""
+                            className="fd-home-explore-card-img"
+                            width={176}
+                            height={176}
+                            quality={76}
+                            priority={thumbLcp(index === 0)}
+                            fallbackStyle={{ height: 88 }}
+                            sizes="88px"
+                          />
+                        ) : (
+                          <span className="fd-home-explore-placeholder" aria-hidden>
+                            {c.name.trim().charAt(0).toUpperCase() || "?"}
+                          </span>
+                        )}
+                      </div>
+                      <span className="fd-home-explore-label">{c.name}</span>
+                    </Link>
+                  );
+                })}
+              </div>
+            </div>
+          )}
         </section>
 
         <section className="fd-home-banners">
@@ -162,44 +200,6 @@ export default async function HomePage() {
             );
           })}
         </section>
-
-        {exploreCategories.length > 0 && (
-          <section
-            className="fd-section fd-home-explore-section"
-            aria-label="Tezkor kategoriyalar"
-          >
-            <div className="fd-home-explore-scroll">
-              {exploreCategories.map((c, index) => {
-                const q = (c.searchQuery?.trim() || c.name).trim();
-                const href = `/search?q=${encodeURIComponent(q)}`;
-                return (
-                  <Link key={c.id} href={href} className="fd-home-explore-item">
-                    <div className="fd-home-explore-circle">
-                      {c.imageUrl ? (
-                        <SafeImage
-                          src={imageUrl(c.imageUrl)}
-                          alt=""
-                          className="fd-home-explore-circle-img"
-                          width={144}
-                          height={144}
-                          quality={76}
-                          priority={thumbLcp(index === 0)}
-                          fallbackStyle={{ height: 72 }}
-                          sizes="72px"
-                        />
-                      ) : (
-                        <span className="fd-home-explore-placeholder" aria-hidden>
-                          {c.name.trim().charAt(0).toUpperCase() || "?"}
-                        </span>
-                      )}
-                    </div>
-                    <span className="fd-home-explore-label">{c.name}</span>
-                  </Link>
-                );
-              })}
-            </div>
-          </section>
-        )}
 
         {topCategories.length > 0 && (
           <section className="fd-section">

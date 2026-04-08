@@ -1908,10 +1908,10 @@ export default function PlatformAdminPage() {
               <section>
                 <h2>Sayt sozlamalari</h2>
                 <div className="fd-form-block" style={{ marginTop: 16 }}>
-                  <h3>Banner ostidagi kategoriya karuseli</h3>
+                  <h3>Qidiruv ustidagi kategoriya karuseli</h3>
                   <p className="fd-checkout-meta">
-                    Burger, pizza, sushi kabi dumaloq rasmlar — foydalanuvchi bosganda qidiruv sahifasiga
-                    o‘tadi. Rasm tavsiya etiladi (kvadrat yoki dumaloq kesilgan).
+                    Bosh sahifada qidiruv satri ostida gorizontal karusel — kvadrat (skvirtl) kartochkalar.
+                    Foydalanuvchi bosganda qidiruv sahifasiga o‘tadi. Logo yoki rasm tavsiya etiladi (~1:1).
                   </p>
                   <form onSubmit={handleCreateExploreCategory} className="fd-form" style={{ marginTop: 12 }}>
                     <label className="fd-field">
@@ -1959,11 +1959,12 @@ export default function PlatformAdminPage() {
                           alt=""
                           style={{
                             marginTop: 10,
-                            width: 72,
-                            height: 72,
-                            borderRadius: "50%",
+                            width: 88,
+                            height: 88,
+                            borderRadius: 22,
                             objectFit: "cover",
                             border: "1px solid var(--color-border)",
+                            boxShadow: "0 2px 8px rgba(15, 23, 42, 0.08)",
                           }}
                           onError={(e) => {
                             (e.target as HTMLImageElement).style.display = "none";
@@ -2002,7 +2003,7 @@ export default function PlatformAdminPage() {
                             className="fd-card"
                             style={{ padding: 12, display: "flex", flexWrap: "wrap", gap: 12, alignItems: "flex-start" }}
                           >
-                            <div style={{ width: 72, height: 72, borderRadius: "50%", overflow: "hidden", flexShrink: 0, background: "var(--color-bg)" }}>
+                            <div style={{ width: 88, height: 88, borderRadius: 22, overflow: "hidden", flexShrink: 0, background: "var(--color-bg)", border: "1px solid var(--color-border)", boxShadow: "0 2px 8px rgba(15, 23, 42, 0.06)" }}>
                               {c.imageUrl ? (
                                 <img
                                   src={imageUrl(String(c.imageUrl))}

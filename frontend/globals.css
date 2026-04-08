@@ -696,17 +696,22 @@ body {
   scrollbar-width: none;
 }
 
-/* Bosh sahifa: banner ostidagi dumaloq kategoriya karuseli (Burger, Pizza…) */
+/* Bosh sahifa: qidiruv ostidagi gorizontal kategoriya karuseli (Wolt uslubidagi kvadrat/skvirtl kartochkalar) */
 .fd-home-explore-section {
-  padding-top: 4px;
-  margin-bottom: 4px;
+  padding-top: 2px;
+  margin-bottom: 0;
+  width: 100%;
+}
+
+.fd-home-explore-section--under-search {
+  margin-top: 2px;
 }
 
 .fd-home-explore-scroll {
   display: flex;
-  gap: 14px;
+  gap: 12px;
   overflow-x: auto;
-  padding: 4px 0 12px;
+  padding: 6px 0 4px;
   margin: 0 -20px;
   padding-left: 20px;
   padding-right: 20px;
@@ -720,7 +725,7 @@ body {
 
 .fd-home-explore-item {
   flex: 0 0 auto;
-  width: 76px;
+  width: 92px;
   text-align: center;
   text-decoration: none;
   color: inherit;
@@ -730,37 +735,44 @@ body {
   opacity: 0.92;
 }
 
-.fd-home-explore-circle {
-  width: 72px;
-  height: 72px;
+.fd-home-explore-card {
+  width: 88px;
+  height: 88px;
   margin: 0 auto 8px;
-  border-radius: 50%;
+  border-radius: 22px;
   overflow: hidden;
-  background: linear-gradient(145deg, #f8fafc 0%, #eef2f7 100%);
-  box-shadow: 0 1px 4px rgba(15, 23, 42, 0.08);
+  background: var(--color-surface);
+  box-shadow:
+    0 1px 2px rgba(15, 23, 42, 0.06),
+    0 4px 12px rgba(15, 23, 42, 0.08);
   display: flex;
   align-items: center;
   justify-content: center;
+  border: 1px solid rgba(15, 23, 42, 0.06);
 }
 
-.fd-home-explore-circle-img {
+.fd-home-explore-card-img {
   width: 100%;
   height: 100%;
   object-fit: cover;
 }
 
 .fd-home-explore-placeholder {
-  font-size: 1.35rem;
+  font-size: 1.5rem;
   font-weight: 700;
   color: var(--color-text-secondary);
 }
 
 .fd-home-explore-label {
   display: block;
-  font-size: 0.75rem;
+  font-size: 0.7rem;
   font-weight: 600;
-  line-height: 1.25;
+  line-height: 1.2;
   color: var(--color-text);
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 /* Grid & cards */
