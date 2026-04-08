@@ -83,12 +83,6 @@ export default async function HomePage() {
             />
           </form>
 
-          <HomeHeroTagline
-            heroLine1Texts={heroLine1Texts}
-            heroLine2Texts={heroLine2Texts}
-            className={homeHeroFont.className}
-          />
-
           {exploreCategories.length > 0 && (
             <div className="fd-home-explore-section fd-home-explore-section--in-hero" aria-label="Tezkor kategoriyalar">
               <div className="fd-home-explore-scroll fd-home-explore-scroll--in-hero">
@@ -123,6 +117,12 @@ export default async function HomePage() {
               </div>
             </div>
           )}
+
+          <HomeHeroTagline
+            heroLine1Texts={heroLine1Texts}
+            heroLine2Texts={heroLine2Texts}
+            className={homeHeroFont.className}
+          />
         </div>
       </div>
 
