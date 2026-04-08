@@ -33,6 +33,7 @@ import {
   sanitizeHeroImageUrlsInput,
   sanitizeHeroLinesInput,
 } from './hero-taglines.util';
+import { isMissingCarouselRowColumnError } from './home-explore-carousel-row.util';
 import * as fs from 'fs';
 import * as path from 'path';
 import { randomUUID } from 'crypto';
@@ -1286,9 +1287,27 @@ export class AdminController {
   @Get('home-explore-categories')
   async getHomeExploreCategories(@Req() req: RequestWithUser) {
     this.assertPlatformAdmin(req);
-    return this.prisma.homeExploreCategory.findMany({
-      orderBy: [{ carouselRow: 'asc' }, { sortOrder: 'asc' }, { createdAt: 'desc' }],
-    });
+    try {
+      return await this.prisma.homeExploreCategory.findMany({
+        orderBy: [{ carouselRow: 'asc' }, { sortOrder: 'asc' }, { createdAt: 'desc' }],
+      });
+    } catch (e) {
+      if (!isMissingCarouselRowColumnError(e)) throw e;
+      const rows = await this.prisma.homeExploreCategory.findMany({
+        orderBy: [{ sortOrder: 'asc' }, { createdAt: 'desc' }],
+        select: {
+          id: true,
+          createdAt: true,
+          updatedAt: true,
+          name: true,
+          imageUrl: true,
+          sortOrder: true,
+          isActive: true,
+          searchQuery: true,
+        },
+      });
+      return rows.map((r) => ({ ...r, carouselRow: 1 }));
+    }
   }
 
   @Post('home-explore-categories')
@@ -1310,21 +1329,30 @@ export class AdminController {
       throw new BadRequestException('name is required');
     }
     const carouselRow = body.carouselRow === 2 ? 2 : 1;
-    const row = await this.prisma.homeExploreCategory.create({
-      data: {
-        name: body.name.trim(),
-        imageUrl: body.imageUrl?.trim() || null,
-        sortOrder: typeof body.sortOrder === 'number' ? body.sortOrder : 0,
-        isActive: body.isActive ?? true,
-        carouselRow,
-        searchQuery:
-          body.searchQuery === undefined || body.searchQuery === null
-            ? null
-            : String(body.searchQuery).trim() || null,
-      },
-    });
-    this.invalidateHomeCache();
-    return row;
+    try {
+      const row = await this.prisma.homeExploreCategory.create({
+        data: {
+          name: body.name.trim(),
+          imageUrl: body.imageUrl?.trim() || null,
+          sortOrder: typeof body.sortOrder === 'number' ? body.sortOrder : 0,
+          isActive: body.isActive ?? true,
+          carouselRow,
+          searchQuery:
+            body.searchQuery === undefined || body.searchQuery === null
+              ? null
+              : String(body.searchQuery).trim() || null,
+        },
+      });
+      this.invalidateHomeCache();
+      return row;
+    } catch (e) {
+      if (isMissingCarouselRowColumnError(e)) {
+        throw new BadRequestException(
+          "Ma'lumotlar bazasida migratsiya kerak: backend papkasida `npx prisma migrate deploy` ni ishga tushiring (carouselRow ustuni).",
+        );
+      }
+      throw e;
+    }
   }
 
   @Patch('home-explore-categories/:id')
@@ -1348,24 +1376,33 @@ export class AdminController {
           ? 2
           : 1
         : undefined;
-    const row = await this.prisma.homeExploreCategory.update({
-      where: { id },
-      data: {
-        ...(body.name !== undefined && { name: body.name.trim() }),
-        ...(body.imageUrl !== undefined && { imageUrl: body.imageUrl?.trim() || null }),
-        ...(body.sortOrder !== undefined && { sortOrder: body.sortOrder }),
-        ...(body.isActive !== undefined && { isActive: body.isActive }),
-        ...(patchRow !== undefined && { carouselRow: patchRow }),
-        ...(body.searchQuery !== undefined && {
-          searchQuery:
-            body.searchQuery === null || body.searchQuery === ''
-              ? null
-              : String(body.searchQuery).trim(),
-        }),
-      },
-    });
-    this.invalidateHomeCache();
-    return row;
+    try {
+      const row = await this.prisma.homeExploreCategory.update({
+        where: { id },
+        data: {
+          ...(body.name !== undefined && { name: body.name.trim() }),
+          ...(body.imageUrl !== undefined && { imageUrl: body.imageUrl?.trim() || null }),
+          ...(body.sortOrder !== undefined && { sortOrder: body.sortOrder }),
+          ...(body.isActive !== undefined && { isActive: body.isActive }),
+          ...(patchRow !== undefined && { carouselRow: patchRow }),
+          ...(body.searchQuery !== undefined && {
+            searchQuery:
+              body.searchQuery === null || body.searchQuery === ''
+                ? null
+                : String(body.searchQuery).trim(),
+          }),
+        },
+      });
+      this.invalidateHomeCache();
+      return row;
+    } catch (e) {
+      if (isMissingCarouselRowColumnError(e)) {
+        throw new BadRequestException(
+          "Ma'lumotlar bazasida migratsiya kerak: `npx prisma migrate deploy` (carouselRow ustuni).",
+        );
+      }
+      throw e;
+    }
   }
 
   @Delete('home-explore-categories/:id')

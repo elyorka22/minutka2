@@ -8,6 +8,7 @@ import {
   heroLinesForPublicApi,
 } from '../hero-taglines.util';
 import { buildNationalAndFastCarousels, cardSelect } from './homepage-carousel.util';
+import { fetchHomeExploreSplit } from '../home-explore-carousel-row.util';
 
 @Injectable()
 export class HomepageService {
@@ -18,8 +19,7 @@ export class HomepageService {
 
   getHomepage() {
     return this.cache.getOrSet('homepage:aggregate', 30_000, async () => {
-      const [restaurantRows, banners, topCategories, exploreCategories, exploreCategoriesRow2, platformRow] =
-        await Promise.all([
+      const [restaurantRows, banners, topCategories, exploreSplit, platformRow] = await Promise.all([
         this.prisma.restaurant.findMany({
           where: { isActive: true },
           orderBy: { rating: 'desc' },
@@ -49,30 +49,7 @@ export class HomepageService {
             sortOrder: true,
           },
         }),
-        this.prisma.homeExploreCategory.findMany({
-          where: { isActive: true, carouselRow: 1 },
-          orderBy: [{ sortOrder: 'asc' }, { createdAt: 'asc' }],
-          take: 40,
-          select: {
-            id: true,
-            name: true,
-            imageUrl: true,
-            sortOrder: true,
-            searchQuery: true,
-          },
-        }),
-        this.prisma.homeExploreCategory.findMany({
-          where: { isActive: true, carouselRow: 2 },
-          orderBy: [{ sortOrder: 'asc' }, { createdAt: 'asc' }],
-          take: 40,
-          select: {
-            id: true,
-            name: true,
-            imageUrl: true,
-            sortOrder: true,
-            searchQuery: true,
-          },
-        }),
+        fetchHomeExploreSplit(this.prisma),
         this.prisma.platformSettings.findUnique({
           where: { id: 'default' },
           select: {
@@ -83,6 +60,9 @@ export class HomepageService {
           },
         }),
       ]);
+
+      const exploreCategories = exploreSplit.row1;
+      const exploreCategoriesRow2 = exploreSplit.row2;
 
       const { nationalCarousel, fastFoodCarousel } = buildNationalAndFastCarousels(restaurantRows);
 
