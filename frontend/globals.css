@@ -503,6 +503,22 @@ body {
   box-sizing: border-box;
 }
 
+/* Matn + rasm bir qatorda: sekin kirish / chiqish (sinxron) */
+.fd-home-hero-promo-slide-wrap {
+  display: flex;
+  flex-direction: row;
+  align-items: stretch;
+  width: 100%;
+}
+
+.fd-home-hero-promo-slide--in {
+  animation: fd-home-hero-slide-sync 1.15s ease-out both;
+}
+
+.fd-home-hero-promo-slide--out {
+  animation: fd-home-hero-slide-sync-out 1.05s ease-in both;
+}
+
 .fd-home-hero-promo-left {
   flex: 1;
   min-width: 0;
@@ -568,6 +584,29 @@ body {
   to {
     opacity: 1;
     transform: translateY(0);
+  }
+}
+
+/* Sinxron: chap matn + o‘ng rasm bir vaqtda, sekinroq */
+@keyframes fd-home-hero-slide-sync {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes fd-home-hero-slide-sync-out {
+  from {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  to {
+    opacity: 0;
+    transform: translateY(-12px);
   }
 }
 

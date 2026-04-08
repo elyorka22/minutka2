@@ -1,18 +1,10 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { Nunito } from "next/font/google";
 import { imageUrl } from "../lib/api";
 import { type HomepageRestaurant, type HomepageExploreCategory } from "../lib/api-server";
 import { getCachedHomepage } from "../lib/homepage-cache";
 import { SafeImage } from "../components/SafeImage";
 import { HomeHeroTagline } from "../components/HomeHeroTagline";
-
-/** Wolt uslubi: yumaloq geometrik sans, Black (900) */
-const homeHeroFont = Nunito({
-  subsets: ["latin", "latin-ext"],
-  weight: ["900"],
-  display: "swap",
-});
 
 /** ISR: HTML кэшируется на CDN (Vercel edge и т.д.) — повторные визиты без холодного /homepage. */
 export const revalidate = 60;
@@ -123,7 +115,6 @@ export default async function HomePage() {
             heroLine1Texts={heroLine1Texts}
             heroLine2Texts={heroLine2Texts}
             heroLine1ImageUrls={heroLine1ImageUrls}
-            className={homeHeroFont.className}
           />
         </div>
       </div>

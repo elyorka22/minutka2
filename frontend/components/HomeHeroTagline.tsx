@@ -1,11 +1,26 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { DM_Sans, Playfair_Display } from "next/font/google";
 import { imageUrl } from "../lib/api";
 import { alignHeroImagesToLines, normalizeHeroLines } from "../lib/heroTaglines";
 import { SafeImage } from "./SafeImage";
 
-const ROTATE_MS = 3800;
+/** Sarlavha: serif, editorial uslub */
+const heroTitleFont = Playfair_Display({
+  subsets: ["latin", "latin-ext", "cyrillic"],
+  weight: ["700"],
+  display: "swap",
+});
+
+/** Tavsif: geometrik sans, kichikroq */
+const heroSubFont = DM_Sans({
+  subsets: ["latin", "latin-ext"],
+  weight: ["500"],
+  display: "swap",
+});
+
+const ROTATE_MS = 6200;
 
 function padToLength(lines: string[], n: number, fallback: string): string[] {
   if (n <= 0) return [fallback];
@@ -45,51 +60,71 @@ export function HomeHeroTagline({ heroLine1Texts, heroLine2Texts, heroLine1Image
 
   const slidesKey = useMemo(() => JSON.stringify({ titles, subs }), [titles, subs]);
 
-  const [index, setIndex] = useState(0);
+  const [displayIndex, setDisplayIndex] = useState(0);
+  const [exiting, setExiting] = useState(false);
 
   useEffect(() => {
-    setIndex(0);
+    setDisplayIndex(0);
+    setExiting(false);
   }, [slidesKey]);
+
+  useEffect(() => {
+    if (slideCount <= 1) {
+      setExiting(false);
+      setDisplayIndex(0);
+    }
+  }, [slideCount]);
 
   useEffect(() => {
     if (slideCount <= 1) return;
     const id = window.setInterval(() => {
-      setIndex((i) => (i + 1) % slideCount);
+      setExiting(true);
     }, ROTATE_MS);
     return () => window.clearInterval(id);
   }, [slidesKey, slideCount]);
 
-  const titleText = titles[index] ?? "";
-  const subText = subs[index] ?? "";
-  const img = slideImages[index] ?? null;
+  function handleSlideAnimEnd(e: React.AnimationEvent<HTMLDivElement>) {
+    if (e.target !== e.currentTarget) return;
+    if (e.animationName !== "fd-home-hero-slide-sync-out") return;
+    setExiting(false);
+    setDisplayIndex((i) => (i + 1) % slideCount);
+  }
+
+  const titleText = titles[displayIndex] ?? "";
+  const subText = subs[displayIndex] ?? "";
+  const img = slideImages[displayIndex] ?? null;
+
+  const slideAnimClass = exiting ? "fd-home-hero-promo-slide--out" : "fd-home-hero-promo-slide--in";
 
   return (
     <section className={`fd-home-hero-tagline-outer${className ? ` ${className}` : ""}`} aria-label="Bosh sahifa sarlavhasi">
       <div className="fd-home-hero-promo-card" role="heading" aria-level={1}>
-        <div className="fd-home-hero-promo-left">
-          <div key={slidesKey + "t" + String(index)} className="fd-home-hero-promo-title fd-home-hero-promo-line-anim">
-            {titleText}
+        <div
+          key={displayIndex}
+          className={`fd-home-hero-promo-slide-wrap ${slideAnimClass}`}
+          onAnimationEnd={handleSlideAnimEnd}
+        >
+          <div className="fd-home-hero-promo-left">
+            <div className={`fd-home-hero-promo-title ${heroTitleFont.className}`}>{titleText}</div>
+            <div className={`fd-home-hero-promo-sub ${heroSubFont.className}`}>{subText}</div>
           </div>
-          <div key={slidesKey + "s" + String(index)} className="fd-home-hero-promo-sub fd-home-hero-promo-line-anim">
-            {subText}
+          <div className="fd-home-hero-promo-right">
+            {img ? (
+              <SafeImage
+                src={imageUrl(img)}
+                alt=""
+                className="fd-home-hero-promo-img"
+                width={640}
+                height={400}
+                quality={80}
+                sizes="(max-width: 520px) 42vw, 220px"
+                fallbackClassName="fd-home-hero-promo-img-empty"
+                fallbackStyle={{ width: "100%", height: "100%", minHeight: 168 }}
+              />
+            ) : (
+              <div className="fd-home-hero-promo-img-empty" aria-hidden />
+            )}
           </div>
-        </div>
-        <div className="fd-home-hero-promo-right">
-          {img ? (
-            <SafeImage
-              src={imageUrl(img)}
-              alt=""
-              className="fd-home-hero-promo-img"
-              width={640}
-              height={400}
-              quality={80}
-              sizes="(max-width: 520px) 42vw, 220px"
-              fallbackClassName="fd-home-hero-promo-img-empty"
-              fallbackStyle={{ width: "100%", height: "100%", minHeight: 168 }}
-            />
-          ) : (
-            <div className="fd-home-hero-promo-img-empty" aria-hidden />
-          )}
         </div>
       </div>
     </section>
