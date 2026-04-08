@@ -84,7 +84,7 @@ export function HomeHeroTagline({ heroLine1Texts, heroLine2Texts, heroLine1Image
               height={400}
               quality={82}
               sizes="(max-width: 520px) 42vw, 220px"
-              fallbackStyle={{ width: "100%", height: "100%", minHeight: 128 }}
+              fallbackStyle={{ width: "100%", height: "100%", minHeight: 152 }}
             />
           ) : (
             <div className="fd-home-hero-promo-img-empty" aria-hidden />
