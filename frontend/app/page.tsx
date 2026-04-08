@@ -1,16 +1,16 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { Fredoka } from "next/font/google";
+import { Nunito } from "next/font/google";
 import { imageUrl } from "../lib/api";
 import { type HomepageRestaurant, type HomepageExploreCategory } from "../lib/api-server";
 import { getCachedHomepage } from "../lib/homepage-cache";
 import { SafeImage } from "../components/SafeImage";
 import { HomeHeroTagline } from "../components/HomeHeroTagline";
 
-/** Tagline uchun eng qalin Fredoka (700) */
-const homeHeroFont = Fredoka({
+/** Wolt uslubi: yumaloq geometrik sans, Black (900) */
+const homeHeroFont = Nunito({
   subsets: ["latin", "latin-ext"],
-  weight: ["700"],
+  weight: ["900"],
   display: "swap",
 });
 
