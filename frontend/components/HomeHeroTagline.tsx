@@ -13,10 +13,10 @@ const heroTitleFont = Playfair_Display({
   display: "swap",
 });
 
-/** Tavsif: geometrik sans, kichikroq */
+/** Tavsif: karta izohlari kabi, yengil */
 const heroSubFont = DM_Sans({
   subsets: ["latin", "latin-ext"],
-  weight: ["500"],
+  weight: ["400"],
   display: "swap",
 });
 

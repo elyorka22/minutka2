@@ -529,19 +529,25 @@ body {
   text-align: left;
 }
 
-/* Ikkala qator bir xil o‘lcham, qora */
-.fd-home-hero-promo-title,
-.fd-home-hero-promo-sub {
-  font-size: clamp(1.65rem, 7.2vw, 2.45rem);
-  font-weight: 900;
-  line-height: 1.06;
-  letter-spacing: -0.02em;
+/* 1-qator: asosiy sarlavha */
+.fd-home-hero-promo-title {
+  font-size: clamp(1.85rem, 7.5vw, 2.85rem);
+  line-height: 1.08;
+  letter-spacing: -0.03em;
   text-transform: uppercase;
   color: #0f172a;
 }
 
+/* 2-qator: tavsif — karta/izoh matni uslubi, ancha kichik */
 .fd-home-hero-promo-sub {
-  margin-top: 4px;
+  margin-top: 8px;
+  max-width: 22em;
+  font-size: clamp(0.6875rem, 2vw, 0.8125rem);
+  font-weight: 400;
+  line-height: 1.5;
+  letter-spacing: 0.01em;
+  text-transform: none;
+  color: #64748b;
 }
 
 .fd-home-hero-promo-line-anim {
