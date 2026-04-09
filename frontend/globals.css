@@ -444,13 +444,29 @@ body {
   border: 0;
 }
 
-/* Bosh sahifa hero: oq fon — qidiruv, keyin kategoriya karuseli, keyin tagline */
+/* Bosh sahifa hero: to‘q sariq/oranj fon — qidiruv va kategoriya karuseli */
 .fd-home-hero-wolt {
-  margin: -24px -20px 20px -20px;
-  padding: 20px 20px 28px;
-  background: #fff;
-  color: var(--color-text);
+  margin: -24px -20px 0 -20px;
+  padding: 20px 20px 40px;
+  background: #ff6b00;
+  color: #fff;
   box-sizing: border-box;
+}
+
+/* Oq «varaq» — yuqori burchaklari yumaloq, hero ustiga chiqadi */
+.fd-home-body-sheet {
+  margin: -28px -20px 0;
+  padding: 24px 20px 8px;
+  background: var(--color-surface);
+  border-radius: 28px 28px 0 0;
+  box-shadow: 0 -8px 32px rgba(15, 23, 42, 0.08);
+  box-sizing: border-box;
+  position: relative;
+  z-index: 1;
+}
+
+.fd-home-body-sheet > .fd-section:first-child {
+  margin-top: 0;
 }
 
 .fd-home-hero-inner {
@@ -482,163 +498,6 @@ body {
 .fd-home-search-input--pill:focus {
   outline: none;
   box-shadow: 0 0 0 3px rgba(234, 88, 12, 0.35), 0 2px 12px rgba(0, 0, 0, 0.12);
-}
-
-.fd-home-hero-tagline-outer {
-  width: 100%;
-}
-
-/* Promo: baner emas — chegarasiz, fon bilan bir xil; chap matn, o‘ng rasm */
-.fd-home-hero-promo-card {
-  display: flex;
-  flex-direction: row;
-  align-items: stretch;
-  width: 100%;
-  margin: 20px 0 0;
-  background: transparent;
-  border-radius: 0;
-  overflow: visible;
-  box-shadow: none;
-  border: none;
-  box-sizing: border-box;
-}
-
-/* Matn + rasm bir qatorda: sekin kirish / chiqish (sinxron) */
-.fd-home-hero-promo-slide-wrap {
-  display: flex;
-  flex-direction: row;
-  align-items: stretch;
-  width: 100%;
-}
-
-.fd-home-hero-promo-slide--in {
-  animation: fd-home-hero-slide-sync 1.15s ease-out both;
-}
-
-.fd-home-hero-promo-slide--out {
-  animation: fd-home-hero-slide-sync-out 1.05s ease-in both;
-}
-
-.fd-home-hero-promo-left {
-  flex: 1;
-  min-width: 0;
-  padding: 12px 12px 12px 0;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  text-align: left;
-}
-
-/* 1-qator: asosiy sarlavha (oldingisiga qaraganda biroz kichikroq) */
-.fd-home-hero-promo-title {
-  font-size: clamp(1.55rem, 6.5vw, 2.4rem);
-  line-height: 1.08;
-  letter-spacing: -0.03em;
-  text-transform: uppercase;
-  color: #0f172a;
-}
-
-/* 2-qator: tavsif — oldingi kichik o‘lchamning ~2 barobari */
-.fd-home-hero-promo-sub {
-  margin-top: 8px;
-  max-width: 22em;
-  font-size: clamp(1.375rem, 4vw, 1.625rem);
-  font-weight: 400;
-  line-height: 1.45;
-  letter-spacing: 0.01em;
-  text-transform: none;
-  color: #64748b;
-}
-
-.fd-home-hero-promo-sub-type {
-  display: inline;
-}
-
-.fd-home-hero-promo-type-cursor {
-  display: inline-block;
-  width: 2px;
-  height: 0.95em;
-  margin-left: 3px;
-  vertical-align: -0.12em;
-  background: currentColor;
-  opacity: 0.85;
-  animation: fd-home-hero-cursor-blink 0.9s step-end infinite;
-}
-
-@keyframes fd-home-hero-cursor-blink {
-  50% {
-    opacity: 0;
-  }
-}
-
-.fd-home-hero-promo-line-anim {
-  animation: fd-home-hero-line-in 0.5s ease-out;
-}
-
-.fd-home-hero-promo-right {
-  flex: 0 0 42%;
-  max-width: 46%;
-  min-height: 168px;
-  background: transparent;
-  position: relative;
-}
-
-.fd-home-hero-promo-img {
-  width: 100%;
-  height: 100%;
-  min-height: 168px;
-  object-fit: cover;
-  display: block;
-  border-radius: 0;
-}
-
-.fd-home-hero-promo-img-empty {
-  width: 100%;
-  height: 100%;
-  min-height: 168px;
-  background: #f1f5f9;
-}
-
-.fd-home-hero-line {
-  display: block;
-}
-
-@keyframes fd-home-hero-line-in {
-  from {
-    opacity: 0;
-    transform: translateY(0.35em);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-/* Sinxron: chap matn + o‘ng rasm bir vaqtda, sekinroq */
-@keyframes fd-home-hero-slide-sync {
-  from {
-    opacity: 0;
-    transform: translateY(14px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-@keyframes fd-home-hero-slide-sync-out {
-  from {
-    opacity: 1;
-    transform: translateY(0);
-  }
-  to {
-    opacity: 0;
-    transform: translateY(-12px);
-  }
-}
-
-.fd-home-hero-line-rotate {
-  animation: fd-home-hero-line-in 0.55s ease-out;
 }
 
 /* Home screen layout */

@@ -5,7 +5,6 @@ import { type HomepageRestaurant } from "../lib/api-server";
 import { getCachedHomepage } from "../lib/homepage-cache";
 import { SafeImage } from "../components/SafeImage";
 import { HomeExploreCarousel } from "../components/HomeExploreCarousel";
-import { HomeHeroTagline } from "../components/HomeHeroTagline";
 
 /** ISR: HTML кэшируется на CDN (Vercel edge и т.д.) — повторные визиты без холодного /homepage. */
 export const revalidate = 60;
@@ -51,9 +50,6 @@ export default async function HomePage() {
   const restaurants = (home.restaurants || []).map(mapRestaurant);
   const topCategories = home.topCategories || [];
   const exploreCategories = home.exploreCategories ?? [];
-  const heroLine1Texts = home.heroLine1Texts;
-  const heroLine2Texts = home.heroLine2Texts;
-  const heroLine1ImageUrls = home.heroLine1ImageUrls;
 
   const normalRestaurants = restaurants.filter((r) => !r.isSupermarket);
 
@@ -85,15 +81,10 @@ export default async function HomePage() {
               />
             </div>
           )}
-
-          <HomeHeroTagline
-            heroLine1Texts={heroLine1Texts}
-            heroLine2Texts={heroLine2Texts}
-            heroLine1ImageUrls={heroLine1ImageUrls}
-          />
         </div>
       </div>
 
+      <div className="fd-home-body-sheet">
       {topCategories.length > 0 && (
         <section className="fd-section">
           <h2 className="fd-section-title">
@@ -160,6 +151,7 @@ export default async function HomePage() {
           {restaurants.length === 0 && <p className="fd-empty">Hozircha restoranlar ulanmagan.</p>}
         </div>
       </section>
+      </div>
     </div>
   );
 }
