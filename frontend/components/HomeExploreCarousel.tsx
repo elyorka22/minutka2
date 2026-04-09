@@ -17,7 +17,7 @@ type Props = {
   ariaLabel: string;
   /** Birinchi qator ostidagi ikkinchi skroll uchun qo‘shimcha klass */
   classNameScroll?: string;
-  /** «Stories»: doira + ostida sarlavha (VkusVill uslubi) */
+  /** «Stories»: doira kartochkalari (sarlavha ko‘rinmaydi) */
   variant?: "default" | "stories";
 };
 
@@ -61,7 +61,7 @@ export function HomeExploreCarousel({
               {c.imageUrl ? (
                 <SafeImage
                   src={imageUrl(c.imageUrl)}
-                  alt=""
+                  alt={c.name}
                   className="fd-home-explore-tile-img"
                   width={160}
                   height={160}
@@ -76,9 +76,6 @@ export function HomeExploreCarousel({
                 </span>
               )}
             </div>
-            {variant === "stories" && (
-              <span className="fd-home-explore-label fd-home-explore-label--stories">{c.name}</span>
-            )}
           </Link>
         );
       })}
