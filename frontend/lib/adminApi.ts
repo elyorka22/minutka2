@@ -482,44 +482,6 @@ export const adminApi = {
     adminRequest<any>(`/admin/home-explore-categories/${id}`, {
       method: "DELETE",
     }),
-  getBanners: () =>
-    adminRequest<any>("/admin/banners", {
-      method: "GET",
-    }),
-  createBanner: (body: {
-    title?: string;
-    text?: string;
-    imageUrl?: string;
-    ctaLabel?: string;
-    ctaHref?: string;
-    sortOrder?: number;
-    isActive?: boolean;
-  }) =>
-    adminRequest<any>("/admin/banners", {
-      method: "POST",
-      body: JSON.stringify(body),
-    }),
-  updateBanner: (
-    id: string,
-    body: {
-      title?: string;
-      text?: string;
-      imageUrl?: string | null;
-      ctaLabel?: string;
-      ctaHref?: string;
-      sortOrder?: number;
-      isActive?: boolean;
-    }
-  ) =>
-    adminRequest<any>(`/admin/banners/${id}`, {
-      method: "PATCH",
-      body: JSON.stringify(body),
-    }),
-  deleteBanner: (id: string) =>
-    adminRequest<any>(`/admin/banners/${id}`, {
-      method: "DELETE",
-    }),
-
   updateMyCredentials: (body: {
     currentPassword: string;
     newEmail?: string;

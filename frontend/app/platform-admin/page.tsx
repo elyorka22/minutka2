@@ -108,16 +108,6 @@ export default function PlatformAdminPage() {
   const [productCategorySubmitting, setProductCategorySubmitting] = useState(false);
   const [productCategoryImageUrl, setProductCategoryImageUrl] = useState("");
   const [productCategoryImageUploading, setProductCategoryImageUploading] = useState(false);
-  const [banners, setBanners] = useState<any[]>([]);
-  const [bannerTitle, setBannerTitle] = useState("");
-  const [bannerText, setBannerText] = useState("");
-  const [bannerCtaLabel, setBannerCtaLabel] = useState("");
-  const [bannerCtaHref, setBannerCtaHref] = useState("");
-  const [bannerSortOrder, setBannerSortOrder] = useState("");
-  const [bannerImageUrl, setBannerImageUrl] = useState("");
-  const [bannerImageUploading, setBannerImageUploading] = useState(false);
-  const [bannerSubmitting, setBannerSubmitting] = useState(false);
-  const [bannerError, setBannerError] = useState<string | null>(null);
   const [homeExploreCategories, setHomeExploreCategories] = useState<any[]>([]);
   const [exploreName, setExploreName] = useState("");
   const [exploreSearchQuery, setExploreSearchQuery] = useState("");
@@ -308,7 +298,6 @@ export default function PlatformAdminPage() {
         const overview = await fetchOverview();
         if (!active) return;
         setData(overview);
-        setBanners(overview.banners ?? []);
         setProductCategories(overview.productCategories ?? []);
         setHomeExploreCategories(overview.homeExploreCategories ?? []);
       } catch (err: any) {
@@ -426,13 +415,12 @@ export default function PlatformAdminPage() {
 
   async function fetchOverview() {
     try {
-      const [stats, restaurants, users, recentOrders, banners, productCategories, homeExploreCategoriesList] =
+      const [stats, restaurants, users, recentOrders, productCategories, homeExploreCategoriesList] =
         await Promise.all([
           adminApi.getOverviewStats(),
           adminApi.getOverviewRestaurants({ limit: 20, offset: 0 }),
           adminApi.getOverviewUsers({ limit: 20, offset: 0 }),
           adminApi.getOverviewRecentOrders({ limit: 20, offset: 0 }),
-          adminApi.getBanners(),
           adminApi.getProductCategories(),
           adminApi.getHomeExploreCategories(),
         ]);
@@ -441,7 +429,6 @@ export default function PlatformAdminPage() {
         restaurants,
         users,
         recentOrders,
-        banners,
         productCategories,
         homeExploreCategories: homeExploreCategoriesList,
       } as any;
@@ -550,7 +537,6 @@ export default function PlatformAdminPage() {
       setCreateAdminName("");
       const overview = await fetchOverview();
       setData(overview);
-      setBanners(overview.banners ?? []);
       setProductCategories(overview.productCategories ?? []);
       setHomeExploreCategories(overview.homeExploreCategories ?? []);
       setActiveTab(isSupermarket ? "supermarkets" : "restaurants");
@@ -709,34 +695,6 @@ export default function PlatformAdminPage() {
     }
   }
 
-  async function handleUploadBannerImage(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    e.target.value = "";
-    setBannerImageUploading(true);
-    setBannerError(null);
-    try {
-      const { url } = await adminApi.uploadImage(file);
-      setBannerImageUrl(url);
-    } catch (err: any) {
-      setBannerError(err?.message ?? "Yuklashda xatolik");
-    } finally {
-      setBannerImageUploading(false);
-    }
-  }
-
-  async function handleUploadExistingBannerImage(bannerId: string, e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    e.target.value = "";
-    setBannerError(null);
-    try {
-      const { url } = await adminApi.uploadImage(file);
-      await handleUpdateBanner(bannerId, { imageUrl: url });
-    } catch (err: any) {
-      setBannerError(err?.message ?? "Yuklashda xatolik");
-    }
-  }
 
   async function handleCreateExploreCategory(e: React.FormEvent) {
     e.preventDefault();
@@ -803,43 +761,6 @@ export default function PlatformAdminPage() {
       await handleUpdateExploreCategory(id, { imageUrl: url });
     } catch (err: any) {
       setExploreError(err.message ?? "Yuklashda xatolik");
-    }
-  }
-
-  async function handleCreateBanner(e: React.FormEvent) {
-    e.preventDefault();
-    setBannerError(null);
-    setBannerSubmitting(true);
-    try {
-      const created = await adminApi.createBanner({
-        ...(bannerTitle.trim() ? { title: bannerTitle.trim() } : {}),
-        text: bannerText.trim() || undefined,
-        imageUrl: bannerImageUrl.trim() || undefined,
-        ctaLabel: bannerCtaLabel.trim() || undefined,
-        ctaHref: bannerCtaHref.trim() || undefined,
-        sortOrder: bannerSortOrder ? Number(bannerSortOrder) : undefined,
-        isActive: true,
-      });
-      setBanners((prev) => [created, ...prev]);
-      setBannerTitle("");
-      setBannerText("");
-      setBannerImageUrl("");
-      setBannerCtaLabel("");
-      setBannerCtaHref("");
-      setBannerSortOrder("");
-    } catch (err: any) {
-      setBannerError(err.message ?? "Banner qo‘shishda xatolik");
-    } finally {
-      setBannerSubmitting(false);
-    }
-  }
-
-  async function handleUpdateBanner(id: string, patch: any) {
-    try {
-      const updated = await adminApi.updateBanner(id, patch);
-      setBanners((prev) => prev.map((b) => (b.id === id ? updated : b)));
-    } catch (err: any) {
-      setBannerError(err.message ?? "Banner yangilashda xatolik");
     }
   }
 
@@ -2402,242 +2323,7 @@ export default function PlatformAdminPage() {
                     </div>
                   )}
 
-                  <hr
-                    style={{
-                      margin: "28px 0",
-                      border: 0,
-                      borderTop: "1px solid var(--color-border)",
-                    }}
-                  />
-
-                  <h3>Bosh sahifa bannerlari</h3>
-                  <p className="fd-checkout-meta">
-                    Bu yerda kategoriya tugmalarining ostida ko‘rinadigan reklama bannerlarini
-                    boshqarishingiz mumkin. Rasm va sarlavha ixtiyoriy — matn rasm bilan birga
-                    ko‘rinadi.
-                  </p>
-                  <p className="fd-checkout-meta" style={{ marginTop: 8 }}>
-                    <strong>Eslatma:</strong> bosh sahifada faqat <strong>«Faol»</strong> belgilangan
-                    bannerlar chiqadi (pastdagi ro‘yxatda). Yangilangandan keyin sayt 10–30 soniya
-                    ichida yangilanishi mumkin (kesh). Rasm bo‘lmasa, banner rangli blok sifatida
-                    (gradient) ko‘rinadi.
-                  </p>
-
-                  <form onSubmit={handleCreateBanner} className="fd-form" style={{ marginTop: 16 }}>
-                    <label className="fd-field">
-                      <span>Sarlavha (ixtiyoriy)</span>
-                      <input
-                        value={bannerTitle}
-                        onChange={(e) => setBannerTitle(e.target.value)}
-                        placeholder="Masalan: Chegirma 30%"
-                      />
-                    </label>
-                    <label className="fd-field">
-                      <span>Matn</span>
-                      <textarea
-                        value={bannerText}
-                        onChange={(e) => setBannerText(e.target.value)}
-                        placeholder="Banner ostidagi qisqacha matn (ixtiyoriy)"
-                        rows={3}
-                        style={{ minHeight: 72, resize: "vertical" }}
-                      />
-                    </label>
-                    <label className="fd-field">
-                      <span>Banner rasmi</span>
-                      <input
-                        type="url"
-                        value={bannerImageUrl}
-                        onChange={(e) => setBannerImageUrl(e.target.value)}
-                        placeholder="Supabase/storage URL yoki telefondan yuklang"
-                      />
-                      <div style={{ marginTop: 8, display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
-                        <input
-                          type="file"
-                          accept="image/*"
-                          id="create-banner-image-file"
-                          style={{ display: "none" }}
-                          onChange={handleUploadBannerImage}
-                        />
-                        <label htmlFor="create-banner-image-file" style={{ margin: 0 }}>
-                          <span className="fd-btn fd-btn-primary" style={{ cursor: "pointer", display: "inline-block" }}>
-                            {bannerImageUploading ? "Yuklanmoqda..." : "Telefondan yuklash"}
-                          </span>
-                        </label>
-                      </div>
-                      {bannerImageUrl.trim() && (
-                        <img
-                          src={imageUrl(bannerImageUrl.trim())}
-                          alt="Banner"
-                          style={{
-                            marginTop: 8,
-                            maxWidth: "100%",
-                            maxHeight: 140,
-                            objectFit: "cover",
-                            borderRadius: 8,
-                            border: "1px solid var(--color-border)",
-                          }}
-                          onError={(e) => {
-                            (e.target as HTMLImageElement).style.display = "none";
-                          }}
-                        />
-                      )}
-                    </label>
-                    <label className="fd-field">
-                      <span>Tugma matni</span>
-                      <input
-                        value={bannerCtaLabel}
-                        onChange={(e) => setBannerCtaLabel(e.target.value)}
-                        placeholder="Masalan: Aksiyani ko‘rish"
-                      />
-                    </label>
-                    <label className="fd-field">
-                      <span>Tugma havolasi (ixtiyoriy)</span>
-                      <input
-                        value={bannerCtaHref}
-                        onChange={(e) => setBannerCtaHref(e.target.value)}
-                        placeholder="Masalan: /supermarkets"
-                      />
-                    </label>
-                    <label className="fd-field">
-                      <span>Tartib (ixtiyoriy)</span>
-                      <input
-                        type="number"
-                        value={bannerSortOrder}
-                        onChange={(e) => setBannerSortOrder(e.target.value)}
-                        placeholder="0"
-                      />
-                    </label>
-                    {bannerError && (
-                      <p style={{ color: "var(--color-orange)", fontSize: "0.875rem" }}>
-                        {bannerError}
-                      </p>
-                    )}
-                    <button
-                      type="submit"
-                      className="fd-btn fd-btn-primary"
-                      disabled={bannerSubmitting || bannerImageUploading}
-                    >
-                      {bannerSubmitting ? "Saqlanmoqda..." : "Banner qo‘shish"}
-                    </button>
-                  </form>
                 </div>
-
-                <section style={{ marginTop: 24 }}>
-                  <h3>Mavjud bannerlar</h3>
-                  {banners.length === 0 && (
-                    <p className="fd-empty">Hozircha bannerlar yo‘q.</p>
-                  )}
-                  <div className="fd-admin-kpis" style={{ marginTop: 12 }}>
-                    {banners.map((b) => (
-                      <div key={b.id} className="fd-admin-kpi">
-                        <div className="fd-admin-kpi-label">ID: {b.id.slice(0, 8)}</div>
-                        <div className="fd-admin-kpi-value">{b.title?.trim() ? b.title : "—"}</div>
-                        {b.text && (
-                          <div className="fd-admin-kpi-sub">{b.text}</div>
-                        )}
-                        {b.imageUrl ? (
-                          <img
-                            src={imageUrl(String(b.imageUrl))}
-                            alt=""
-                            style={{
-                              marginTop: 8,
-                              width: "100%",
-                              maxHeight: 100,
-                              objectFit: "cover",
-                              borderRadius: 8,
-                              border: "1px solid var(--color-border)",
-                            }}
-                            onError={(e) => {
-                              (e.target as HTMLImageElement).style.display = "none";
-                            }}
-                          />
-                        ) : null}
-                        <label className="fd-field" style={{ marginTop: 10, marginBottom: 0 }}>
-                          <span className="fd-checkout-meta">Rasm URL</span>
-                          <input
-                            key={`${b.id}-${b.imageUrl ?? ""}`}
-                            type="url"
-                            defaultValue={b.imageUrl ?? ""}
-                            placeholder="Bo‘sh qoldiring — rasm yo‘q"
-                            style={{ fontSize: "0.85rem" }}
-                            onBlur={(e) => {
-                              const v = e.target.value.trim();
-                              const cur = (b.imageUrl as string | null | undefined) ?? "";
-                              if (v === cur) return;
-                              handleUpdateBanner(b.id, { imageUrl: v ? v : null });
-                            }}
-                          />
-                        </label>
-                        <div style={{ marginTop: 6, display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
-                          <input
-                            type="file"
-                            accept="image/*"
-                            id={`banner-image-file-${b.id}`}
-                            style={{ display: "none" }}
-                            onChange={(e) => handleUploadExistingBannerImage(b.id, e)}
-                          />
-                          <label htmlFor={`banner-image-file-${b.id}`} style={{ margin: 0 }}>
-                            <span className="fd-btn" style={{ cursor: "pointer", display: "inline-block", fontSize: "0.85rem", padding: "6px 12px" }}>
-                              Rasm yuklash
-                            </span>
-                          </label>
-                        </div>
-                        <div
-                          style={{
-                            marginTop: 8,
-                            display: "flex",
-                            gap: 8,
-                            alignItems: "center",
-                            flexWrap: "wrap",
-                          }}
-                        >
-                          <label className="fd-checkout-meta">
-                            <input
-                              type="checkbox"
-                              checked={!!b.isActive}
-                              onChange={(e) =>
-                                handleUpdateBanner(b.id, { isActive: e.target.checked })
-                              }
-                            />{" "}
-                            Faol
-                          </label>
-                          <label className="fd-checkout-meta">
-                            Tartib:{" "}
-                            <input
-                              type="number"
-                              defaultValue={b.sortOrder ?? 0}
-                              style={{
-                                width: 72,
-                                marginLeft: 4,
-                                padding: "2px 6px",
-                                fontSize: "0.8rem",
-                              }}
-                              onBlur={(e) =>
-                                handleUpdateBanner(b.id, {
-                                  sortOrder: Number(e.target.value) || 0,
-                                })
-                              }
-                            />
-                          </label>
-                          <button
-                            type="button"
-                            className="fd-btn"
-                            onClick={async () => {
-                              try {
-                                await adminApi.deleteBanner(b.id);
-                                setBanners((prev) => prev.filter((x) => x.id !== b.id));
-                              } catch (err: any) {
-                                setBannerError(err?.message ?? "Banner o‘chirishda xatolik");
-                              }
-                            }}
-                          >
-                            O‘chirish
-                          </button>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </section>
               </section>
             </div>
           </div>

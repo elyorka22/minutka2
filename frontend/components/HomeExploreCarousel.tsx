@@ -1,4 +1,3 @@
-import Link from "next/link";
 import { imageUrl } from "../lib/api";
 import { type HomepageExploreCategory } from "../lib/api-server";
 import { SafeImage } from "./SafeImage";
@@ -19,10 +18,8 @@ export function HomeExploreCarousel({ categories, ariaLabel, classNameScroll }: 
   return (
     <div className={scrollClass} aria-label={ariaLabel}>
       {categories.map((c) => {
-        const q = (c.searchQuery?.trim() || c.name).trim();
-        const href = `/search?q=${encodeURIComponent(q)}`;
         return (
-          <Link key={c.id} href={href} className="fd-home-explore-item" aria-label={c.name}>
+          <div key={c.id} className="fd-home-explore-item" aria-label={c.name} role="img">
             <div className="fd-home-explore-tile">
               {c.imageUrl ? (
                 <SafeImage
@@ -42,7 +39,7 @@ export function HomeExploreCarousel({ categories, ariaLabel, classNameScroll }: 
                 </span>
               )}
             </div>
-          </Link>
+          </div>
         );
       })}
     </div>
