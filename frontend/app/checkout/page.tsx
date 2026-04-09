@@ -21,6 +21,14 @@ const CheckoutMapPicker = dynamic(
 
 const STREET_FROM_MAP = "Xaritada belgilangan nuqta";
 const STREET_FROM_GEO = "Geolokatsiya orqali";
+const USER_ORDER_STATUS_LABEL: Record<string, string> = {
+  NEW: "Yangi",
+  ACCEPTED: "Qabul qilindi",
+  READY: "Tayyor",
+  ON_THE_WAY: "Yo‘lda",
+  DONE: "Yetkazildi",
+  CANCELLED: "Bekor qilindi",
+};
 
 export default function CheckoutPage() {
   const { items, total, clear, changeQuantity, restaurantId } = useCart();
@@ -41,6 +49,9 @@ export default function CheckoutPage() {
   const [restaurantDeliveryFee, setRestaurantDeliveryFee] = useState(0);
   const [placedOrderTotal, setPlacedOrderTotal] = useState<number | null>(null);
   const [placedOrderId, setPlacedOrderId] = useState<string | null>(null);
+  const [placedOrderStatus, setPlacedOrderStatus] = useState<string | null>(null);
+  const [statusLoading, setStatusLoading] = useState(false);
+  const [statusMessage, setStatusMessage] = useState<string | null>(null);
   const [receivedBusy, setReceivedBusy] = useState(false);
   const [receivedDone, setReceivedDone] = useState(false);
 
@@ -214,6 +225,59 @@ export default function CheckoutPage() {
     }
   }
 
+  useEffect(() => {
+    if (!submitted || !placedOrderId || receivedDone) return;
+    if (!getAccessToken()) return;
+
+    let active = true;
+    let timerId: number | undefined;
+
+    const pollOrderStatus = async (isFirstRun: boolean) => {
+      if (!active) return;
+      let shouldContinue = true;
+      if (isFirstRun) {
+        setStatusLoading(true);
+      }
+      try {
+        const orders = await adminApi.getMyOrders();
+        if (!active) return;
+        const current = Array.isArray(orders)
+          ? orders.find((o: any) => String(o?.id ?? "") === placedOrderId)
+          : null;
+        if (current?.status) {
+          const status = String(current.status).toUpperCase();
+          setPlacedOrderStatus(status);
+          setStatusMessage(null);
+          if (status === "DONE" || status === "CANCELLED") {
+            shouldContinue = false;
+          }
+        } else {
+          setStatusMessage("Buyurtma holati topilmadi.");
+        }
+      } catch {
+        if (!active) return;
+        setStatusMessage("Buyurtma holatini yangilab bo‘lmadi.");
+      } finally {
+        if (!active) return;
+        if (isFirstRun) {
+          setStatusLoading(false);
+        }
+        if (shouldContinue) {
+          timerId = window.setTimeout(() => {
+            void pollOrderStatus(false);
+          }, 5000);
+        }
+      }
+    };
+
+    void pollOrderStatus(true);
+
+    return () => {
+      active = false;
+      if (typeof timerId === "number") window.clearTimeout(timerId);
+    };
+  }, [submitted, placedOrderId, receivedDone]);
+
   return (
     <div className="fd-shell fd-checkout">
       <BackLink href="/" />
@@ -290,15 +354,38 @@ export default function CheckoutPage() {
                 <strong>{Number.isFinite(Number(placedOrderTotal)) ? Number(placedOrderTotal).toFixed(0) : "0"} so&apos;m</strong>
               </p>
               {placedOrderId ? (
-                <button
-                  type="button"
-                  className="fd-btn fd-btn-primary"
-                  onClick={handleMarkReceived}
-                  disabled={receivedBusy || receivedDone}
-                  style={{ marginTop: 10 }}
-                >
-                  {receivedDone ? "Qabul qilindi" : receivedBusy ? "Tekshirilmoqda..." : "Qabul qildim"}
-                </button>
+                <>
+                  <div
+                    style={{
+                      marginTop: 12,
+                      padding: "10px 12px",
+                      borderRadius: 10,
+                      border: "1px solid var(--color-border)",
+                      background: "var(--fd-bg-2)",
+                    }}
+                  >
+                    <div className="fd-checkout-meta">Buyurtma holati</div>
+                    <div style={{ fontWeight: 700, marginTop: 4 }}>
+                      {statusLoading
+                        ? "Tekshirilmoqda..."
+                        : USER_ORDER_STATUS_LABEL[String(placedOrderStatus || "").toUpperCase()] ?? "Noma’lum"}
+                    </div>
+                    {statusMessage ? (
+                      <div className="fd-checkout-meta" style={{ marginTop: 4, color: "var(--color-orange)" }}>
+                        {statusMessage}
+                      </div>
+                    ) : null}
+                  </div>
+                  <button
+                    type="button"
+                    className="fd-btn fd-btn-primary"
+                    onClick={handleMarkReceived}
+                    disabled={receivedBusy || receivedDone}
+                    style={{ marginTop: 10 }}
+                  >
+                    {receivedDone ? "Qabul qilindi" : receivedBusy ? "Tekshirilmoqda..." : "Qabul qildim"}
+                  </button>
+                </>
               ) : null}
             </div>
           ) : (

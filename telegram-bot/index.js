@@ -10,6 +10,17 @@ const API = `https://api.telegram.org/bot${TOKEN}`;
 
 /** /notify dan kelgan apiBaseUrl — callback da ishlatiladi (bot qayta ishga tushsa yo‘qoladi). */
 const orderApiBaseByOrderId = new Map();
+/** Kuryer order kartasi xabarini topish uchun: `${chatId}:${orderId}` -> messageId */
+const courierMessageIdByOrderKey = new Map();
+
+function makeCourierOrderKey(chatId, orderId) {
+  return `${String(chatId)}:${String(orderId)}`;
+}
+
+function rememberCourierOrderMessage(chatId, orderId, messageId) {
+  if (chatId == null || !orderId || messageId == null) return;
+  courierMessageIdByOrderKey.set(makeCourierOrderKey(chatId, orderId), Number(messageId));
+}
 
 /** Vercel/Netlify — odatda frontend; /internal Nest da yo‘q. */
 function isBadCallbackBaseUrl(url) {
@@ -159,7 +170,7 @@ async function sendCourierReadyPreview(chatId, preview) {
   if (Buffer.byteLength(callbackData, "utf8") > 64) {
     throw new Error("callback_data > 64 bytes");
   }
-  await fetch(`${API}/sendMessage`, {
+  const res = await fetch(`${API}/sendMessage`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
@@ -170,6 +181,11 @@ async function sendCourierReadyPreview(chatId, preview) {
       },
     }),
   });
+  const j = await res.json().catch(() => ({}));
+  const messageId = j?.result?.message_id;
+  if (res.ok && messageId != null) {
+    rememberCourierOrderMessage(chatId, orderId, messageId);
+  }
 }
 
 /** Kuryer yo‘lga chiqqandan keyin — «Yetkazildi» tugmasi (DONE). */
@@ -192,7 +208,7 @@ async function sendCourierDeliverPreview(chatId, preview) {
   if (Buffer.byteLength(callbackData, "utf8") > 64) {
     throw new Error("callback_data > 64 bytes");
   }
-  await fetch(`${API}/sendMessage`, {
+  const res = await fetch(`${API}/sendMessage`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
@@ -203,6 +219,11 @@ async function sendCourierDeliverPreview(chatId, preview) {
       },
     }),
   });
+  const j = await res.json().catch(() => ({}));
+  const messageId = j?.result?.message_id;
+  if (res.ok && messageId != null) {
+    rememberCourierOrderMessage(chatId, orderId, messageId);
+  }
 }
 
 /** «Qabul qilish» dan keyin — to‘liq matn + «Tayyor». */
@@ -291,7 +312,30 @@ async function sendPlatformAdminNewPreview(chatId, preview) {
 
 /** Status sinxroni: admin panel/botdagi holat o'zgarsa Telegramga qisqa xabar. */
 async function sendStatusSyncPreview(chatId, preview) {
-  const { shortCode, restaurantName, total, status } = preview || {};
+  const { id, shortCode, restaurantName, total, status, audience, action } = preview || {};
+  if (audience === "courier" && action === "remove_order_card" && id) {
+    const key = makeCourierOrderKey(chatId, id);
+    const messageId = courierMessageIdByOrderKey.get(key);
+    if (messageId != null) {
+      const suffix = status === "Yetkazildi" ? "✅ Yetkazildi." : `📌 Holat: ${String(status || "—")}`;
+      await fetch(`${API}/editMessageText`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          chat_id: chatId,
+          message_id: messageId,
+          text:
+            `Buyurtma #${String(shortCode || "----")}\n` +
+            `${String(restaurantName || "—")}\n` +
+            `Taomlar jami: ${formatMoney(total)} so'm\n\n` +
+            `${suffix}`,
+          reply_markup: { inline_keyboard: [] },
+        }),
+      });
+      courierMessageIdByOrderKey.delete(key);
+      return;
+    }
+  }
   const text =
     `Buyurtma #${String(shortCode || "----")}\n` +
     `${String(restaurantName || "—")}\n` +
@@ -423,6 +467,7 @@ async function handleCourierOrderCallback(q) {
     await answerCallbackQuery(q.id, "Buyurtma yo‘lda.", false);
     if (!msg || !msg.chat) return;
     const messageId = msg.message_id;
+    rememberCourierOrderMessage(msg.chat.id, orderId, messageId);
     const prev = String(msg.text || "");
     const extra = "\n\n🚚 Yo‘lda.";
     let newText = prev + extra;
@@ -489,6 +534,7 @@ async function handleCourierOrderCallback(q) {
     await answerCallbackQuery(q.id, "Buyurtma yetkazildi deb belgilandi.", false);
     if (!msg || !msg.chat) return;
     const messageId = msg.message_id;
+    rememberCourierOrderMessage(msg.chat.id, orderId, messageId);
     const prev = String(msg.text || "");
     const extra = "\n\n✅ Yetkazildi.";
     let newText = prev + extra;
@@ -556,6 +602,7 @@ async function handleCourierOrderCallback(q) {
   const fullText = buildCourierOrderDetailText(order);
   if (!msg || !msg.chat) return;
   const messageId = msg.message_id;
+  rememberCourierOrderMessage(msg.chat.id, orderId, messageId);
   const onTheWayCb = `c|${orderId}|${sig}|p`;
   const rows = [];
   if (order.lat != null && order.lng != null) {
