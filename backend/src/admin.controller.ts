@@ -627,21 +627,21 @@ export class AdminController {
     const user = await this.prisma.user.findUnique({ where: { id } });
     if (!user) throw new BadRequestException('Foydalanuvchi topilmadi');
 
-    const orderIds = (
+    const customerOrderIds = (
       await this.prisma.order.findMany({ where: { customerId: id }, select: { id: true } })
     ).map((o) => o.id);
-    if (orderIds.length) {
+    if (customerOrderIds.length) {
+      // FK tartibi: DeliveryTracking/OrderItem/Payment/OrderStatusHistory -> Order -> Address
       const dt = this.prisma.deliveryTracking;
       await Promise.all([
-        dt ? dt.deleteMany({ where: { orderId: { in: orderIds } } }).catch(() => {}) : Promise.resolve(),
-        this.prisma.payment.deleteMany({ where: { orderId: { in: orderIds } } }).catch(() => {}),
-        this.prisma.orderItem.deleteMany({ where: { orderId: { in: orderIds } } }),
+        dt ? dt.deleteMany({ where: { orderId: { in: customerOrderIds } } }).catch(() => {}) : Promise.resolve(),
+        this.prisma.payment.deleteMany({ where: { orderId: { in: customerOrderIds } } }).catch(() => {}),
+        this.prisma.orderItem.deleteMany({ where: { orderId: { in: customerOrderIds } } }),
+        this.prisma.orderStatusHistory.deleteMany({ where: { orderId: { in: customerOrderIds } } }),
       ]);
+      await this.prisma.order.deleteMany({ where: { id: { in: customerOrderIds } } });
     }
-    await Promise.all([
-      this.prisma.order.deleteMany({ where: { customerId: id } }),
-      this.prisma.address.deleteMany({ where: { userId: id } }),
-    ]);
+    await this.prisma.address.deleteMany({ where: { userId: id } });
     const restaurantsWithAdmin = await this.prisma.restaurant.findMany({
       where: { admins: { some: { id } } },
       select: { id: true },
@@ -653,7 +653,10 @@ export class AdminController {
       });
     }
     const courier = await this.prisma.courier.findUnique({ where: { userId: id } }).catch(() => null);
-    if (courier) await this.prisma.courier.delete({ where: { id: courier.id } });
+    if (courier) {
+      await this.prisma.order.updateMany({ where: { courierId: courier.id }, data: { courierId: null } });
+      await this.prisma.courier.delete({ where: { id: courier.id } });
+    }
     await this.prisma.user.delete({ where: { id } });
     return { ok: true };
   }
