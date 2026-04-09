@@ -1723,7 +1723,7 @@ export default function PlatformAdminPage() {
                                 } catch (_) {}
                               }}
                             >
-                              Obnulit foiz
+                              Qarzni obnulit
                             </button>
                           </li>
                         ))}

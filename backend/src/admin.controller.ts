@@ -1039,8 +1039,8 @@ export class AdminController {
     await this.prisma.restaurant.update({
       where: { id },
       data: {
-        // "Obnulit" tugmasi platforma foizini ham 0 ga tushirishi kerak.
-        platformFeePercent: 0,
+        // Faqat yig'ilgan platforma qarzini "noldan" boshlaymiz.
+        // Doimiy platforma foizi (platformFeePercent) o'zgarmaydi.
         platformFeeClearedAt: new Date(),
       },
     });
