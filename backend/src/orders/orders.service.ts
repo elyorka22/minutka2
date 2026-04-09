@@ -587,6 +587,45 @@ export class OrdersService {
     });
   }
 
+  /**
+   * Mijoz tasdiqlashi: "Qabul qildim" tugmasi.
+   * Faqat buyurtma egasi va faqat ON_THE_WAY holatida DONE ga o'tkaziladi.
+   */
+  async markReceivedByCustomer(orderId: string, customerId: string) {
+    const order = await this.prisma.order.findFirst({
+      where: { id: orderId, customerId },
+      select: {
+        id: true,
+        status: true,
+      },
+    });
+    if (!order) throw new NotFoundException('Buyurtma topilmadi.');
+    if (order.status === 'DONE') {
+      return this.findOne(orderId, customerId);
+    }
+    if (order.status !== 'ON_THE_WAY') {
+      throw new BadRequestException('Buyurtmani hozircha qabul qilib bo‘lmaydi.');
+    }
+
+    await this.prisma.transaction(async (tx) => {
+      await tx.order.update({
+        where: { id: orderId },
+        data: { status: 'DONE' },
+      });
+      await tx.orderStatusHistory.create({
+        data: {
+          orderId,
+          oldStatus: 'ON_THE_WAY',
+          newStatus: 'DONE',
+          changedBy: 'ADMIN',
+        },
+      });
+    });
+
+    this.notifyRestaurantTelegramStatusChanged(orderId, 'DONE');
+    return this.findOne(orderId, customerId);
+  }
+
   private getAllowedTransitions() {
     const transitions: Record<
       Exclude<
@@ -1769,9 +1808,29 @@ export class OrdersService {
       orderBy: { updatedAt: 'desc' },
       select: { updatedAt: true },
     });
-    if (!latest) return { changed: false, lastUpdatedAt: null };
+    const visibilityImpactCount =
+      opts?.scope === 'mine'
+        ? await this.prisma.order.count({
+            where: {
+              restaurant: { isActive: true },
+              courierId: courier.id,
+              updatedAt: { gt: since },
+            },
+          })
+        : await this.prisma.order.count({
+            where: {
+              restaurant: { isActive: true },
+              updatedAt: { gt: since },
+              OR: [{ status: 'READY' }, { courierId: courier.id }],
+            },
+          });
+    if (!latest) {
+      return { changed: visibilityImpactCount > 0, lastUpdatedAt: null };
+    }
     return {
-      changed: latest.updatedAt.getTime() > since.getTime(),
+      changed:
+        latest.updatedAt.getTime() > since.getTime() ||
+        visibilityImpactCount > 0,
       lastUpdatedAt: latest.updatedAt.toISOString(),
     };
   }

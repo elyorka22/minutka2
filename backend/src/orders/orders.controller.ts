@@ -104,6 +104,14 @@ export class OrdersController {
     if (!userId) throw new BadRequestException('Unauthorized');
     return this.ordersService.takeOrder(id, userId);
   }
+
+  @Post(':id/received')
+  @UseGuards(JwtAuthGuard)
+  async markReceived(@Param('id') id: string, @Req() req: RequestWithUser) {
+    const userId = req.user?.id;
+    if (!userId) throw new BadRequestException('Unauthorized');
+    return this.ordersService.markReceivedByCustomer(id, userId);
+  }
 }
 
 @Controller('courier')

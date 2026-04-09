@@ -27,6 +27,9 @@ export default function ProfilePage() {
   const [credBusy, setCredBusy] = useState(false);
   const [credMessage, setCredMessage] = useState<string | null>(null);
   const [credentialsOpen, setCredentialsOpen] = useState(false);
+  const [myOrders, setMyOrders] = useState<any[]>([]);
+  const [myOrdersLoading, setMyOrdersLoading] = useState(false);
+  const [myOrdersMessage, setMyOrdersMessage] = useState<string | null>(null);
   const router = useRouter();
 
   useEffect(() => {
@@ -92,6 +95,32 @@ export default function ProfilePage() {
       })
       .catch(() => {
         if (active) setPushEnabled(false);
+      });
+    return () => {
+      active = false;
+    };
+  }, [hasToken]);
+
+  useEffect(() => {
+    if (!hasToken) {
+      setMyOrders([]);
+      return;
+    }
+    let active = true;
+    setMyOrdersLoading(true);
+    adminApi
+      .getMyOrders()
+      .then((rows) => {
+        if (!active) return;
+        setMyOrders(Array.isArray(rows) ? rows : []);
+      })
+      .catch(() => {
+        if (!active) return;
+        setMyOrders([]);
+      })
+      .finally(() => {
+        if (!active) return;
+        setMyOrdersLoading(false);
       });
     return () => {
       active = false;
@@ -290,6 +319,23 @@ export default function ProfilePage() {
     }
   }
 
+  async function handleMarkReceived(orderId: string) {
+    setMyOrdersMessage(null);
+    try {
+      const updated = await adminApi.markOrderReceived(orderId);
+      setMyOrders((prev) => prev.map((o) => (o.id === orderId ? { ...o, ...updated } : o)));
+      setMyOrdersMessage("Buyurtma qabul qilindi.");
+    } catch (err: any) {
+      setMyOrdersMessage(err?.message ?? "Xatolik yuz berdi.");
+    }
+  }
+
+  function formatMoney(n: unknown): string {
+    const x = Number(n ?? 0);
+    if (!Number.isFinite(x)) return "0 so'm";
+    return `${new Intl.NumberFormat("uz-UZ").format(Math.round(x))} so'm`;
+  }
+
   const isPlatformAdmin = role === "PLATFORM_ADMIN";
   const isRestaurantAdmin = role === "RESTAURANT_ADMIN";
   const isCourier = role === "COURIER" || courierAccess;
@@ -345,6 +391,51 @@ export default function ProfilePage() {
           ))}
         </div>
       </section>
+
+      {hasToken && (
+        <section className="fd-profile-group">
+          <h2 className="fd-profile-group-title">Buyurtmalarim</h2>
+          <div className="fd-profile-list">
+            {myOrdersLoading && <p className="fd-profile-note">Buyurtmalar yuklanmoqda…</p>}
+            {!myOrdersLoading && myOrders.length === 0 && (
+              <p className="fd-profile-note">Hozircha buyurtmalar yo‘q.</p>
+            )}
+            {!myOrdersLoading &&
+              myOrders.map((o) => {
+                const code =
+                  o?.shortCode != null
+                    ? String(o.shortCode).padStart(6, "0")
+                    : String(o?.id ?? "").slice(0, 6);
+                const status = String(o?.status ?? "");
+                return (
+                  <div key={o.id} className="fd-card" style={{ padding: 12 }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", gap: 8, flexWrap: "wrap" }}>
+                      <strong>#{code}</strong>
+                      <span className="fd-profile-note">{status}</span>
+                    </div>
+                    <div className="fd-profile-note" style={{ marginTop: 6 }}>
+                      {o?.restaurant?.name ?? "Restoran"}
+                    </div>
+                    <div style={{ marginTop: 6, fontWeight: 700 }}>
+                      Jami: {formatMoney(o?.total)}
+                    </div>
+                    {status === "ON_THE_WAY" && (
+                      <button
+                        type="button"
+                        className="fd-profile-login-btn"
+                        style={{ marginTop: 10 }}
+                        onClick={() => handleMarkReceived(o.id)}
+                      >
+                        Qabul qildim
+                      </button>
+                    )}
+                  </div>
+                );
+              })}
+            {myOrdersMessage && <p className="fd-profile-note">{myOrdersMessage}</p>}
+          </div>
+        </section>
+      )}
 
       <section className="fd-profile-group">
         <div className="fd-profile-list">

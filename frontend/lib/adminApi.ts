@@ -100,6 +100,7 @@ export const adminApi = {
     return adminRequest<any[]>(`/admin/overview/recent-orders${query ? `?${query}` : ""}`);
   },
   getRestaurants: () => request<any>("/restaurants"),
+  getMyOrders: () => requestWithAuth<any[]>("/orders"),
   getMyRestaurants: () =>
     requestWithAuth<any[]>("/admin/my-restaurants"),
   getRestaurantWithOrders: (id: string) => request<any>(`/restaurants/${id}`),
@@ -200,6 +201,10 @@ export const adminApi = {
     }),
   takeOrder: (id: string) =>
     adminRequest<any>(`/orders/${id}/take`, {
+      method: "POST",
+    }),
+  markOrderReceived: (id: string) =>
+    adminRequest<any>(`/orders/${id}/received`, {
       method: "POST",
     }),
   updateOrderStatus: (
