@@ -98,6 +98,14 @@ export default function PlatformAdminPage() {
   const [exploreSubmitting, setExploreSubmitting] = useState(false);
   const [exploreImageUploading, setExploreImageUploading] = useState(false);
   const [exploreError, setExploreError] = useState<string | null>(null);
+  const [bannerNewTitle, setBannerNewTitle] = useState("");
+  const [bannerNewImageUrl, setBannerNewImageUrl] = useState("");
+  const [bannerNewCtaLabel, setBannerNewCtaLabel] = useState("");
+  const [bannerNewCtaHref, setBannerNewCtaHref] = useState("/");
+  const [bannerNewSort, setBannerNewSort] = useState("");
+  const [bannerSubmitting, setBannerSubmitting] = useState(false);
+  const [bannerImageUploading, setBannerImageUploading] = useState(false);
+  const [bannerError, setBannerError] = useState<string | null>(null);
   const [addAdminEmails, setAddAdminEmails] = useState<Record<string, string>>({});
   const [addAdminSubmitting, setAddAdminSubmitting] = useState<Record<string, boolean>>({});
   const [restaurantStats, setRestaurantStats] = useState<{
@@ -404,15 +412,23 @@ export default function PlatformAdminPage() {
 
   async function fetchOverview() {
     try {
-      const [stats, restaurants, users, recentOrders, productCategories, homeExploreCategoriesList] =
-        await Promise.all([
-          adminApi.getOverviewStats(),
-          adminApi.getOverviewRestaurants({ limit: 20, offset: 0 }),
-          adminApi.getOverviewUsers({ limit: 20, offset: 0 }),
-          adminApi.getOverviewRecentOrders({ limit: 20, offset: 0 }),
-          adminApi.getProductCategories(),
-          adminApi.getHomeExploreCategories(),
-        ]);
+      const [
+        stats,
+        restaurants,
+        users,
+        recentOrders,
+        productCategories,
+        homeExploreCategoriesList,
+        bannersList,
+      ] = await Promise.all([
+        adminApi.getOverviewStats(),
+        adminApi.getOverviewRestaurants({ limit: 20, offset: 0 }),
+        adminApi.getOverviewUsers({ limit: 20, offset: 0 }),
+        adminApi.getOverviewRecentOrders({ limit: 20, offset: 0 }),
+        adminApi.getProductCategories(),
+        adminApi.getHomeExploreCategories(),
+        adminApi.getBanners(),
+      ]);
       return {
         stats,
         restaurants,
@@ -420,6 +436,7 @@ export default function PlatformAdminPage() {
         recentOrders,
         productCategories,
         homeExploreCategories: homeExploreCategoriesList,
+        banners: bannersList,
       } as any;
     } catch (e: any) {
       const msg = String(e?.message ?? "");
@@ -773,6 +790,88 @@ export default function PlatformAdminPage() {
     }
   }
 
+  async function handleCreateBanner(e: React.FormEvent) {
+    e.preventDefault();
+    setBannerError(null);
+    setBannerSubmitting(true);
+    try {
+      const created = await adminApi.createBanner({
+        title: bannerNewTitle.trim() || undefined,
+        imageUrl: bannerNewImageUrl.trim() || undefined,
+        ctaLabel: bannerNewCtaLabel.trim() || undefined,
+        ctaHref: bannerNewCtaHref.trim() || "/",
+        sortOrder: bannerNewSort ? Number(bannerNewSort) : 0,
+        isActive: true,
+      });
+      setData((prev: any) =>
+        prev
+          ? {
+              ...prev,
+              banners: [...(prev.banners ?? []), created].sort(
+                (a: any, b: any) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0),
+              ),
+            }
+          : prev,
+      );
+      setBannerNewTitle("");
+      setBannerNewImageUrl("");
+      setBannerNewCtaLabel("");
+      setBannerNewCtaHref("/");
+      setBannerNewSort("");
+    } catch (err: any) {
+      setBannerError(err?.message ?? "Banner qo‘shishda xatolik");
+    } finally {
+      setBannerSubmitting(false);
+    }
+  }
+
+  async function handleUpdateBanner(id: string, patch: Record<string, unknown>) {
+    try {
+      const updated = await adminApi.updateBanner(id, patch as any);
+      setData((prev: any) =>
+        prev
+          ? {
+              ...prev,
+              banners: (prev.banners ?? [])
+                .map((x: any) => (x.id === id ? updated : x))
+                .sort((a: any, b: any) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0)),
+            }
+          : prev,
+      );
+    } catch (err: any) {
+      setBannerError(err?.message ?? "Banner yangilashda xatolik");
+    }
+  }
+
+  async function handleUploadNewBannerImage(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    e.target.value = "";
+    setBannerImageUploading(true);
+    setBannerError(null);
+    try {
+      const { url } = await adminApi.uploadImage(file);
+      setBannerNewImageUrl(url);
+    } catch (err: any) {
+      setBannerError(err?.message ?? "Yuklashda xatolik");
+    } finally {
+      setBannerImageUploading(false);
+    }
+  }
+
+  async function handleUploadExistingBannerImage(id: string, e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    e.target.value = "";
+    setBannerError(null);
+    try {
+      const { url } = await adminApi.uploadImage(file);
+      await handleUpdateBanner(id, { imageUrl: url });
+    } catch (err: any) {
+      setBannerError(err?.message ?? "Yuklashda xatolik");
+    }
+  }
+
   async function savePlatformTelegramSettings() {
     setPlatformTelegramSaving(true);
     setPlatformTelegramMessage(null);
@@ -903,6 +1002,11 @@ export default function PlatformAdminPage() {
   }, [data?.restaurants, restaurantSearch]);
   const productCategories = data?.productCategories ?? [];
   const homeExploreCategories = data?.homeExploreCategories ?? [];
+  const homeBanners = useMemo(() => {
+    const list = [...(data?.banners ?? [])];
+    list.sort((a: any, b: any) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0));
+    return list;
+  }, [data?.banners]);
 
   useEffect(() => {
     if (!tabsOpen) return;
@@ -2132,6 +2236,300 @@ export default function PlatformAdminPage() {
                       {heroTaglineSaving ? "Saqlanmoqda..." : "Barcha slydlarni saqlash"}
                     </button>
                   </div>
+                </div>
+
+                <div className="fd-form-block" style={{ marginTop: 28 }}>
+                  <h3>Bosh sahifa promo-banner (katta rasm)</h3>
+                  <p className="fd-checkout-meta">
+                    Bosh sahifadagi yirik banner: faqat rasm ko‘rinadi, bosilganda havolaga o‘tadi. Rasmni
+                    yuklang yoki URL kiriting. Bir nechta banner bo‘lsa, tartib raqamiga qarab birinchisi
+                    asosiy sifatida tanlanadi.
+                  </p>
+                  <form onSubmit={handleCreateBanner} className="fd-form" style={{ marginTop: 12 }}>
+                    <label className="fd-field">
+                      <span>Sarlavha (ixtiyoriy, rasm uchun alt / qulaylik)</span>
+                      <input
+                        value={bannerNewTitle}
+                        onChange={(e) => setBannerNewTitle(e.target.value)}
+                        placeholder="Yozmasangiz ham bo‘ladi"
+                        autoComplete="off"
+                      />
+                    </label>
+                    <label className="fd-field">
+                      <span>Rasm URL</span>
+                      <input
+                        type="url"
+                        value={bannerNewImageUrl}
+                        onChange={(e) => setBannerNewImageUrl(e.target.value)}
+                        placeholder="https://... yoki fayl yuklang"
+                        autoComplete="off"
+                      />
+                      <div style={{ marginTop: 8, display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
+                        <input
+                          type="file"
+                          accept="image/*"
+                          id="banner-new-gal"
+                          style={{ display: "none" }}
+                          disabled={bannerImageUploading || bannerSubmitting}
+                          onChange={(e) => void handleUploadNewBannerImage(e)}
+                        />
+                        <input
+                          type="file"
+                          accept="image/*"
+                          capture="environment"
+                          id="banner-new-cam"
+                          style={{ display: "none" }}
+                          disabled={bannerImageUploading || bannerSubmitting}
+                          onChange={(e) => void handleUploadNewBannerImage(e)}
+                        />
+                        <label htmlFor="banner-new-gal" style={{ margin: 0 }}>
+                          <span className="fd-btn fd-btn-primary" style={{ cursor: "pointer", display: "inline-block" }}>
+                            {bannerImageUploading ? "Yuklanmoqda..." : "Galereya"}
+                          </span>
+                        </label>
+                        <label htmlFor="banner-new-cam" style={{ margin: 0 }}>
+                          <span className="fd-btn" style={{ cursor: "pointer", display: "inline-block" }}>
+                            Kamera
+                          </span>
+                        </label>
+                      </div>
+                    </label>
+                    <label className="fd-field">
+                      <span>Tugma / havola matni (ixtiyoriy)</span>
+                      <input
+                        value={bannerNewCtaLabel}
+                        onChange={(e) => setBannerNewCtaLabel(e.target.value)}
+                        placeholder="Masalan: Boshlash"
+                        autoComplete="off"
+                      />
+                    </label>
+                    <label className="fd-field">
+                      <span>Havola (bosilganda)</span>
+                      <input
+                        value={bannerNewCtaHref}
+                        onChange={(e) => setBannerNewCtaHref(e.target.value)}
+                        placeholder="/restaurants yoki to‘liq yo‘l"
+                        autoComplete="off"
+                      />
+                    </label>
+                    <label className="fd-field">
+                      <span>Tartib (0 = birinchi)</span>
+                      <input
+                        type="number"
+                        value={bannerNewSort}
+                        onChange={(e) => setBannerNewSort(e.target.value)}
+                        placeholder="0"
+                      />
+                    </label>
+                    {bannerError && (
+                      <p className="fd-checkout-meta" style={{ color: "var(--color-orange)" }}>
+                        {bannerError}
+                      </p>
+                    )}
+                    <button type="submit" className="fd-btn fd-btn-primary" disabled={bannerSubmitting || bannerImageUploading}>
+                      {bannerSubmitting ? "Saqlanmoqda..." : "Banner qo‘shish"}
+                    </button>
+                  </form>
+
+                  {homeBanners.length > 0 && (
+                    <div style={{ marginTop: 20 }}>
+                      <p className="fd-checkout-meta" style={{ fontWeight: 600 }}>
+                        Mavjud bannerlar
+                      </p>
+                      <div style={{ display: "flex", flexDirection: "column", gap: 14, marginTop: 10 }}>
+                        {homeBanners.map((b: any) => {
+                          const galId = `banner-gal-${b.id}`;
+                          const camId = `banner-cam-${b.id}`;
+                          return (
+                            <div
+                              key={b.id}
+                              className="fd-card"
+                              style={{ padding: 12, display: "flex", flexWrap: "wrap", gap: 12, alignItems: "flex-start" }}
+                            >
+                              <div
+                                style={{
+                                  width: "min(240px, 100%)",
+                                  aspectRatio: "16 / 10",
+                                  borderRadius: 12,
+                                  overflow: "hidden",
+                                  flexShrink: 0,
+                                  background: "var(--color-bg)",
+                                  border: "1px solid var(--color-border)",
+                                }}
+                              >
+                                {b.imageUrl ? (
+                                  <img
+                                    src={imageUrl(String(b.imageUrl))}
+                                    alt=""
+                                    style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }}
+                                    onError={(e) => {
+                                      (e.target as HTMLImageElement).style.display = "none";
+                                    }}
+                                  />
+                                ) : (
+                                  <div
+                                    style={{
+                                      width: "100%",
+                                      height: "100%",
+                                      display: "flex",
+                                      alignItems: "center",
+                                      justifyContent: "center",
+                                      fontSize: "0.85rem",
+                                      color: "var(--color-text-secondary)",
+                                      padding: 8,
+                                      textAlign: "center",
+                                    }}
+                                  >
+                                    Rasm yo‘q
+                                  </div>
+                                )}
+                              </div>
+                              <div style={{ flex: "1 1 220px", minWidth: 0 }}>
+                                <div style={{ marginTop: 0, display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
+                                  <input
+                                    type="file"
+                                    accept="image/*"
+                                    id={galId}
+                                    style={{ display: "none" }}
+                                    onChange={(e) => void handleUploadExistingBannerImage(b.id, e)}
+                                  />
+                                  <input
+                                    type="file"
+                                    accept="image/*"
+                                    capture="environment"
+                                    id={camId}
+                                    style={{ display: "none" }}
+                                    onChange={(e) => void handleUploadExistingBannerImage(b.id, e)}
+                                  />
+                                  <label htmlFor={galId} style={{ margin: 0 }}>
+                                    <span className="fd-btn fd-btn-primary" style={{ cursor: "pointer", display: "inline-block", fontSize: "0.85rem", padding: "6px 12px" }}>
+                                      Galereya
+                                    </span>
+                                  </label>
+                                  <label htmlFor={camId} style={{ margin: 0 }}>
+                                    <span className="fd-btn" style={{ cursor: "pointer", display: "inline-block", fontSize: "0.85rem", padding: "6px 12px" }}>
+                                      Kamera
+                                    </span>
+                                  </label>
+                                </div>
+                                <label className="fd-field" style={{ marginTop: 10 }}>
+                                  <span>Rasm URL</span>
+                                  <input
+                                    type="url"
+                                    key={`banner-imgurl-${b.id}-${String(b.imageUrl ?? "")}`}
+                                    defaultValue={b.imageUrl ?? ""}
+                                    placeholder="https://..."
+                                    autoComplete="off"
+                                    onBlur={(e) =>
+                                      void handleUpdateBanner(b.id, {
+                                        imageUrl: e.target.value.trim() || null,
+                                      })
+                                    }
+                                  />
+                                </label>
+                                <label className="fd-field">
+                                  <span>Sarlavha (alt)</span>
+                                  <input
+                                    key={`banner-title-${b.id}-${String(b.title ?? "")}`}
+                                    defaultValue={b.title ?? ""}
+                                    autoComplete="off"
+                                    onBlur={(e) =>
+                                      void handleUpdateBanner(b.id, {
+                                        title: e.target.value.trim() || null,
+                                      })
+                                    }
+                                  />
+                                </label>
+                                <label className="fd-field">
+                                  <span>Matn (ixtiyoriy, zaxira)</span>
+                                  <input
+                                    key={`banner-text-${b.id}-${String(b.text ?? "")}`}
+                                    defaultValue={b.text ?? ""}
+                                    autoComplete="off"
+                                    onBlur={(e) =>
+                                      void handleUpdateBanner(b.id, {
+                                        text: e.target.value.trim() || null,
+                                      })
+                                    }
+                                  />
+                                </label>
+                                <label className="fd-field">
+                                  <span>Tugma yozuvi</span>
+                                  <input
+                                    key={`banner-cta-${b.id}-${String(b.ctaLabel ?? "")}`}
+                                    defaultValue={b.ctaLabel ?? ""}
+                                    autoComplete="off"
+                                    onBlur={(e) =>
+                                      void handleUpdateBanner(b.id, {
+                                        ctaLabel: e.target.value.trim() || null,
+                                      })
+                                    }
+                                  />
+                                </label>
+                                <label className="fd-field">
+                                  <span>Havola</span>
+                                  <input
+                                    key={`banner-href-${b.id}-${String(b.ctaHref ?? "")}`}
+                                    defaultValue={b.ctaHref ?? ""}
+                                    autoComplete="off"
+                                    onBlur={(e) =>
+                                      void handleUpdateBanner(b.id, {
+                                        ctaHref: e.target.value.trim() || null,
+                                      })
+                                    }
+                                  />
+                                </label>
+                                <div style={{ marginTop: 8, display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
+                                  <label className="fd-checkout-meta">
+                                    <input
+                                      type="checkbox"
+                                      checked={!!b.isActive}
+                                      onChange={(e) => void handleUpdateBanner(b.id, { isActive: e.target.checked })}
+                                    />{" "}
+                                    Faol
+                                  </label>
+                                  <label className="fd-checkout-meta">
+                                    Tartib:{" "}
+                                    <input
+                                      type="number"
+                                      defaultValue={b.sortOrder ?? 0}
+                                      style={{ width: 72, marginLeft: 4, padding: "2px 6px", fontSize: "0.8rem" }}
+                                      onBlur={(e) =>
+                                        void handleUpdateBanner(b.id, {
+                                          sortOrder: Number(e.target.value) || 0,
+                                        })
+                                      }
+                                    />
+                                  </label>
+                                  <button
+                                    type="button"
+                                    className="fd-btn"
+                                    onClick={async () => {
+                                      try {
+                                        await adminApi.deleteBanner(b.id);
+                                        setData((prev: any) =>
+                                          prev
+                                            ? {
+                                                ...prev,
+                                                banners: (prev.banners ?? []).filter((x: any) => x.id !== b.id),
+                                              }
+                                            : prev,
+                                        );
+                                      } catch (err: any) {
+                                        setBannerError(err?.message ?? "O‘chirishda xatolik");
+                                      }
+                                    }}
+                                  >
+                                    O‘chirish
+                                  </button>
+                                </div>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
                 </div>
 
                 <div className="fd-form-block" style={{ marginTop: 28 }}>
