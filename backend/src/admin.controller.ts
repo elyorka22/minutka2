@@ -1289,8 +1289,23 @@ export class AdminController {
   async getHomeExploreCategories(@Req() req: RequestWithUser) {
     this.assertPlatformAdmin(req);
     try {
+      /**
+       * `HomeExploreCategory` modeli evolyutsiya qilgan bo‘lishi mumkin (migratsiya qo‘llanmagan).
+       * Prisma `findMany()` default holatda barcha scalar ustunlarni SELECT qiladi va yo‘q ustun bo‘lsa yiqiladi.
+       * Shuning uchun admin ro‘yxatida faqat kerakli, eski DBda ham mavjud bo‘lishi kutiladigan ustunlarni select qilamiz.
+       */
       return await this.prisma.homeExploreCategory.findMany({
         orderBy: [{ sortOrder: 'asc' }, { createdAt: 'desc' }],
+        select: {
+          id: true,
+          createdAt: true,
+          updatedAt: true,
+          name: true,
+          imageUrl: true,
+          sortOrder: true,
+          isActive: true,
+          searchQuery: true,
+        },
       });
     } catch (e) {
       if (isMissingCarouselRowColumnError(e)) {
