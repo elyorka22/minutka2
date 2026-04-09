@@ -32,14 +32,14 @@ export function HomePromoBanner({ banner, fallbackRestaurant }: Props) {
             <SafeImage
               src={imageUrl(rawImg)}
               alt={imgAlt}
+              fill
               className="fd-home-vv-promo-img"
-              width={800}
-              height={500}
               quality={80}
               priority
-              sizes="(max-width: 640px) 100vw, 800px"
-              style={{ width: "100%", height: "100%", objectFit: "cover" }}
-              fallbackStyle={{ minHeight: 180 }}
+              sizes="(max-width: 640px) 100vw, min(1100px, 100vw)"
+              style={{ objectFit: "cover", objectPosition: "center" }}
+              fallbackClassName="fd-home-vv-promo-placeholder fd-home-vv-promo-placeholder--fallback"
+              fallbackStyle={{ position: "absolute", inset: 0 }}
             />
           ) : (
             <div className="fd-home-vv-promo-placeholder" aria-hidden />
