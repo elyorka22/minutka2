@@ -71,12 +71,6 @@ export default async function HomePage() {
 
   return (
     <div className="fd-shell">
-      <p className="fd-home-delivery-line">
-        <Link href="/addresses" className="fd-home-delivery-link">
-          Chust shahri — yetkazib berish va vaqtni tanlang
-        </Link>
-      </p>
-
       {exploreCategories.length > 0 && (
         <div className="fd-home-vv-stories">
           <HomeExploreCarousel
