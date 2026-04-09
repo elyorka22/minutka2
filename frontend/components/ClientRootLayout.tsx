@@ -24,6 +24,8 @@ function Header() {
 }
 
 function HeaderMain({ showCity }: { showCity: boolean }) {
+  const pathname = usePathname() || "";
+  const isHome = pathname === "/";
   const [canInstall, setCanInstall] = useState(false);
   const [installEvent, setInstallEvent] = useState<any | null>(null);
   const [isStandalone, setIsStandalone] = useState(false);
@@ -93,20 +95,14 @@ function HeaderMain({ showCity }: { showCity: boolean }) {
   }
 
   return (
-    <header className="fd-header">
+    <header className={isHome ? "fd-header fd-header--home" : "fd-header"}>
       <div className="fd-header-left">
         <div style={{ display: "flex", flexDirection: "column", lineHeight: 1.1 }}>
           <Link href="/" className="fd-logo">
             Minutka
           </Link>
           {showCity && (
-            <span
-              style={{
-                fontSize: "0.75rem",
-                color: "var(--color-text-secondary)",
-                marginTop: 2,
-              }}
-            >
+            <span className="fd-header-cityline">
               Chust shahri bo'ylab
             </span>
           )}

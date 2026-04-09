@@ -59,22 +59,8 @@ export default async function HomePage() {
     <div className="fd-shell">
       <div className="fd-home-hero-wolt">
         <div className="fd-home-hero-inner">
-          <form action="/search" method="get" className="fd-home-search fd-home-search--hero" role="search">
-            <label htmlFor="home-hero-search" className="fd-sr-only">
-              Qidiruv
-            </label>
-            <input
-              id="home-hero-search"
-              name="q"
-              className="fd-home-search-input fd-home-search-input--pill"
-              type="search"
-              placeholder="Taom, restoran yoki mahsulot izlash"
-              autoComplete="off"
-            />
-          </form>
-
           {exploreCategories.length > 0 && (
-            <div className="fd-home-explore-section fd-home-explore-section--under-search">
+            <div className="fd-home-explore-section fd-home-explore-section--hero-only">
               <HomeExploreCarousel
                 categories={exploreCategories}
                 ariaLabel="Tezkor kategoriyalar — birinchi qator"
