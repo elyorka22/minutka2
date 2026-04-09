@@ -37,6 +37,7 @@ export default function CheckoutPage() {
   const [savedAddresses, setSavedAddresses] = useState<SavedAddress[]>([]);
   const [selectedSavedAddressId, setSelectedSavedAddressId] = useState("");
   const [restaurantWorkingHours, setRestaurantWorkingHours] = useState("");
+  const [restaurantDeliveryFee, setRestaurantDeliveryFee] = useState(0);
 
   const needRestaurant = items.length > 0 && !restaurantId;
 
@@ -95,6 +96,7 @@ export default function CheckoutPage() {
     let active = true;
     if (!restaurantId) {
       setRestaurantWorkingHours("");
+      setRestaurantDeliveryFee(0);
       return;
     }
     api
@@ -102,10 +104,13 @@ export default function CheckoutPage() {
       .then((r: any) => {
         if (!active) return;
         setRestaurantWorkingHours(String(r?.workingHours ?? ""));
+        const fee = Number(r?.deliveryFee);
+        setRestaurantDeliveryFee(Number.isFinite(fee) ? Math.max(0, fee) : 0);
       })
       .catch(() => {
         if (!active) return;
         setRestaurantWorkingHours("");
+        setRestaurantDeliveryFee(0);
       });
     return () => {
       active = false;
@@ -113,6 +118,8 @@ export default function CheckoutPage() {
   }, [restaurantId]);
 
   const isRestaurantOpenNow = isOpenNowByWorkingHours(restaurantWorkingHours);
+  const subtotal = total;
+  const grandTotal = subtotal + restaurantDeliveryFee;
 
   /** «Xaritada belgi» — saqlangan manzil tanlanmagan bo‘lsa, Chust markaziga qaytadi */
   useEffect(() => {
@@ -232,8 +239,20 @@ export default function CheckoutPage() {
           })}
           {items.length > 0 && (
             <div className="fd-checkout-total">
+              <span>Taomlar:</span>
+              <span className="fd-price">{subtotal.toFixed(0)} so&apos;m</span>
+            </div>
+          )}
+          {items.length > 0 && (
+            <div className="fd-checkout-total">
+              <span>Yetkazib berish:</span>
+              <span className="fd-price">{restaurantDeliveryFee.toFixed(0)} so&apos;m</span>
+            </div>
+          )}
+          {items.length > 0 && (
+            <div className="fd-checkout-total">
               <span>Jami:</span>
-              <span className="fd-price">{total.toFixed(0)} so&apos;m</span>
+              <span className="fd-price">{grandTotal.toFixed(0)} so&apos;m</span>
             </div>
           )}
         </section>
