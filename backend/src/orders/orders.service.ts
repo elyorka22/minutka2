@@ -1794,12 +1794,12 @@ export class OrdersService {
       });
     }
 
-    // Yangi (pool): barcha ko‘rinadigan faol buyurtmalar — tayyor (olib olish mumkin) + mening jarayondagilar.
-    // DONE/CANCELLED chiqarilmaydi.
+    // Yangi (pool): faqat hali hech kim olmagan READY buyurtmalar.
+    // Kuryer olgandan keyin buyurtma bu ro'yxatdan chiqib, "mine" ga o'tadi.
     const where: any = {
       restaurant: { isActive: true },
-      status: { notIn: ['DONE', 'CANCELLED'] },
-      OR: [{ status: 'READY', courierId: null }, { courierId: courier.id }],
+      status: 'READY',
+      courierId: null,
     };
 
     return this.prisma.order.findMany({
@@ -1865,8 +1865,8 @@ export class OrdersService {
           }
         : {
             restaurant: { isActive: true },
-            status: { notIn: ['DONE', 'CANCELLED'] },
-            OR: [{ status: 'READY', courierId: null }, { courierId: courier.id }],
+            status: 'READY',
+            courierId: null,
           };
 
     const latest = await this.prisma.order.findFirst({
