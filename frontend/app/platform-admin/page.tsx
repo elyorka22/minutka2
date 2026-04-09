@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState, type ChangeEvent } from "react";
+import { useEffect, useState, type ChangeEvent } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { adminApi } from "../../lib/adminApi";
@@ -123,13 +123,6 @@ export default function PlatformAdminPage() {
   const [exploreSubmitting, setExploreSubmitting] = useState(false);
   const [exploreImageUploading, setExploreImageUploading] = useState(false);
   const [exploreError, setExploreError] = useState<string | null>(null);
-  const [explore2Name, setExplore2Name] = useState("");
-  const [explore2SearchQuery, setExplore2SearchQuery] = useState("");
-  const [explore2SortOrder, setExplore2SortOrder] = useState("");
-  const [explore2ImageUrl, setExplore2ImageUrl] = useState("");
-  const [explore2Submitting, setExplore2Submitting] = useState(false);
-  const [explore2ImageUploading, setExplore2ImageUploading] = useState(false);
-  const [explore2Error, setExplore2Error] = useState<string | null>(null);
   const [addAdminEmails, setAddAdminEmails] = useState<Record<string, string>>({});
   const [addAdminSubmitting, setAddAdminSubmitting] = useState<Record<string, boolean>>({});
   const [restaurantStats, setRestaurantStats] = useState<{
@@ -753,7 +746,6 @@ export default function PlatformAdminPage() {
         searchQuery: exploreSearchQuery.trim() || undefined,
         sortOrder: exploreSortOrder ? Number(exploreSortOrder) : undefined,
         isActive: true,
-        carouselRow: 1,
       });
       setHomeExploreCategories((prev) =>
         [...prev, created].sort((a: any, b: any) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0)),
@@ -794,65 +786,16 @@ export default function PlatformAdminPage() {
     }
   }
 
-  async function handleCreateExploreCategoryRow2(e: React.FormEvent) {
-    e.preventDefault();
-    if (!explore2Name.trim()) {
-      setExplore2Error("Kategoriya nomi kiritilishi shart");
-      return;
-    }
-    setExplore2Error(null);
-    setExplore2Submitting(true);
-    try {
-      const created = await adminApi.createHomeExploreCategory({
-        name: explore2Name.trim(),
-        imageUrl: explore2ImageUrl.trim() || undefined,
-        searchQuery: explore2SearchQuery.trim() || undefined,
-        sortOrder: explore2SortOrder ? Number(explore2SortOrder) : undefined,
-        isActive: true,
-        carouselRow: 2,
-      });
-      setHomeExploreCategories((prev) =>
-        [...prev, created].sort((a: any, b: any) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0)),
-      );
-      setExplore2Name("");
-      setExplore2SearchQuery("");
-      setExplore2SortOrder("");
-      setExplore2ImageUrl("");
-    } catch (err: any) {
-      setExplore2Error(err.message ?? "Qo‘shishda xatolik");
-    } finally {
-      setExplore2Submitting(false);
-    }
-  }
-
-  async function handleUploadExplore2Image(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    e.target.value = "";
-    setExplore2ImageUploading(true);
-    setExplore2Error(null);
-    try {
-      const { url } = await adminApi.uploadImage(file);
-      setExplore2ImageUrl(url);
-    } catch (err: any) {
-      setExplore2Error(err.message ?? "Yuklashda xatolik");
-    } finally {
-      setExplore2ImageUploading(false);
-    }
-  }
-
   async function handleUploadExistingExploreImage(id: string, e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     if (!file) return;
     e.target.value = "";
     setExploreError(null);
-    setExplore2Error(null);
     try {
       const { url } = await adminApi.uploadImage(file);
       await handleUpdateExploreCategory(id, { imageUrl: url });
     } catch (err: any) {
       setExploreError(err.message ?? "Yuklashda xatolik");
-      setExplore2Error(err.message ?? "Yuklashda xatolik");
     }
   }
 
@@ -997,15 +940,6 @@ export default function PlatformAdminPage() {
       setHeroTaglineSaving(false);
     }
   }
-
-  const exploreRow1List = useMemo(
-    () => homeExploreCategories.filter((c: any) => (Number(c.carouselRow) || 1) === 1),
-    [homeExploreCategories],
-  );
-  const exploreRow2List = useMemo(
-    () => homeExploreCategories.filter((c: any) => Number(c.carouselRow) === 2),
-    [homeExploreCategories],
-  );
 
   const tabs: { id: TabId; label: string }[] = [
     { id: "stats", label: "Statistika" },
@@ -2264,11 +2198,10 @@ export default function PlatformAdminPage() {
                 </div>
 
                 <div className="fd-form-block" style={{ marginTop: 28 }}>
-                  <h3>Bosh sahifa: birinchi kategoriya karuseli</h3>
+                  <h3>Banner ostidagi kategoriya karuseli</h3>
                   <p className="fd-checkout-meta">
-                    Yuqori qator — «Barcha restoranlar» ustidagi birinchi gorizontal karusel. Kvadrat
-                    kartochkalar; bosilganda qidiruv. Rasm tavsiya etiladi (~1:1). Kartochka ostidagi
-                    yozuv bosh sahifada ko‘rinmaydi.
+                    Kvadrat kartochkalar (yumaloq burchaklar). Foydalanuvchi bosganda qidiruv sahifasiga
+                    o‘tadi. Rasm tavsiya etiladi (~1:1). Kartochka ostidagi yozuv bosh sahifada ko‘rinmaydi.
                   </p>
                   <form onSubmit={handleCreateExploreCategory} className="fd-form" style={{ marginTop: 12 }}>
                     <label className="fd-field">
@@ -2348,13 +2281,13 @@ export default function PlatformAdminPage() {
                     </button>
                   </form>
 
-                  {exploreRow1List.length > 0 && (
+                  {homeExploreCategories.length > 0 && (
                     <div style={{ marginTop: 20 }}>
                       <p className="fd-checkout-meta" style={{ fontWeight: 600 }}>
-                        1-karousel — mavjud elementlar
+                        Mavjud kategoriyalar
                       </p>
                       <div style={{ display: "flex", flexDirection: "column", gap: 14, marginTop: 10 }}>
-                        {exploreRow1List.map((c: any) => (
+                        {homeExploreCategories.map((c: any) => (
                           <div
                             key={c.id}
                             className="fd-card"
@@ -2453,214 +2386,6 @@ export default function PlatformAdminPage() {
                       </div>
                     </div>
                   )}
-
-                  <div className="fd-form-block" style={{ marginTop: 32 }}>
-                    <h3>Ikkinchi kategoriya karuseli</h3>
-                    <p className="fd-checkout-meta">
-                      Birinchi karusel ostidagi ikkinchi qator — xuddi shu ko‘rinish, alohida elementlar.
-                      Faqat rasm va qidiruv so‘zi; nom ichki maqsad uchun.
-                    </p>
-                    <form onSubmit={handleCreateExploreCategoryRow2} className="fd-form" style={{ marginTop: 12 }}>
-                      <label className="fd-field">
-                        <span>Ko‘rinadigan nom (masalan: Ichimliklar)</span>
-                        <input
-                          value={explore2Name}
-                          onChange={(e) => setExplore2Name(e.target.value)}
-                          placeholder="Ichimliklar"
-                          required
-                        />
-                      </label>
-                      <label className="fd-field">
-                        <span>Qidiruv so‘zi (ixtiyoriy, bo‘sh bo‘lsa nom ishlatiladi)</span>
-                        <input
-                          value={explore2SearchQuery}
-                          onChange={(e) => setExplore2SearchQuery(e.target.value)}
-                          placeholder="cola"
-                        />
-                      </label>
-                      <label className="fd-field">
-                        <span>Rasm URL</span>
-                        <input
-                          type="url"
-                          value={explore2ImageUrl}
-                          onChange={(e) => setExplore2ImageUrl(e.target.value)}
-                          placeholder="Yoki fayl yuklang"
-                        />
-                        <div style={{ marginTop: 8, display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
-                          <input
-                            type="file"
-                            accept="image/*"
-                            id="create-explore2-image-file"
-                            style={{ display: "none" }}
-                            onChange={handleUploadExplore2Image}
-                          />
-                          <label htmlFor="create-explore2-image-file" style={{ margin: 0 }}>
-                            <span className="fd-btn fd-btn-primary" style={{ cursor: "pointer", display: "inline-block" }}>
-                              {explore2ImageUploading ? "Yuklanmoqda..." : "Rasm yuklash"}
-                            </span>
-                          </label>
-                        </div>
-                        {explore2ImageUrl.trim() ? (
-                          <img
-                            src={imageUrl(explore2ImageUrl.trim())}
-                            alt=""
-                            style={{
-                              marginTop: 10,
-                              width: 80,
-                              height: 80,
-                              borderRadius: 20,
-                              objectFit: "cover",
-                              border: "1px solid var(--color-border)",
-                              boxShadow: "0 2px 8px rgba(15, 23, 42, 0.08)",
-                            }}
-                            onError={(e) => {
-                              (e.target as HTMLImageElement).style.display = "none";
-                            }}
-                          />
-                        ) : null}
-                      </label>
-                      <label className="fd-field">
-                        <span>Tartib (0 = birinchi)</span>
-                        <input
-                          type="number"
-                          value={explore2SortOrder}
-                          onChange={(e) => setExplore2SortOrder(e.target.value)}
-                          placeholder="0"
-                        />
-                      </label>
-                      {explore2Error && (
-                        <p className="fd-checkout-meta" style={{ color: "var(--color-orange)" }}>
-                          {explore2Error}
-                        </p>
-                      )}
-                      <button
-                        type="submit"
-                        className="fd-btn fd-btn-primary"
-                        disabled={explore2Submitting || explore2ImageUploading}
-                      >
-                        {explore2Submitting ? "Saqlanmoqda..." : "2-karouselga qo‘shish"}
-                      </button>
-                    </form>
-
-                    {exploreRow2List.length > 0 && (
-                      <div style={{ marginTop: 20 }}>
-                        <p className="fd-checkout-meta" style={{ fontWeight: 600 }}>
-                          2-karousel — mavjud elementlar
-                        </p>
-                        <div style={{ display: "flex", flexDirection: "column", gap: 14, marginTop: 10 }}>
-                          {exploreRow2List.map((c: any) => (
-                            <div
-                              key={c.id}
-                              className="fd-card"
-                              style={{ padding: 12, display: "flex", flexWrap: "wrap", gap: 12, alignItems: "flex-start" }}
-                            >
-                              <div
-                                style={{
-                                  width: 80,
-                                  height: 80,
-                                  borderRadius: 20,
-                                  overflow: "hidden",
-                                  flexShrink: 0,
-                                  background: "var(--color-bg)",
-                                  border: "1px solid var(--color-border)",
-                                }}
-                              >
-                                {c.imageUrl ? (
-                                  <img
-                                    src={imageUrl(String(c.imageUrl))}
-                                    alt=""
-                                    style={{ width: "100%", height: "100%", objectFit: "cover" }}
-                                  />
-                                ) : (
-                                  <div
-                                    style={{
-                                      width: "100%",
-                                      height: "100%",
-                                      display: "flex",
-                                      alignItems: "center",
-                                      justifyContent: "center",
-                                      fontWeight: 700,
-                                      color: "var(--color-text-secondary)",
-                                    }}
-                                  >
-                                    {String(c.name || "?").charAt(0).toUpperCase()}
-                                  </div>
-                                )}
-                              </div>
-                              <div style={{ flex: "1 1 200px", minWidth: 0 }}>
-                                <div style={{ fontWeight: 700 }}>{c.name}</div>
-                                <div className="fd-checkout-meta" style={{ marginTop: 4 }}>
-                                  Qidiruv: {c.searchQuery?.trim() || c.name}
-                                </div>
-                                <div style={{ marginTop: 8, display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
-                                  <input
-                                    type="file"
-                                    accept="image/*"
-                                    id={`explore2-img-${c.id}`}
-                                    style={{ display: "none" }}
-                                    onChange={(e) => void handleUploadExistingExploreImage(c.id, e)}
-                                  />
-                                  <label htmlFor={`explore2-img-${c.id}`} style={{ margin: 0 }}>
-                                    <span
-                                      className="fd-btn"
-                                      style={{ cursor: "pointer", display: "inline-block", fontSize: "0.85rem", padding: "6px 12px" }}
-                                    >
-                                      Rasmni almashtirish
-                                    </span>
-                                  </label>
-                                </div>
-                                <div
-                                  style={{
-                                    marginTop: 8,
-                                    display: "flex",
-                                    gap: 8,
-                                    alignItems: "center",
-                                    flexWrap: "wrap",
-                                  }}
-                                >
-                                  <label className="fd-checkout-meta">
-                                    <input
-                                      type="checkbox"
-                                      checked={!!c.isActive}
-                                      onChange={(e) => void handleUpdateExploreCategory(c.id, { isActive: e.target.checked })}
-                                    />{" "}
-                                    Faol
-                                  </label>
-                                  <label className="fd-checkout-meta">
-                                    Tartib:{" "}
-                                    <input
-                                      type="number"
-                                      defaultValue={c.sortOrder ?? 0}
-                                      style={{ width: 72, marginLeft: 4, padding: "2px 6px", fontSize: "0.8rem" }}
-                                      onBlur={(e) =>
-                                        void handleUpdateExploreCategory(c.id, {
-                                          sortOrder: Number(e.target.value) || 0,
-                                        })
-                                      }
-                                    />
-                                  </label>
-                                  <button
-                                    type="button"
-                                    className="fd-btn"
-                                    onClick={async () => {
-                                      try {
-                                        await adminApi.deleteHomeExploreCategory(c.id);
-                                        setHomeExploreCategories((prev) => prev.filter((x) => x.id !== c.id));
-                                      } catch (err: any) {
-                                        setExplore2Error(err?.message ?? "O‘chirishda xatolik");
-                                      }
-                                    }}
-                                  >
-                                    O‘chirish
-                                  </button>
-                                </div>
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-                  </div>
 
                   <hr
                     style={{
