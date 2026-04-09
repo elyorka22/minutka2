@@ -59,6 +59,7 @@ export default function PlatformAdminPage() {
   const [createImageUrl, setCreateImageUrl] = useState("");
   const [createFee, setCreateFee] = useState("");
   const [createPlatformFeePercent, setCreatePlatformFeePercent] = useState("10");
+  const [createWorkingHours, setCreateWorkingHours] = useState("");
   const [createAdminEmail, setCreateAdminEmail] = useState("");
   const [createAdminPassword, setCreateAdminPassword] = useState("");
   const [createAdminName, setCreateAdminName] = useState("");
@@ -73,6 +74,7 @@ export default function PlatformAdminPage() {
     name: string;
     description: string;
     imageUrl: string;
+    workingHours: string;
     platformFeePercent: string;
     isFeatured: boolean;
     featuredSortOrder: string;
@@ -84,6 +86,7 @@ export default function PlatformAdminPage() {
     name: "",
     description: "",
     imageUrl: "",
+    workingHours: "",
     platformFeePercent: "10",
     isFeatured: false,
     featuredSortOrder: "0",
@@ -527,6 +530,7 @@ export default function PlatformAdminPage() {
         address: "",
         description: createDesc.trim() || undefined,
         deliveryFee: createFee ? Number(createFee) : undefined,
+        workingHours: createWorkingHours.trim() || undefined,
         platformFeePercent: createPlatformFeePercent ? Number(createPlatformFeePercent) : 10,
         logoUrl: createImageUrl.trim() || undefined,
         coverUrl: createImageUrl.trim() || undefined,
@@ -538,6 +542,7 @@ export default function PlatformAdminPage() {
       setCreateName("");
       setCreateDesc("");
       setCreateFee("");
+      setCreateWorkingHours("");
       setCreatePlatformFeePercent("10");
       setCreateImageUrl("");
       setCreateAdminEmail("");
@@ -566,6 +571,7 @@ export default function PlatformAdminPage() {
       name: String(r.name ?? ""),
       description: String(r.description ?? ""),
       imageUrl: String(r.logoUrl || r.coverUrl || ""),
+      workingHours: String(r.workingHours ?? ""),
       platformFeePercent: String(r.platformFeePercent ?? 10),
       isFeatured: !!r.isFeatured,
       featuredSortOrder: String(r.featuredSortOrder ?? 0),
@@ -589,6 +595,7 @@ export default function PlatformAdminPage() {
         description: editRestaurantForm.description.trim() || undefined,
         logoUrl: editRestaurantForm.imageUrl.trim() || undefined,
         coverUrl: editRestaurantForm.imageUrl.trim() || undefined,
+        workingHours: editRestaurantForm.workingHours.trim() || undefined,
         platformFeePercent: Number.isFinite(platformFee) ? platformFee : undefined,
         isFeatured: editRestaurantForm.isFeatured,
         featuredSortOrder: Number.isFinite(featuredOrder) ? featuredOrder : 0,
@@ -1235,6 +1242,14 @@ export default function PlatformAdminPage() {
                       <label className="fd-field">
                         <span>Yetkazib berish narxi (so‘m)</span>
                         <input type="number" min={0} value={createFee} onChange={(e) => setCreateFee(e.target.value)} placeholder="0" />
+                      </label>
+                      <label className="fd-field">
+                        <span>Ish vaqti (HH:mm-HH:mm)</span>
+                        <input
+                          value={createWorkingHours}
+                          onChange={(e) => setCreateWorkingHours(e.target.value)}
+                          placeholder="09:00-23:00"
+                        />
                       </label>
                       <label className="fd-field">
                         <span>Platforma ulushi (%)</span>
@@ -2709,6 +2724,14 @@ export default function PlatformAdminPage() {
                         }}
                       />
                     ) : null}
+                  </label>
+                  <label className="fd-field">
+                    <span>Ish vaqti (HH:mm-HH:mm)</span>
+                    <input
+                      value={editRestaurantForm.workingHours}
+                      onChange={(e) => setEditRestaurantForm((p) => ({ ...p, workingHours: e.target.value }))}
+                      placeholder="09:00-23:00"
+                    />
                   </label>
                   <label className="fd-field">
                     <span>Platforma %</span>

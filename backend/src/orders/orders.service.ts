@@ -10,6 +10,7 @@ import { PrismaService } from '../prisma.service';
 import { UsersService } from '../users/users.service';
 import { CreateOrderDto } from './dto/create-order.dto';
 import { fetchWithRetry } from '../common/http/fetch-with-retry';
+import { isMissingCarouselRowColumnError } from '../home-explore-carousel-row.util';
 
 // eslint-disable-next-line @typescript-eslint/no-var-requires
 const webpush = require('web-push');
@@ -140,6 +141,52 @@ export class OrdersService {
     return 100000 + Math.floor(Math.random() * 900000);
   }
 
+  /**
+   * `workingHours` formati: "HH:mm-HH:mm" (masalan 09:00-23:00).
+   * Bo'sh yoki noto'g'ri bo'lsa — restoran ochiq deb hisoblanadi (bloklamaymiz).
+   */
+  private isRestaurantOpenNow(workingHours?: string | null): boolean {
+    const raw = String(workingHours ?? '').trim();
+    if (!raw) return true;
+    const m = /^(\d{2}):(\d{2})\s*-\s*(\d{2}):(\d{2})$/.exec(raw);
+    if (!m) return true;
+    const sh = Number(m[1]);
+    const sm = Number(m[2]);
+    const eh = Number(m[3]);
+    const em = Number(m[4]);
+    if (
+      !Number.isInteger(sh) ||
+      !Number.isInteger(sm) ||
+      !Number.isInteger(eh) ||
+      !Number.isInteger(em) ||
+      sh < 0 ||
+      sh > 23 ||
+      eh < 0 ||
+      eh > 23 ||
+      sm < 0 ||
+      sm > 59 ||
+      em < 0 ||
+      em > 59
+    ) {
+      return true;
+    }
+    const nowParts = new Intl.DateTimeFormat('en-GB', {
+      timeZone: 'Asia/Tashkent',
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: false,
+    }).format(new Date());
+    const [nowH, nowM] = nowParts.split(':').map((x) => Number(x));
+    if (!Number.isFinite(nowH) || !Number.isFinite(nowM)) return true;
+    const now = nowH * 60 + nowM;
+    const start = sh * 60 + sm;
+    const end = eh * 60 + em;
+    if (start === end) return true;
+    if (start < end) return now >= start && now < end;
+    // Tun davomiy interval (masalan 22:00-02:00)
+    return now >= start || now < end;
+  }
+
   async create(
     customerId: string | null,
     dto: CreateOrderDto,
@@ -171,18 +218,38 @@ export class OrdersService {
             select: { id: true },
           })
         : Promise.resolve<{ id: string } | null>({ id: userId }),
-      this.prisma.restaurant.findUnique({
-        where: { id: dto.restaurantId, isActive: true },
-        select: {
-          id: true,
-          name: true,
-          deliveryFee: true,
-          telegramChatId: true,
-          ...(disablePush || skipPushNotifications
-            ? {}
-            : { admins: { select: { id: true } } }),
-        },
-      }),
+      (async () => {
+        try {
+          return await this.prisma.restaurant.findUnique({
+            where: { id: dto.restaurantId, isActive: true },
+            select: {
+              id: true,
+              name: true,
+              deliveryFee: true,
+              workingHours: true,
+              telegramChatId: true,
+              ...(disablePush || skipPushNotifications
+                ? {}
+                : { admins: { select: { id: true } } }),
+            },
+          });
+        } catch (e) {
+          if (!isMissingCarouselRowColumnError(e)) throw e;
+          const row = await this.prisma.restaurant.findUnique({
+            where: { id: dto.restaurantId, isActive: true },
+            select: {
+              id: true,
+              name: true,
+              deliveryFee: true,
+              telegramChatId: true,
+              ...(disablePush || skipPushNotifications
+                ? {}
+                : { admins: { select: { id: true } } }),
+            },
+          });
+          return row ? { ...row, workingHours: null } : row;
+        }
+      })(),
       this.prisma.dish.findMany({
         where: { id: { in: requestedDishIds }, restaurantId: dto.restaurantId, isAvailable: true },
         select: { id: true, price: true, name: true },
@@ -195,6 +262,11 @@ export class OrdersService {
     }
 
     if (!restaurant) throw new Error('Restaurant not found');
+    if (!this.isRestaurantOpenNow((restaurant as any).workingHours ?? null)) {
+      throw new BadRequestException(
+        `Restoran hozir yopiq. Ish vaqti: ${String((restaurant as any).workingHours ?? '').trim() || '—'}`,
+      );
+    }
 
     const deliveryFee = Number(restaurant.deliveryFee);
     const serviceFeeRate = 0.1;

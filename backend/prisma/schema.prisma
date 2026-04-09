@@ -82,6 +82,8 @@ model Restaurant {
   platformFeePercent Float @default(10)
   platformFeeClearedAt DateTime?
   telegramChatId     String?
+  /** Ish vaqti: `HH:mm-HH:mm`, masalan `09:00-23:00` */
+  workingHours       String?
 
   admins     User[]     @relation("RestaurantAdmins")
   categories Category[]

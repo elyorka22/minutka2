@@ -5,6 +5,7 @@ import { useCart } from "../../../components/CartContext";
 import { imageUrl } from "../../../lib/api";
 import { SafeImage } from "../../../components/SafeImage";
 import { BackLink } from "../../../components/BackLink";
+import { isOpenNowByWorkingHours } from "../../../lib/workingHours";
 
 type CategoryRow = { id: string; name: string; sortOrder?: number };
 
@@ -22,6 +23,8 @@ export function RestaurantPageClient({
   const headerTitle = restaurant?.name ?? (isSupermarket ? "Do‘kon" : "Restoran");
   const sectionTitle = isSupermarket ? "Mahsulotlar" : "Menyu";
   const emptyText = isSupermarket ? "Mahsulotlar hozircha bo‘sh." : "Menyu hozircha bo‘sh.";
+  const workingHours = String(restaurant?.workingHours ?? "").trim();
+  const isOpenNow = isOpenNowByWorkingHours(workingHours);
 
   const categories: CategoryRow[] = useMemo(() => {
     const raw = restaurant?.categories;
@@ -93,6 +96,7 @@ export function RestaurantPageClient({
             <button
               type="button"
               className="fd-card-plus-btn"
+              disabled={!isOpenNow}
               onClick={() =>
                 addToCart(
                   {
@@ -110,11 +114,11 @@ export function RestaurantPageClient({
             </button>
           ) : (
             <div className="fd-qty fd-qty--overlay">
-              <button type="button" className="fd-qty-btn" onClick={() => changeQuantity(id, quantity - 1)}>
+              <button type="button" className="fd-qty-btn" disabled={!isOpenNow} onClick={() => changeQuantity(id, quantity - 1)}>
                 −
               </button>
               <span className="fd-qty-value">{quantity}</span>
-              <button type="button" className="fd-qty-btn" onClick={() => changeQuantity(id, quantity + 1)}>
+              <button type="button" className="fd-qty-btn" disabled={!isOpenNow} onClick={() => changeQuantity(id, quantity + 1)}>
                 +
               </button>
             </div>
@@ -138,6 +142,16 @@ export function RestaurantPageClient({
         <h1>{headerTitle}</h1>
         {restaurant?.description && (
           <p className="fd-restaurant-desc">{restaurant.description}</p>
+        )}
+        {workingHours && (
+          <p className="fd-checkout-meta" style={{ marginTop: 6 }}>
+            Ish vaqti: {workingHours}
+          </p>
+        )}
+        {!isOpenNow && (
+          <p className="fd-checkout-meta" style={{ marginTop: 6, color: "var(--color-orange)" }}>
+            Restoran hozir yopiq. Buyurtma vaqtincha yopilgan.
+          </p>
         )}
       </header>
 

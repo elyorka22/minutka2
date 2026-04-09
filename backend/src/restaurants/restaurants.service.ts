@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma.service';
 import { CacheService } from '../cache.service';
+import { isMissingCarouselRowColumnError } from '../home-explore-carousel-row.util';
 
 @Injectable()
 export class RestaurantsService {
@@ -40,41 +41,80 @@ export class RestaurantsService {
   }
 
   async findOne(id: string) {
-    return this.cache.getOrSet(`restaurants:one:${id}`, 30_000, () =>
-      this.prisma.restaurant.findUnique({
-        where: { id, isActive: true },
-        select: {
-          id: true,
-          name: true,
-          description: true,
-          address: true,
-          latitude: true,
-          longitude: true,
-          minOrderTotal: true,
-          deliveryFee: true,
-          deliveryRadiusM: true,
-          rating: true,
-          logoUrl: true,
-          coverUrl: true,
-          categories: {
-            orderBy: { sortOrder: 'asc' },
-            select: { id: true, name: true, sortOrder: true },
-          },
-          dishes: {
-            where: { isAvailable: true },
-            select: {
-              id: true,
-              name: true,
-              description: true,
-              price: true,
-              imageUrl: true,
-              categoryId: true,
-              isAvailable: true,
+    return this.cache.getOrSet(`restaurants:one:${id}`, 30_000, async () => {
+      try {
+        return await this.prisma.restaurant.findUnique({
+          where: { id, isActive: true },
+          select: {
+            id: true,
+            name: true,
+            description: true,
+            address: true,
+            latitude: true,
+            longitude: true,
+            minOrderTotal: true,
+            deliveryFee: true,
+            deliveryRadiusM: true,
+            workingHours: true,
+            rating: true,
+            logoUrl: true,
+            coverUrl: true,
+            categories: {
+              orderBy: { sortOrder: 'asc' },
+              select: { id: true, name: true, sortOrder: true },
+            },
+            dishes: {
+              where: { isAvailable: true },
+              select: {
+                id: true,
+                name: true,
+                description: true,
+                price: true,
+                imageUrl: true,
+                categoryId: true,
+                isAvailable: true,
+              },
             },
           },
-        },
-      }),
-    );
+        });
+      } catch (e) {
+        if (!isMissingCarouselRowColumnError(e)) throw e;
+        const row = await this.prisma.restaurant.findUnique({
+          where: { id, isActive: true },
+          select: {
+            id: true,
+            name: true,
+            description: true,
+            address: true,
+            latitude: true,
+            longitude: true,
+            minOrderTotal: true,
+            deliveryFee: true,
+            deliveryRadiusM: true,
+            rating: true,
+            logoUrl: true,
+            coverUrl: true,
+            categories: {
+              orderBy: { sortOrder: 'asc' },
+              select: { id: true, name: true, sortOrder: true },
+            },
+            dishes: {
+              where: { isAvailable: true },
+              select: {
+                id: true,
+                name: true,
+                description: true,
+                price: true,
+                imageUrl: true,
+                categoryId: true,
+                isAvailable: true,
+              },
+            },
+          },
+        });
+        return row ? { ...row, workingHours: null } : row;
+      }
+    });
   }
 
   async findFeatured() {

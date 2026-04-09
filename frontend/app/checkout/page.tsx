@@ -8,6 +8,7 @@ import { api } from "../../lib/api";
 import { CHUST_DEFAULT_COORDS } from "../../lib/map-defaults";
 import { getAccessToken } from "../../lib/auth-tokens";
 import { getSavedAddressesForCurrentUser, type SavedAddress } from "../../lib/saved-addresses";
+import { isOpenNowByWorkingHours } from "../../lib/workingHours";
 
 const CheckoutMapPicker = dynamic(
   () => import("../../components/CheckoutMapPicker").then((m) => m.CheckoutMapPicker),
@@ -35,6 +36,7 @@ export default function CheckoutPage() {
   const [geoStatus, setGeoStatus] = useState<"idle" | "success" | "error">("idle");
   const [savedAddresses, setSavedAddresses] = useState<SavedAddress[]>([]);
   const [selectedSavedAddressId, setSelectedSavedAddressId] = useState("");
+  const [restaurantWorkingHours, setRestaurantWorkingHours] = useState("");
 
   const needRestaurant = items.length > 0 && !restaurantId;
 
@@ -89,6 +91,29 @@ export default function CheckoutPage() {
     if (selectedSavedAddress.phone) setPhone(selectedSavedAddress.phone);
   }, [selectedSavedAddressId]);
 
+  useEffect(() => {
+    let active = true;
+    if (!restaurantId) {
+      setRestaurantWorkingHours("");
+      return;
+    }
+    api
+      .getRestaurant(restaurantId)
+      .then((r: any) => {
+        if (!active) return;
+        setRestaurantWorkingHours(String(r?.workingHours ?? ""));
+      })
+      .catch(() => {
+        if (!active) return;
+        setRestaurantWorkingHours("");
+      });
+    return () => {
+      active = false;
+    };
+  }, [restaurantId]);
+
+  const isRestaurantOpenNow = isOpenNowByWorkingHours(restaurantWorkingHours);
+
   /** «Xaritada belgi» — saqlangan manzil tanlanmagan bo‘lsa, Chust markaziga qaytadi */
   useEffect(() => {
     if (addressMode !== "map") return;
@@ -101,6 +126,10 @@ export default function CheckoutPage() {
     setSubmitError(null);
     if (!restaurantId || items.length === 0) {
       setSubmitError("Savat bo‘sh yoki restoran aniqlanmadi. Taomlarni qayta qo‘shing.");
+      return;
+    }
+    if (!isRestaurantOpenNow) {
+      setSubmitError("Restoran hozir yopiq. Ish vaqtida qayta urinib ko‘ring.");
       return;
     }
     if (addressMode === "geo" && geoStatus !== "success") {
@@ -361,11 +390,16 @@ export default function CheckoutPage() {
                   {submitError}
                 </p>
               )}
+              {!isRestaurantOpenNow && (
+                <p style={{ color: "var(--color-orange)", fontSize: "0.875rem", marginBottom: 8 }}>
+                  Restoran hozir yopiq{restaurantWorkingHours.trim() ? ` (Ish vaqti: ${restaurantWorkingHours.trim()})` : ""}.
+                </p>
+              )}
 
               <button
                 className="fd-btn fd-btn-primary"
                 type="submit"
-                disabled={items.length === 0 || loading}
+                disabled={items.length === 0 || loading || !isRestaurantOpenNow}
               >
                 {loading ? "Yuborilmoqda..." : "Buyurtmani tasdiqlash"}
               </button>

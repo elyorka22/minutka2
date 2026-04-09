@@ -229,6 +229,7 @@ export const adminApi = {
     deliveryRadiusM?: number;
     isSupermarket?: boolean;
     platformFeePercent?: number;
+    workingHours?: string;
     adminEmail: string;
     adminPassword: string;
     adminName: string;
@@ -362,6 +363,7 @@ export const adminApi = {
       carouselFastFood?: boolean;
       carouselFastFoodSort?: number;
       platformFeePercent?: number;
+      workingHours?: string | null;
     }
   ) =>
     adminRequest<any>(`/admin/restaurants/${id}`, {

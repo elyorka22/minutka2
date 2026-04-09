@@ -365,27 +365,54 @@ export class AdminController {
   ) {
     this.assertPlatformAdmin(req);
     const { limit, offset } = this.parsePagination(limitRaw, offsetRaw);
-    return this.prisma.restaurant.findMany({
-      where: { isActive: true },
-      orderBy: { createdAt: 'desc' },
-      take: limit,
-      skip: offset,
-      select: {
-        id: true,
-        name: true,
-        description: true,
-        logoUrl: true,
-        isFeatured: true,
-        featuredSortOrder: true,
-        carouselNational: true,
-        carouselNationalSort: true,
-        carouselFastFood: true,
-        carouselFastFoodSort: true,
-        isSupermarket: true,
-        platformFeePercent: true,
-        createdAt: true,
-      },
-    });
+    try {
+      return await this.prisma.restaurant.findMany({
+        where: { isActive: true },
+        orderBy: { createdAt: 'desc' },
+        take: limit,
+        skip: offset,
+        select: {
+          id: true,
+          name: true,
+          description: true,
+          logoUrl: true,
+          workingHours: true,
+          isFeatured: true,
+          featuredSortOrder: true,
+          carouselNational: true,
+          carouselNationalSort: true,
+          carouselFastFood: true,
+          carouselFastFoodSort: true,
+          isSupermarket: true,
+          platformFeePercent: true,
+          createdAt: true,
+        },
+      });
+    } catch (e) {
+      if (!isMissingCarouselRowColumnError(e)) throw e;
+      const rows = await this.prisma.restaurant.findMany({
+        where: { isActive: true },
+        orderBy: { createdAt: 'desc' },
+        take: limit,
+        skip: offset,
+        select: {
+          id: true,
+          name: true,
+          description: true,
+          logoUrl: true,
+          isFeatured: true,
+          featuredSortOrder: true,
+          carouselNational: true,
+          carouselNationalSort: true,
+          carouselFastFood: true,
+          carouselFastFoodSort: true,
+          isSupermarket: true,
+          platformFeePercent: true,
+          createdAt: true,
+        },
+      });
+      return rows.map((r) => ({ ...r, workingHours: null }));
+    }
   }
 
   @Get('overview/users')
@@ -703,6 +730,7 @@ export class AdminController {
       longitude?: number;
       isSupermarket?: boolean;
       platformFeePercent?: number;
+      workingHours?: string;
       adminEmail: string;
       adminPassword: string;
       adminName: string;
@@ -751,23 +779,31 @@ export class AdminController {
       adminId = newUser.id;
     }
 
-    const restaurant = await this.prisma.restaurant.create({
-      data: {
-        name: body.name.trim(),
-        description: body.description?.trim() ?? null,
-        address: body.address?.trim() ?? '',
-        logoUrl: body.logoUrl?.trim() ?? null,
-        coverUrl: body.coverUrl?.trim() ?? null,
-        deliveryFee: body.deliveryFee ?? 0,
-        minOrderTotal: body.minOrderTotal ?? 0,
-        deliveryRadiusM: body.deliveryRadiusM ?? 3000,
-        latitude: body.latitude ?? 0,
-        longitude: body.longitude ?? 0,
-        isSupermarket: !!body.isSupermarket,
-        platformFeePercent: body.platformFeePercent != null ? Number(body.platformFeePercent) : 10,
-        admins: { connect: { id: adminId } },
-      },
-    });
+    const createData: any = {
+      name: body.name.trim(),
+      description: body.description?.trim() ?? null,
+      address: body.address?.trim() ?? '',
+      logoUrl: body.logoUrl?.trim() ?? null,
+      coverUrl: body.coverUrl?.trim() ?? null,
+      deliveryFee: body.deliveryFee ?? 0,
+      minOrderTotal: body.minOrderTotal ?? 0,
+      deliveryRadiusM: body.deliveryRadiusM ?? 3000,
+      latitude: body.latitude ?? 0,
+      longitude: body.longitude ?? 0,
+      isSupermarket: !!body.isSupermarket,
+      platformFeePercent: body.platformFeePercent != null ? Number(body.platformFeePercent) : 10,
+      workingHours: body.workingHours?.trim() || null,
+      admins: { connect: { id: adminId } },
+    };
+    let restaurant: any;
+    try {
+      restaurant = await this.prisma.restaurant.create({ data: createData });
+    } catch (e) {
+      if (!isMissingCarouselRowColumnError(e)) throw e;
+      delete createData.workingHours;
+      restaurant = await this.prisma.restaurant.create({ data: createData });
+      restaurant = { ...restaurant, workingHours: null };
+    }
     this.invalidateCatalogCache();
     this.invalidateAdminStatsCache();
     return restaurant;
@@ -793,32 +829,46 @@ export class AdminController {
       carouselFastFood?: boolean;
       carouselFastFoodSort?: number;
       platformFeePercent?: number;
+      workingHours?: string | null;
     },
     @Req() req: RequestWithUser,
   ) {
     if (req.user?.role !== 'PLATFORM_ADMIN') {
       throw new ForbiddenException('Only platform admin allowed');
     }
-    const restaurant = await this.prisma.restaurant.update({
-      where: { id },
-      data: {
-        ...(body.name !== undefined && { name: body.name.trim() }),
-        ...(body.description !== undefined && { description: body.description?.trim() ?? null }),
-        ...(body.address !== undefined && { address: body.address?.trim() ?? '' }),
-        ...(body.logoUrl !== undefined && { logoUrl: body.logoUrl?.trim() ?? null }),
-        ...(body.coverUrl !== undefined && { coverUrl: body.coverUrl?.trim() ?? null }),
-        ...(body.deliveryFee !== undefined && { deliveryFee: body.deliveryFee }),
-        ...(body.minOrderTotal !== undefined && { minOrderTotal: body.minOrderTotal }),
-        ...(body.deliveryRadiusM !== undefined && { deliveryRadiusM: body.deliveryRadiusM }),
-        ...(body.isFeatured !== undefined && { isFeatured: body.isFeatured }),
-        ...(body.featuredSortOrder !== undefined && { featuredSortOrder: body.featuredSortOrder }),
-        ...(body.carouselNational !== undefined && { carouselNational: body.carouselNational }),
-        ...(body.carouselNationalSort !== undefined && { carouselNationalSort: body.carouselNationalSort }),
-        ...(body.carouselFastFood !== undefined && { carouselFastFood: body.carouselFastFood }),
-        ...(body.carouselFastFoodSort !== undefined && { carouselFastFoodSort: body.carouselFastFoodSort }),
-        ...(body.platformFeePercent !== undefined && { platformFeePercent: Number(body.platformFeePercent) }),
-      },
-    });
+    const updateData: any = {
+      ...(body.name !== undefined && { name: body.name.trim() }),
+      ...(body.description !== undefined && { description: body.description?.trim() ?? null }),
+      ...(body.address !== undefined && { address: body.address?.trim() ?? '' }),
+      ...(body.logoUrl !== undefined && { logoUrl: body.logoUrl?.trim() ?? null }),
+      ...(body.coverUrl !== undefined && { coverUrl: body.coverUrl?.trim() ?? null }),
+      ...(body.deliveryFee !== undefined && { deliveryFee: body.deliveryFee }),
+      ...(body.minOrderTotal !== undefined && { minOrderTotal: body.minOrderTotal }),
+      ...(body.deliveryRadiusM !== undefined && { deliveryRadiusM: body.deliveryRadiusM }),
+      ...(body.isFeatured !== undefined && { isFeatured: body.isFeatured }),
+      ...(body.featuredSortOrder !== undefined && { featuredSortOrder: body.featuredSortOrder }),
+      ...(body.carouselNational !== undefined && { carouselNational: body.carouselNational }),
+      ...(body.carouselNationalSort !== undefined && { carouselNationalSort: body.carouselNationalSort }),
+      ...(body.carouselFastFood !== undefined && { carouselFastFood: body.carouselFastFood }),
+      ...(body.carouselFastFoodSort !== undefined && { carouselFastFoodSort: body.carouselFastFoodSort }),
+      ...(body.platformFeePercent !== undefined && { platformFeePercent: Number(body.platformFeePercent) }),
+      ...(body.workingHours !== undefined && { workingHours: body.workingHours?.trim() || null }),
+    };
+    let restaurant: any;
+    try {
+      restaurant = await this.prisma.restaurant.update({
+        where: { id },
+        data: updateData,
+      });
+    } catch (e) {
+      if (!isMissingCarouselRowColumnError(e)) throw e;
+      delete updateData.workingHours;
+      restaurant = await this.prisma.restaurant.update({
+        where: { id },
+        data: updateData,
+      });
+      restaurant = { ...restaurant, workingHours: null };
+    }
     this.invalidateCatalogCache();
     this.invalidateAdminStatsCache();
     return restaurant;
@@ -859,47 +909,95 @@ export class AdminController {
     if (req.user?.role !== 'PLATFORM_ADMIN') {
       throw new ForbiddenException('Only platform admin allowed');
     }
-    const restaurant = await this.prisma.restaurant.findUnique({
-      where: { id },
-      select: {
-        id: true,
-        name: true,
-        address: true,
-        description: true,
-        logoUrl: true,
-        coverUrl: true,
-        categories: {
-          orderBy: { sortOrder: 'asc' },
-          select: {
-            id: true,
-            name: true,
-            sortOrder: true,
-            dishes: {
-              select: {
-                id: true,
-                name: true,
-                description: true,
-                price: true,
-                imageUrl: true,
-                categoryId: true,
-                isAvailable: true,
+    let restaurant: any;
+    try {
+      restaurant = await this.prisma.restaurant.findUnique({
+        where: { id },
+        select: {
+          id: true,
+          name: true,
+          address: true,
+          description: true,
+          logoUrl: true,
+          coverUrl: true,
+          workingHours: true,
+          categories: {
+            orderBy: { sortOrder: 'asc' },
+            select: {
+              id: true,
+              name: true,
+              sortOrder: true,
+              dishes: {
+                select: {
+                  id: true,
+                  name: true,
+                  description: true,
+                  price: true,
+                  imageUrl: true,
+                  categoryId: true,
+                  isAvailable: true,
+                },
               },
             },
           },
-        },
-        dishes: {
-          select: {
-            id: true,
-            name: true,
-            description: true,
-            price: true,
-            imageUrl: true,
-            categoryId: true,
-            isAvailable: true,
+          dishes: {
+            select: {
+              id: true,
+              name: true,
+              description: true,
+              price: true,
+              imageUrl: true,
+              categoryId: true,
+              isAvailable: true,
+            },
           },
         },
-      },
-    });
+      });
+    } catch (e) {
+      if (!isMissingCarouselRowColumnError(e)) throw e;
+      restaurant = await this.prisma.restaurant.findUnique({
+        where: { id },
+        select: {
+          id: true,
+          name: true,
+          address: true,
+          description: true,
+          logoUrl: true,
+          coverUrl: true,
+          categories: {
+            orderBy: { sortOrder: 'asc' },
+            select: {
+              id: true,
+              name: true,
+              sortOrder: true,
+              dishes: {
+                select: {
+                  id: true,
+                  name: true,
+                  description: true,
+                  price: true,
+                  imageUrl: true,
+                  categoryId: true,
+                  isAvailable: true,
+                },
+              },
+            },
+          },
+          dishes: {
+            select: {
+              id: true,
+              name: true,
+              description: true,
+              price: true,
+              imageUrl: true,
+              categoryId: true,
+              isAvailable: true,
+            },
+          },
+        },
+      });
+      if (restaurant) restaurant = { ...restaurant, workingHours: null };
+    }
     if (!restaurant) throw new BadRequestException('Restaurant not found');
     return restaurant;
   }
