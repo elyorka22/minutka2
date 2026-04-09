@@ -1410,7 +1410,7 @@ export class OrdersService {
         CANCELLED: 'Bekor qilindi',
       };
       const code = this.formatOrderCode(row.shortCode);
-      const customerTotal = Math.round((Number(row.subtotal ?? 0) + Number(row.deliveryFee ?? 0)) * 100) / 100;
+      const foodTotal = Math.round(Number(row.subtotal ?? 0) * 100) / 100;
 
       const base = notifyUrl.replace(/\/$/, '');
       await Promise.all(
@@ -1426,7 +1426,7 @@ export class OrdersService {
                   id: orderId,
                   shortCode: code,
                   restaurantName: row.restaurant?.name ?? '—',
-                  total: customerTotal,
+                  total: foodTotal,
                   status: statusUz[status] ?? status,
                 },
               }),

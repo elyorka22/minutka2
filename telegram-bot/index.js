@@ -290,7 +290,7 @@ async function sendStatusSyncPreview(chatId, preview) {
     `Buyurtma #${String(shortCode || "----")}\n` +
     `${String(restaurantName || "—")}\n` +
     `Holat: ${String(status || "—")}\n` +
-    `Jami: ${formatMoney(total)} so'm`;
+    `Taomlar jami: ${formatMoney(total)} so'm`;
   await fetch(`${API}/sendMessage`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
