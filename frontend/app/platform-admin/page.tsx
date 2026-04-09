@@ -358,7 +358,6 @@ export default function PlatformAdminPage() {
         stats,
         restaurants,
         users,
-        recentOrders,
         productCategories,
         homeExploreCategoriesList,
         bannersList,
@@ -366,7 +365,6 @@ export default function PlatformAdminPage() {
         adminApi.getOverviewStats(),
         adminApi.getOverviewRestaurants({ limit: 20, offset: 0 }),
         adminApi.getOverviewUsers({ limit: 20, offset: 0 }),
-        adminApi.getOverviewRecentOrders({ limit: 20, offset: 0 }),
         adminApi.getProductCategories(),
         adminApi.getHomeExploreCategories(),
         adminApi.getBanners(),
@@ -375,7 +373,6 @@ export default function PlatformAdminPage() {
         stats,
         restaurants,
         users,
-        recentOrders,
         productCategories,
         homeExploreCategories: homeExploreCategoriesList,
         banners: bannersList,
@@ -395,24 +392,16 @@ export default function PlatformAdminPage() {
   }
 
   function getStats() {
-    if (data?.stats) return data.stats;
-    const restaurants = data?.restaurants ?? [];
-    const users = data?.users ?? [];
-    const orders = data?.recentOrders ?? [];
-    const totalOrders = orders.length;
-    const delivered = orders.filter((o: any) => o.status === "DONE").length;
-    const cancelled = orders.filter((o: any) => o.status === "CANCELLED").length;
-    const admins = users.filter(
-      (u: any) =>
-        u.role === "PLATFORM_ADMIN" || u.role === "RESTAURANT_ADMIN" || u.role === "COURIER",
-    ).length;
+    const s = data?.stats;
+    if (s) return s;
     return {
-      restaurants: restaurants.length,
-      users: users.length,
-      totalOrders,
-      delivered,
-      cancelled,
-      admins,
+      restaurants: 0,
+      users: 0,
+      totalOrders: 0,
+      delivered: 0,
+      cancelled: 0,
+      admins: 0,
+      pwaInstalls: 0,
     };
   }
 
@@ -954,32 +943,20 @@ export default function PlatformAdminPage() {
                         <div className="fd-admin-kpi-sub">Adminlar: {s.admins}</div>
                       </div>
                       <div className="fd-admin-kpi">
-                        <div className="fd-admin-kpi-label">Buyurtmalar (oxirgilar)</div>
+                        <div className="fd-admin-kpi-label">Buyurtmalar</div>
                         <div className="fd-admin-kpi-value">{s.totalOrders}</div>
                         <div className="fd-admin-kpi-sub">
                           Yetkazilgan: {s.delivered} · Bekor: {s.cancelled}
                         </div>
                       </div>
+                      <div className="fd-admin-kpi">
+                        <div className="fd-admin-kpi-label">PWA o‘rnatishlar</div>
+                        <div className="fd-admin-kpi-value">{s.pwaInstalls ?? 0}</div>
+                        <div className="fd-admin-kpi-sub">Bir qurilma/profil uchun bir marta</div>
+                      </div>
                     </>
                   );
                 })()}
-              </section>
-
-              <section style={{ marginTop: 24 }}>
-                <h2>So‘nggi buyurtmalar</h2>
-                {data.recentOrders?.map((o: any) => (
-                  <div key={o.id} className="fd-checkout-item">
-                    <div>
-                      <div>#{o?.shortCode != null ? String(o.shortCode).padStart(6, "0") : String(o.id).slice(0, 6)}</div>
-                      <div className="fd-checkout-meta">
-                        {o.restaurant?.name} · {o.customer?.email} · {o.status}
-                      </div>
-                    </div>
-                  </div>
-                ))}
-                {(!data.recentOrders || data.recentOrders.length === 0) && (
-                  <p className="fd-empty">Buyurtmalar yo‘q.</p>
-                )}
               </section>
             </div>
             )}

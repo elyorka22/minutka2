@@ -77,6 +77,7 @@ export const adminApi = {
       delivered: number;
       cancelled: number;
       admins: number;
+      pwaInstalls: number;
     }>("/admin/overview/stats"),
   getOverviewRestaurants: (opts?: { limit?: number; offset?: number }) => {
     const qs = new URLSearchParams();
@@ -91,13 +92,6 @@ export const adminApi = {
     if (typeof opts?.offset === "number") qs.set("offset", String(opts.offset));
     const query = qs.toString();
     return adminRequest<any[]>(`/admin/overview/users${query ? `?${query}` : ""}`);
-  },
-  getOverviewRecentOrders: (opts?: { limit?: number; offset?: number }) => {
-    const qs = new URLSearchParams();
-    if (typeof opts?.limit === "number") qs.set("limit", String(opts.limit));
-    if (typeof opts?.offset === "number") qs.set("offset", String(opts.offset));
-    const query = qs.toString();
-    return adminRequest<any[]>(`/admin/overview/recent-orders${query ? `?${query}` : ""}`);
   },
   getRestaurants: () => request<any>("/restaurants"),
   getMyOrders: () => requestWithAuth<any[]>("/orders"),

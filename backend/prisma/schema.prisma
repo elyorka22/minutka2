@@ -431,6 +431,14 @@ model Visit {
   @@index([createdAt(sort: Desc)])
 }
 
+/** Brauzer `appinstalled` yoki birinchi marta standalone (asosiy ekran) rejimida ochilganda yoziladi. */
+model PwaInstall {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+
+  @@index([createdAt(sort: Desc)])
+}
+
 /** Single row: id = "default". Telegram chat IDs for platform-wide new-order alerts (comma-separated). */
 model PlatformSettings {
   id                  String  @id

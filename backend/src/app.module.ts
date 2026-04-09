@@ -16,6 +16,7 @@ import { RestaurantsModule } from './restaurants/restaurants.module';
 import { MenuModule } from './menu/menu.module';
 import { OrdersModule } from './orders/orders.module';
 import { VisitsModule } from './visits.module';
+import { PwaInstallModule } from './pwa-install.module';
 import { CacheModule } from './cache.module';
 import { HomepageModule } from './homepage/homepage.module';
 import { HealthController } from './health/health.controller';
@@ -46,6 +47,7 @@ import { PartnershipController } from './partnership.controller';
     MenuModule,
     OrdersModule,
     VisitsModule,
+    PwaInstallModule,
   ],
   controllers: [
     AppController,

@@ -231,6 +231,53 @@ function VisitRecorder() {
   return null;
 }
 
+const PWA_INSTALL_COUNTED_KEY = "minutka_pwa_install_counted";
+
+/** Serverga bir marta: `appinstalled` (Chrome/Edge) yoki birinchi standalone ochilish (iOS «Asosiy ekran»). */
+function PwaInstallReporter() {
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+
+    function alreadyCounted(): boolean {
+      try {
+        return localStorage.getItem(PWA_INSTALL_COUNTED_KEY) === "1";
+      } catch {
+        return true;
+      }
+    }
+
+    function markCounted(): void {
+      try {
+        localStorage.setItem(PWA_INSTALL_COUNTED_KEY, "1");
+      } catch {
+        // ignore
+      }
+    }
+
+    async function reportOnce(): Promise<void> {
+      if (alreadyCounted()) return;
+      await api.recordPwaInstall();
+      markCounted();
+    }
+
+    const nav = window.navigator as Navigator & { standalone?: boolean };
+    const standalone =
+      window.matchMedia("(display-mode: standalone)").matches || nav.standalone === true;
+
+    if (standalone) {
+      void reportOnce();
+    }
+
+    const onAppInstalled = () => {
+      void reportOnce();
+    };
+    window.addEventListener("appinstalled", onAppInstalled);
+    return () => window.removeEventListener("appinstalled", onAppInstalled);
+  }, []);
+
+  return null;
+}
+
 function PWAInstallGate() {
   const { shouldShowModal, handleInstall, handleLater } = usePWAInstall();
   return (
@@ -357,6 +404,7 @@ export default function ClientRootLayout({ children }: { children: ReactNode }) 
       <DeferredMaterialIcons />
       <CartProvider>
         <VisitRecorder />
+        <PwaInstallReporter />
         <Header />
         {updateReady && (
           <div className="fd-update-banner" role="status" aria-live="polite">

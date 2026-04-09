@@ -135,6 +135,10 @@ export class PrismaService implements OnModuleInit, OnModuleDestroy {
     return (this.client as any).visit;
   }
 
+  get pwaInstall() {
+    return (this.client as any).pwaInstall;
+  }
+
   get pushSubscription() {
     return (this.client as any).pushSubscription;
   }

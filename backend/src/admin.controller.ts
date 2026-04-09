@@ -298,11 +298,10 @@ export class AdminController {
     this.assertPlatformAdmin(req);
 
     try {
-      const [stats, restaurants, users, recentOrders, banners, productCategories] = await Promise.all([
+      const [stats, restaurants, users, banners, productCategories] = await Promise.all([
         this.getOverviewStats(req),
         this.getOverviewRestaurants(req, '20', '0'),
         this.getOverviewUsers(req, '20', '0'),
-        this.getOverviewRecentOrders(req, '20', '0'),
         this.prisma.banner.findMany({
           orderBy: [{ sortOrder: 'asc' }, { createdAt: 'desc' }],
           select: {
@@ -326,7 +325,6 @@ export class AdminController {
         stats,
         restaurants,
         users,
-        recentOrders,
         banners,
         productCategories,
       };
@@ -344,7 +342,7 @@ export class AdminController {
   @Get('overview/stats')
   async getOverviewStats(@Req() req: RequestWithUser) {
     this.assertPlatformAdmin(req);
-    const [restaurants, users, totalOrders, delivered, cancelled, admins] = await Promise.all([
+    const [restaurants, users, totalOrders, delivered, cancelled, admins, pwaInstalls] = await Promise.all([
       this.prisma.restaurant.count({ where: { isActive: true } }),
       this.prisma.user.count(),
       this.prisma.order.count(),
@@ -353,8 +351,9 @@ export class AdminController {
       this.prisma.user.count({
         where: { role: { in: [UserRole.PLATFORM_ADMIN, UserRole.RESTAURANT_ADMIN, UserRole.COURIER] } },
       }),
+      this.prisma.pwaInstall.count(),
     ]);
-    return { restaurants, users, totalOrders, delivered, cancelled, admins };
+    return { restaurants, users, totalOrders, delivered, cancelled, admins, pwaInstalls };
   }
 
   @Get('overview/restaurants')

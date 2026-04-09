@@ -83,6 +83,16 @@ export const api = {
     }
   },
 
+  /** Bir profil uchun bir marta: `appinstalled` yoki birinchi standalone ochilish. */
+  async recordPwaInstall(): Promise<void> {
+    const base = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:4000";
+    try {
+      await fetch(`${base}/pwa-install`, { method: "POST", cache: "no-store" });
+    } catch {
+      // ignore
+    }
+  },
+
   async createOrder(body: {
     restaurantId: string;
     address: { street: string; city: string; label?: string; details?: string; latitude: number; longitude: number };
