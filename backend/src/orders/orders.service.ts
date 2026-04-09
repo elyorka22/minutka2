@@ -148,7 +148,8 @@ export class OrdersService {
   private isRestaurantOpenNow(workingHours?: string | null): boolean {
     const raw = String(workingHours ?? '').trim();
     if (!raw) return true;
-    const m = /^(\d{2}):(\d{2})\s*-\s*(\d{2}):(\d{2})$/.exec(raw);
+    const normalized = raw.replace(/[—–]/g, '-').replace(/\./g, ':');
+    const m = /^(\d{1,2}):(\d{2})\s*-\s*(\d{1,2}):(\d{2})$/.exec(normalized);
     if (!m) return true;
     const sh = Number(m[1]);
     const sm = Number(m[2]);
