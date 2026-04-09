@@ -1035,7 +1035,11 @@ export class AdminController {
     }
     await this.prisma.restaurant.update({
       where: { id },
-      data: { platformFeeClearedAt: new Date() },
+      data: {
+        // "Obnulit" tugmasi platforma foizini ham 0 ga tushirishi kerak.
+        platformFeePercent: 0,
+        platformFeeClearedAt: new Date(),
+      },
     });
     this.invalidateAdminStatsCache();
     return { ok: true };

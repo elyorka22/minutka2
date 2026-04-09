@@ -1820,7 +1820,7 @@ export default function PlatformAdminPage() {
                                 } catch (_) {}
                               }}
                             >
-                              Obnulit
+                              Obnulit foiz
                             </button>
                           </li>
                         ))}
