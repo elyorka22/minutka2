@@ -1288,9 +1288,16 @@ export class AdminController {
   @Get('home-explore-categories')
   async getHomeExploreCategories(@Req() req: RequestWithUser) {
     this.assertPlatformAdmin(req);
-    return this.prisma.homeExploreCategory.findMany({
-      orderBy: [{ sortOrder: 'asc' }, { createdAt: 'desc' }],
-    });
+    try {
+      return await this.prisma.homeExploreCategory.findMany({
+        orderBy: [{ sortOrder: 'asc' }, { createdAt: 'desc' }],
+      });
+    } catch (e) {
+      if (isMissingCarouselRowColumnError(e)) {
+        return [];
+      }
+      throw e;
+    }
   }
 
   @Post('home-explore-categories')

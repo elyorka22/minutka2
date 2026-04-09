@@ -8,6 +8,7 @@ import {
   heroLinesForPublicApi,
 } from '../hero-taglines.util';
 import { buildNationalAndFastCarousels, cardSelect } from './homepage-carousel.util';
+import { isMissingCarouselRowColumnError } from '../home-explore-carousel-row.util';
 
 @Injectable()
 export class HomepageService {
@@ -15,6 +16,28 @@ export class HomepageService {
     private readonly prisma: PrismaService,
     private readonly cache: CacheService,
   ) {}
+
+  private async getHomeExploreCategoriesSafe() {
+    try {
+      return await this.prisma.homeExploreCategory.findMany({
+        where: { isActive: true },
+        orderBy: [{ sortOrder: 'asc' }, { createdAt: 'asc' }],
+        take: 40,
+        select: {
+          id: true,
+          name: true,
+          imageUrl: true,
+          sortOrder: true,
+          searchQuery: true,
+        },
+      });
+    } catch (e) {
+      if (isMissingCarouselRowColumnError(e)) {
+        return [];
+      }
+      throw e;
+    }
+  }
 
   getHomepage() {
     return this.cache.getOrSet('homepage:aggregate', 30_000, async () => {
@@ -48,18 +71,7 @@ export class HomepageService {
             sortOrder: true,
           },
         }),
-        this.prisma.homeExploreCategory.findMany({
-          where: { isActive: true },
-          orderBy: [{ sortOrder: 'asc' }, { createdAt: 'asc' }],
-          take: 40,
-          select: {
-            id: true,
-            name: true,
-            imageUrl: true,
-            sortOrder: true,
-            searchQuery: true,
-          },
-        }),
+        this.getHomeExploreCategoriesSafe(),
         this.prisma.platformSettings.findUnique({
           where: { id: 'default' },
           select: {
