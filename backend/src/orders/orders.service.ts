@@ -2114,7 +2114,7 @@ export class OrdersService {
     const [restaurant, doneAgg, activeCount] = await Promise.all([
       this.prisma.restaurant.findUnique({
         where: { id: restaurantId },
-        select: { platformFeePercent: true },
+        select: { platformFeePercent: true, platformFeeClearedAt: true },
       }),
       this.prisma.order.aggregate({
         where: { restaurantId, status: 'DONE' },
@@ -2128,9 +2128,19 @@ export class OrdersService {
         },
       }),
     ]);
+    const clearedAt = restaurant?.platformFeeClearedAt ?? null;
+    const debtAgg = await this.prisma.order.aggregate({
+      where: {
+        restaurantId,
+        status: 'DONE',
+        ...(clearedAt ? { createdAt: { gt: clearedAt } } : {}),
+      },
+      _sum: { total: true },
+    });
     const percent = restaurant?.platformFeePercent != null ? Number(restaurant.platformFeePercent) : 10;
     const totalRevenue = Number(doneAgg._sum.total ?? 0);
-    const totalPlatformFee = (totalRevenue * percent) / 100;
+    const debtRevenue = Number(debtAgg._sum.total ?? 0);
+    const totalPlatformFee = (debtRevenue * percent) / 100;
     return {
       activeOrdersCount: activeCount,
       deliveredOrdersCount: doneAgg._count.id ?? 0,
