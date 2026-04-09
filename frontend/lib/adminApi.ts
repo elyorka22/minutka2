@@ -1,15 +1,26 @@
 import { clearAuthTokens, getAccessToken, refreshAccessToken } from "./auth-tokens";
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:4000";
 
+function headersForFetch(init: RequestInit | undefined, tokenOverride: string | null | undefined): HeadersInit {
+  const method = String(init?.method ?? "GET").toUpperCase();
+  /** DELETE/GET/HEAD + bo‘sh body: `Content-Type: application/json` Express body-parser xatosi (500) beradi */
+  const omitJsonContentType = method === "GET" || method === "HEAD" || method === "DELETE";
+  const fromInit =
+    init?.headers && typeof init.headers === "object" && !Array.isArray(init.headers)
+      ? (init.headers as Record<string, string>)
+      : {};
+  return {
+    ...(omitJsonContentType ? {} : { "Content-Type": "application/json" }),
+    ...fromInit,
+    ...(tokenOverride ? { Authorization: `Bearer ${tokenOverride}` } : {}),
+  };
+}
+
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
   const makeRequest = async (tokenOverride?: string | null) =>
     fetch(`${API_BASE}${path}`, {
       ...init,
-      headers: {
-        "Content-Type": "application/json",
-        ...(init?.headers || {}),
-        ...(tokenOverride ? { Authorization: `Bearer ${tokenOverride}` } : {}),
-      },
+      headers: headersForFetch(init, tokenOverride ?? undefined),
       cache: "no-store",
     });
 
@@ -44,9 +55,10 @@ async function requestWithAuth<T>(path: string, init?: RequestInit): Promise<T> 
   const withAuth: RequestInit = {
     ...init,
     headers: {
-      "Content-Type": "application/json",
-      ...(init?.headers || {}),
       ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      ...(init?.headers && typeof init.headers === "object" && !Array.isArray(init.headers)
+        ? (init.headers as Record<string, string>)
+        : {}),
     },
   };
   return request<T>(path, withAuth);

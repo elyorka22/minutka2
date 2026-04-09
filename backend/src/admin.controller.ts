@@ -13,6 +13,7 @@ import {
   UploadedFile,
   ForbiddenException,
   BadRequestException,
+  NotFoundException,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { JwtAuthGuard } from './auth/jwt-auth.guard';
@@ -1408,7 +1409,15 @@ export class AdminController {
   @Delete('home-explore-categories/:id')
   async deleteHomeExploreCategory(@Param('id') id: string, @Req() req: RequestWithUser) {
     this.assertPlatformAdmin(req);
-    await this.prisma.homeExploreCategory.delete({ where: { id } });
+    try {
+      await this.prisma.homeExploreCategory.delete({ where: { id } });
+    } catch (e: unknown) {
+      const code = (e as { code?: string })?.code;
+      if (code === 'P2025') {
+        throw new NotFoundException('Kategoriya topilmadi');
+      }
+      throw e;
+    }
     this.invalidateHomeCache();
     return { ok: true };
   }
