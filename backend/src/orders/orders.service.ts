@@ -283,6 +283,8 @@ export class OrdersService {
 
     const serviceFee = Math.round(subtotal * serviceFeeRate * 100) / 100;
     const total = Math.round((subtotal + deliveryFee + serviceFee) * 100) / 100;
+    // Mijoz uchun umumiy summa: taomlar + yetkazib berish (platforma ulushisiz).
+    const customerPayableTotal = Math.round((subtotal + deliveryFee) * 100) / 100;
 
     const createdOrder = await this.prisma.transaction(async (tx) => {
       let createdOrder: {
@@ -452,7 +454,7 @@ export class OrdersService {
                   orderId: createdOrder.id,
                   shortCode: this.formatOrderCode(createdOrder.shortCode),
                   restaurantName: restaurant.name,
-                  total: Number(createdOrder.total),
+                  total: customerPayableTotal,
                 },
               };
               try {

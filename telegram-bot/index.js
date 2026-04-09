@@ -447,14 +447,15 @@ async function handleCourierOrderCallback(q) {
   if (!msg || !msg.chat) return;
   const chatId = msg.chat.id;
   const messageId = msg.message_id;
-  const mapMarkup =
-    order.lat != null && order.lng != null
-      ? {
-          inline_keyboard: [
-            [{ text: "Xaritada ochish", url: `https://maps.google.com/?q=${order.lat},${order.lng}` }],
-          ],
-        }
-      : undefined;
+  const deliveredCb = `c|${orderId}|${sig}|d`;
+  const rows = [];
+  if (order.lat != null && order.lng != null) {
+    rows.push([{ text: "Xaritada ochish", url: `https://maps.google.com/?q=${order.lat},${order.lng}` }]);
+  }
+  if (Buffer.byteLength(deliveredCb, "utf8") <= 64) {
+    rows.push([{ text: "Yetkazildi", callback_data: deliveredCb }]);
+  }
+  const mapMarkup = rows.length > 0 ? { inline_keyboard: rows } : undefined;
 
   const editRes = await fetch(`${API}/editMessageText`, {
     method: "POST",
