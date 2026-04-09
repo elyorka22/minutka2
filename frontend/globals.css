@@ -1380,6 +1380,10 @@ body {
   z-index: 1 !important;
 }
 
+.fd-checkout .leaflet-control-attribution {
+  display: none !important;
+}
+
 .fd-bottom-item {
   flex: 1;
   display: flex;

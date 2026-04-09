@@ -72,6 +72,7 @@ export function CheckoutMapPicker({
     <MapContainer
       center={[centerLat, centerLng]}
       zoom={16}
+      attributionControl={false}
       style={{
         height,
         width: "100%",
@@ -81,7 +82,7 @@ export function CheckoutMapPicker({
       scrollWheelZoom
     >
       <TileLayer
-        attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+        attribution=""
         url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
       />
       <FlyToPosition lat={lat} lng={lng} flyTrigger={flyTrigger} />
