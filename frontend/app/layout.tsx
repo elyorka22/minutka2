@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { Plus_Jakarta_Sans } from "next/font/google";
+import Script from "next/script";
 import { Analytics } from "@vercel/analytics/react";
 import { SpeedInsights } from "@vercel/speed-insights/next";
 import ClientRootLayout from "../components/ClientRootLayout";
@@ -44,6 +45,7 @@ export const metadata: Metadata = {
   },
   appleWebApp: {
     capable: true,
+    statusBarStyle: "black-translucent",
   },
   manifest: "/manifest.json",
   icons: {
@@ -55,12 +57,16 @@ export const viewport: Viewport = {
   themeColor: "#ff6b00",
   width: "device-width",
   initialScale: 1,
+  viewportFit: "cover",
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="uz" className={plusJakarta.variable}>
       <body className={`fd-body ${plusJakarta.className}`}>
+        <Script id="fd-root-home-init" strategy="beforeInteractive">
+          {`try{var p=(typeof location!=="undefined"&&location.pathname)||"";if(p==="/"||p==="")document.documentElement.classList.add("fd-root--home");}catch(e){}`}
+        </Script>
         <CriticalCss />
         <ResourceHints />
         <ClientRootLayout>{children}</ClientRootLayout>

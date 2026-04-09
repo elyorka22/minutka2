@@ -102,6 +102,15 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
+/* Bosh sahifa: holat paneli / safe-area ostida ham #ff6b00 (oq chiziq yo‘q) */
+html.fd-root--home {
+  background-color: #ff6b00;
+}
+
+html.fd-root--home body.fd-body {
+  background-color: #ff6b00;
+}
+
 /* Header */
 .fd-header {
   position: sticky;
@@ -156,11 +165,13 @@ body {
   gap: 32px;
 }
 
-/* Bosh sahifa: yuqori qator butunlay #ff6b00 bilan bir xil */
+/* Bosh sahifa: yuqori qator butunlay #ff6b00; kontent safe-area ostida qolmasin */
 .fd-header--home {
   background: #ff6b00;
   border-bottom: none;
   box-shadow: none;
+  padding: calc(14px + env(safe-area-inset-top, 0px)) max(24px, env(safe-area-inset-right, 0px)) 14px
+    max(24px, env(safe-area-inset-left, 0px));
 }
 
 .fd-header--home .fd-logo {
@@ -2138,6 +2149,11 @@ body {
 
   .fd-header {
     padding: 12px 16px;
+  }
+
+  .fd-header--home {
+    padding: calc(12px + env(safe-area-inset-top, 0px)) max(16px, env(safe-area-inset-right, 0px)) 12px
+      max(16px, env(safe-area-inset-left, 0px));
   }
 
   .fd-header-left {

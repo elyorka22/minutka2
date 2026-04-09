@@ -7,9 +7,11 @@ export function CriticalCss() {
 :root{--color-bg:#fafafa;--color-surface:#ffffff;--color-border:#e5e7eb;--color-text:#111827}
 html,body{margin:0;padding:0;width:100%;max-width:100%;overflow-x:hidden}
 body.fd-body{min-height:100vh;background:var(--color-bg);color:var(--color-text);font-size:16px;line-height:1.5;-webkit-font-smoothing:antialiased}
+html.fd-root--home,html.fd-root--home body.fd-body{background:#ff6b00}
 .fd-shell{max-width:1100px;width:100%;margin:0 auto}
 .fd-main{padding:24px 20px 100px;box-sizing:border-box}
 .fd-header{position:sticky;top:0;z-index:50;display:flex;align-items:center;justify-content:space-between;padding:14px 24px;min-height:52px;box-sizing:border-box;background:var(--color-surface);border-bottom:1px solid var(--color-border)}
+.fd-header.fd-header--home{background:#ff6b00;border-bottom:none;box-shadow:none;padding:calc(14px + env(safe-area-inset-top,0px)) max(24px,env(safe-area-inset-right,0px)) 14px max(24px,env(safe-area-inset-left,0px))}
 .fd-home-top{padding-top:8px;display:flex;flex-direction:column;gap:16px}
 .fd-home-search-input{width:100%;min-height:44px;box-sizing:border-box;border-radius:12px;border:1px solid var(--color-border);background:var(--color-surface);padding:10px 12px;font-size:0.9rem}
 .fd-home-banners{margin-top:24px;min-height:min(52vw,280px)}

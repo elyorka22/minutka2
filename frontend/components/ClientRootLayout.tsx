@@ -2,7 +2,7 @@
 
 import type { ReactNode } from "react";
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useLayoutEffect, useMemo, useState } from "react";
 import { usePathname } from "next/navigation";
 import { CartProvider, useCart } from "./CartContext";
 import { usePWAInstall } from "../hooks/usePWAInstall";
@@ -215,6 +215,16 @@ function useShowBottomBar() {
   return true;
 }
 
+/** Bosh sahifada html fonini #ff6b00 qilish (holat paneli ostidagi oq chiziq) — SPA navigatsiya bilan sinxron. */
+function HomeRootChrome() {
+  const pathname = usePathname() || "";
+  useLayoutEffect(() => {
+    const onHome = pathname === "/" || pathname === "";
+    document.documentElement.classList.toggle("fd-root--home", onHome);
+  }, [pathname]);
+  return null;
+}
+
 function VisitRecorder() {
   const pathname = usePathname() || "";
   useEffect(() => {
@@ -358,6 +368,7 @@ export default function ClientRootLayout({ children }: { children: ReactNode }) 
     <>
       <DeferredMaterialIcons />
       <CartProvider>
+        <HomeRootChrome />
         <VisitRecorder />
         <Header />
         {updateReady && (
