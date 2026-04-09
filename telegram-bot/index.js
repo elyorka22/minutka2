@@ -116,10 +116,14 @@ function buildCourierOrderDetailText(order) {
     order.shortCode != null && String(order.shortCode).length > 0
       ? String(order.shortCode)
       : String(order.id).slice(0, 8);
+  const foodTotal =
+    order.subtotal != null && Number.isFinite(Number(order.subtotal))
+      ? Number(order.subtotal)
+      : Number(order.total);
   let text =
     `Yetkazib berishga tayyor buyurtma #${code}\n` +
     `Restoran: ${order.restaurantName}\n` +
-    `Taomlar jami: ${formatMoney(order.total)} so'm\n` +
+    `Taomlar jami: ${formatMoney(foodTotal)} so'm\n` +
     `Mijoz: ${order.customerName || "-"}\n` +
     `Telefon: ${order.phone || "-"}`;
   if (order.addressLine) {
@@ -202,10 +206,18 @@ function buildRestaurantOrderFullText(order) {
     order.shortCode != null && String(order.shortCode).length > 0
       ? String(order.shortCode)
       : String(order.id).slice(0, 8);
+  const subtotal =
+    order.subtotal != null && Number.isFinite(Number(order.subtotal))
+      ? Number(order.subtotal)
+      : Number(order.total);
+  const serviceFee =
+    order.serviceFee != null && Number.isFinite(Number(order.serviceFee))
+      ? Number(order.serviceFee)
+      : null;
   let text =
     `Qabul qilingan buyurtma #${code}\n` +
     `Restoran: ${order.restaurantName}\n` +
-    `Taomlar jami: ${formatMoney(order.total)} so'm\n` +
+    `Taomlar jami: ${formatMoney(subtotal)} so'm\n` +
     `Mijoz: ${order.customerName || "-"}\n` +
     `Telefon: ${order.phone || "-"}`;
   if (order.addressLine) {
@@ -214,7 +226,10 @@ function buildRestaurantOrderFullText(order) {
   if (order.comment) {
     text += `\nIzoh: ${order.comment}`;
   }
-  // Restoran: faqat umumiy «Jami» — pozitsiyalar bo‘yicha qo‘shimcha summalar ko‘rsatilmaydi.
+  if (serviceFee != null) {
+    text += `\nPlatforma ulushi: ${formatMoney(serviceFee)} so'm`;
+  }
+  text += formatOrderItemsBlock(order);
   if (text.length > 4000) {
     text = text.slice(0, 3997) + "...";
   }
