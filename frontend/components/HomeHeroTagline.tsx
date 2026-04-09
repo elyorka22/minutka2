@@ -133,6 +133,7 @@ export function HomeHeroTagline({ heroLine1Texts, heroLine2Texts, heroLine1Image
   }, [subText]);
 
   const slideAnimClass = exiting ? "fd-home-hero-promo-slide--out" : "fd-home-hero-promo-slide--in";
+  const subTypingInProgress = subText.length > 0 && typedSub.length < subText.length;
 
   return (
     <section className={`fd-home-hero-tagline-outer${className ? ` ${className}` : ""}`} aria-label="Bosh sahifa sarlavhasi">
@@ -149,7 +150,7 @@ export function HomeHeroTagline({ heroLine1Texts, heroLine2Texts, heroLine1Image
               {subText ? (
                 <span className="fd-home-hero-promo-sub-type" aria-hidden="true">
                   {typedSub}
-                  <span className="fd-home-hero-promo-type-cursor" />
+                  {subTypingInProgress ? <span className="fd-home-hero-promo-type-cursor" /> : null}
                 </span>
               ) : null}
             </div>
