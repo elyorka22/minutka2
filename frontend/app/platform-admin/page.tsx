@@ -925,10 +925,6 @@ export default function PlatformAdminPage() {
     setHeroSlides((prev) => prev.map((s) => (s.id === id ? { ...s, ...patch } : s)));
   }
 
-  function addHeroSlide() {
-    setHeroSlides((prev) => [...prev, { id: newHeroSlideId(), line1: "", line2: "", imageUrl: "" }]);
-  }
-
   function removeHeroSlide(id: string) {
     setHeroSlides((prev) => (prev.length <= 1 ? prev : prev.filter((s) => s.id !== id)));
   }
@@ -2066,9 +2062,9 @@ export default function PlatformAdminPage() {
                 <div className="fd-form-block" style={{ marginTop: 16 }}>
                   <h3>Bosh sahifa sarlavhasi (slydlar)</h3>
                   <p className="fd-checkout-meta">
-                    Har bir slyd — bosh sahifada almashadigan blok: 1 va 2-qator matn + bitta rasm. Telefondan
-                    rasm yuklash uchun <strong>Galereya</strong> yoki <strong>Kamera</strong> tugmasini bosing;
-                    yoki rasm URL ni yozing. Yangi variant uchun <strong>Slyd qo‘shish</strong>.
+                    Har bir slyd — platforma sozlamalaridagi matn va rasm (bosh sahifada almashuvchi blok uchun).
+                    Telefondan rasm yuklash uchun <strong>Galereya</strong> yoki <strong>Kamera</strong> tugmasini
+                    bosing; yoki rasm URL ni yozing.
                   </p>
                   <div className="fd-form" style={{ marginTop: 12 }}>
                     {heroSlides.map((slide, slideIndex) => {
@@ -2212,15 +2208,6 @@ export default function PlatformAdminPage() {
                         </div>
                       );
                     })}
-                    <button
-                      type="button"
-                      className="fd-btn"
-                      style={{ marginTop: 12 }}
-                      disabled={heroTaglineSaving}
-                      onClick={() => addHeroSlide()}
-                    >
-                      + Slyd qo‘shish
-                    </button>
                     {heroTaglineMessage && (
                       <p className="fd-checkout-meta" style={{ color: "var(--color-text-secondary)", marginTop: 12 }}>
                         {heroTaglineMessage}
