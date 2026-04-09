@@ -463,11 +463,11 @@ export default function RestaurantAdminPage({
     const interval = setInterval(() => {
       tick();
       safetyTick += 1;
-      if (safetyTick >= 4) {
+      if (safetyTick >= 12) {
         safetyTick = 0;
         loadOrders({ background: true });
       }
-    }, 8000);
+    }, 2500);
     const onVisible = () => {
       if (typeof document === "undefined" || document.hidden) return;
       if (resumeTimer) clearTimeout(resumeTimer);

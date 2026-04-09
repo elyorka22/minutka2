@@ -1363,6 +1363,76 @@ export class OrdersService {
     });
   }
 
+  /**
+   * Admin panel va bot holatlari bir xil ko'rinishi uchun:
+   * status o'zgarganda restoran Telegram chat(lar)iga qisqa sinxron xabar yuboramiz.
+   */
+  private notifyRestaurantTelegramStatusChanged(orderId: string, status: OrderStatus): void {
+    const disableTelegramEnv = process.env.DISABLE_TELEGRAM_NOTIFY === 'true';
+    if (disableTelegramEnv) return;
+    const notifyUrl = (process.env.TELEGRAM_BOT_NOTIFY_URL ?? '').trim();
+    if (!notifyUrl) return;
+
+    void (async () => {
+      const row = await this.prisma.order.findUnique({
+        where: { id: orderId },
+        select: {
+          shortCode: true,
+          status: true,
+          restaurant: { select: { name: true, telegramChatId: true } },
+          subtotal: true,
+          deliveryFee: true,
+        },
+      });
+      if (!row?.restaurant?.telegramChatId) return;
+      const chatIds = String(row.restaurant.telegramChatId)
+        .split(/[,;\n\r\s]+/g)
+        .map((s) => s.trim())
+        .filter(Boolean);
+      if (chatIds.length === 0) return;
+
+      const statusUz: Record<OrderStatus, string> = {
+        NEW: 'Yangi',
+        ACCEPTED: 'Qabul qilindi',
+        READY: 'Tayyor',
+        ON_THE_WAY: 'Yo‘lda',
+        DONE: 'Yetkazildi',
+        CANCELLED: 'Bekor qilindi',
+      };
+      const code = this.formatOrderCode(row.shortCode);
+      const customerTotal = Math.round((Number(row.subtotal ?? 0) + Number(row.deliveryFee ?? 0)) * 100) / 100;
+
+      const base = notifyUrl.replace(/\/$/, '');
+      await Promise.all(
+        chatIds.map(async (chatId) => {
+          try {
+            await fetchWithRetry(`${base}/notify`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                chatId,
+                kind: 'status_sync',
+                preview: {
+                  id: orderId,
+                  shortCode: code,
+                  restaurantName: row.restaurant?.name ?? '—',
+                  total: customerTotal,
+                  status: statusUz[status] ?? status,
+                },
+              }),
+            });
+          } catch (e: unknown) {
+            this.logger.warn(
+              `[telegram] status sync failed chatId=${String(chatId).slice(0, 30)} order=${orderId} err=${
+                e instanceof Error ? e.message : String(e)
+              }`,
+            );
+          }
+        }),
+      );
+    })();
+  }
+
   async takeOrder(orderId: string, courierUserId: string) {
     const existing = await this.prisma.order.findUnique({
       where: { id: orderId },
@@ -1520,6 +1590,8 @@ export class OrdersService {
     if (status === 'ON_THE_WAY' && isCourier && oldStatus === 'READY') {
       this.notifyCourierTelegramDeliverPrompt(id);
     }
+    // Har qanday kanal (admin/bot/courier) o'zgartirgan holatni Telegram restoran chatiga sinxron yuboramiz.
+    this.notifyRestaurantTelegramStatusChanged(id, status);
 
     if (isCourier) {
       return this.prisma.order.findUnique({

@@ -268,6 +268,24 @@ async function sendPlatformAdminNewPreview(chatId, preview) {
   });
 }
 
+/** Status sinxroni: admin panel/botdagi holat o'zgarsa Telegramga qisqa xabar. */
+async function sendStatusSyncPreview(chatId, preview) {
+  const { shortCode, restaurantName, total, status } = preview || {};
+  const text =
+    `Buyurtma #${String(shortCode || "----")}\n` +
+    `${String(restaurantName || "—")}\n` +
+    `Holat: ${String(status || "—")}\n` +
+    `Jami: ${formatMoney(total)} so'm`;
+  await fetch(`${API}/sendMessage`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      chat_id: chatId,
+      text,
+    }),
+  });
+}
+
 async function answerCallbackQuery(callbackQueryId, text, showAlert) {
   await telegramRequest("answerCallbackQuery", {
     callback_query_id: callbackQueryId,
@@ -756,6 +774,8 @@ const server = http.createServer(async (req, res) => {
           await sendRestaurantNewPreview(chatId, preview);
         } else if (kind === "platform_admin_new" && preview && typeof preview === "object") {
           await sendPlatformAdminNewPreview(chatId, preview);
+        } else if (kind === "status_sync" && preview && typeof preview === "object") {
+          await sendStatusSyncPreview(chatId, preview);
         } else if (order) {
           await sendOrderNotification(chatId, order, kind);
         } else {
