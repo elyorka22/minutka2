@@ -495,13 +495,32 @@ html.fd-root--home body.fd-body {
   border: 0;
 }
 
-/* Bosh sahifa hero: to‘q sariq/oranj fon — kategoriya karuseli (qidiruv yo‘q) */
+/* Bosh sahifa hero: to‘q sariq/oranj — faqat yetkazib berish qatori (VkusVill uslubi) */
 .fd-home-hero-wolt {
   margin: -24px -20px 0 -20px;
-  padding: 8px 20px 40px;
+  padding: 10px 20px 38px;
   background: #ff6b00;
   color: #fff;
   box-sizing: border-box;
+}
+
+.fd-home-hero-delivery-line {
+  margin: 0;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  line-height: 1.35;
+  text-align: center;
+}
+
+.fd-home-hero-delivery-link {
+  color: rgba(255, 255, 255, 0.96);
+  text-decoration: none;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.35);
+  padding-bottom: 2px;
+}
+
+.fd-home-hero-delivery-link:active {
+  opacity: 0.9;
 }
 
 /* Oq «varaq» — yuqori burchaklari yumaloq, hero ustiga chiqadi */
@@ -516,13 +535,156 @@ html.fd-root--home body.fd-body {
   z-index: 1;
 }
 
-.fd-home-body-sheet > .fd-section:first-child {
-  margin-top: 0;
+/* Promo va subnav dan keyin birinchi bo‘lim */
+.fd-home-body-sheet > .fd-section:first-of-type {
+  margin-top: 8px;
 }
 
 .fd-home-hero-inner {
   max-width: 1100px;
   margin: 0 auto;
+}
+
+/* Oq varaq ichidagi «stories» va promo (VkusVill uslubi) */
+.fd-home-vv-stories {
+  margin: 0 0 4px;
+}
+
+.fd-home-explore-scroll--stories {
+  gap: 16px;
+  padding-top: 6px;
+  padding-bottom: 12px;
+}
+
+.fd-home-explore-item--stories {
+  width: 76px;
+  text-decoration: none;
+  color: inherit;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+}
+
+.fd-home-explore-item--stories:active {
+  opacity: 0.92;
+}
+
+.fd-home-explore-tile--stories {
+  width: 68px;
+  height: 68px;
+  border-radius: 50%;
+  border: 3px solid #fff;
+  box-shadow: 0 2px 12px rgba(15, 23, 42, 0.12);
+}
+
+.fd-home-explore-label--stories {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  max-width: 76px;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  line-height: 1.2;
+  text-align: center;
+  color: var(--color-text);
+}
+
+.fd-home-vv-subnav {
+  display: flex;
+  flex-wrap: nowrap;
+  gap: 8px;
+  margin: 0 0 16px;
+  overflow-x: auto;
+  padding-bottom: 4px;
+  scrollbar-width: none;
+}
+
+.fd-home-vv-subnav::-webkit-scrollbar {
+  display: none;
+  height: 0;
+  width: 0;
+}
+
+.fd-home-vv-subnav-link {
+  flex: 0 0 auto;
+  padding: 8px 14px;
+  border-radius: 999px;
+  font-size: 0.875rem;
+  font-weight: 600;
+  text-decoration: none;
+  color: var(--color-text);
+  background: #f1f5f9;
+  transition: background 0.15s ease, color 0.15s ease, transform 0.12s ease;
+}
+
+.fd-home-vv-subnav-link:active {
+  transform: scale(0.98);
+}
+
+.fd-home-vv-subnav-link--accent {
+  background: rgba(255, 107, 0, 0.16);
+  color: #c2410c;
+}
+
+.fd-home-vv-promo {
+  margin: 0 0 20px;
+  border-radius: 20px;
+  overflow: hidden;
+  background: var(--color-surface);
+  box-shadow: 0 4px 22px rgba(15, 23, 42, 0.08);
+  border: 1px solid rgba(15, 23, 42, 0.06);
+}
+
+.fd-home-vv-promo-link {
+  display: block;
+  text-decoration: none;
+  color: inherit;
+}
+
+.fd-home-vv-promo-media {
+  position: relative;
+  aspect-ratio: 16 / 10;
+  max-height: min(52vw, 320px);
+  background: linear-gradient(145deg, #f1f5f9 0%, #e2e8f0 100%);
+}
+
+.fd-home-vv-promo-img {
+  display: block;
+}
+
+.fd-home-vv-promo-placeholder {
+  width: 100%;
+  height: 100%;
+  min-height: 160px;
+  background: linear-gradient(135deg, #ff6b00 0%, #ea580c 50%, #fdba74 100%);
+}
+
+.fd-home-vv-promo-body {
+  padding: 18px 18px 20px;
+}
+
+.fd-home-vv-promo-title {
+  margin: 0 0 8px;
+  font-size: clamp(1.1rem, 4vw, 1.45rem);
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  line-height: 1.15;
+  text-transform: uppercase;
+  color: #0f172a;
+}
+
+.fd-home-vv-promo-text {
+  margin: 0 0 14px;
+  font-size: 0.9375rem;
+  line-height: 1.45;
+  color: #64748b;
+}
+
+.fd-home-vv-promo-cta {
+  display: inline-block;
+  pointer-events: none;
 }
 
 /* Home screen layout */

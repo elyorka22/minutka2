@@ -1,6 +1,15 @@
+"use client";
+
+import Link from "next/link";
 import { imageUrl } from "../lib/api";
 import { type HomepageExploreCategory } from "../lib/api-server";
 import { SafeImage } from "./SafeImage";
+
+function categoryHref(c: HomepageExploreCategory): string {
+  const q = c.searchQuery?.trim();
+  if (q) return `/search?q=${encodeURIComponent(q)}`;
+  return "/supermarkets";
+}
 
 type Props = {
   categories: HomepageExploreCategory[];
@@ -8,19 +17,47 @@ type Props = {
   ariaLabel: string;
   /** Birinchi qator ostidagi ikkinchi skroll uchun qo‘shimcha klass */
   classNameScroll?: string;
+  /** «Stories»: doira + ostida sarlavha (VkusVill uslubi) */
+  variant?: "default" | "stories";
 };
 
-export function HomeExploreCarousel({ categories, ariaLabel, classNameScroll }: Props) {
+export function HomeExploreCarousel({
+  categories,
+  ariaLabel,
+  classNameScroll,
+  variant = "default",
+}: Props) {
   if (categories.length === 0) return null;
 
-  const scrollClass = ["fd-home-explore-scroll", classNameScroll].filter(Boolean).join(" ");
+  const scrollClass = [
+    "fd-home-explore-scroll",
+    variant === "stories" ? "fd-home-explore-scroll--stories" : "",
+    classNameScroll,
+  ]
+    .filter(Boolean)
+    .join(" ");
 
   return (
     <div className={scrollClass} aria-label={ariaLabel}>
       {categories.map((c) => {
+        const href = categoryHref(c);
         return (
-          <div key={c.id} className="fd-home-explore-item" aria-label={c.name} role="img">
-            <div className="fd-home-explore-tile">
+          <Link
+            key={c.id}
+            href={href}
+            className={
+              variant === "stories"
+                ? "fd-home-explore-item fd-home-explore-item--stories"
+                : "fd-home-explore-item"
+            }
+          >
+            <div
+              className={
+                variant === "stories"
+                  ? "fd-home-explore-tile fd-home-explore-tile--stories"
+                  : "fd-home-explore-tile"
+              }
+            >
               {c.imageUrl ? (
                 <SafeImage
                   src={imageUrl(c.imageUrl)}
@@ -31,7 +68,7 @@ export function HomeExploreCarousel({ categories, ariaLabel, classNameScroll }: 
                   quality={76}
                   priority={false}
                   fallbackStyle={{ height: 80 }}
-                  sizes="80px"
+                  sizes="72px"
                 />
               ) : (
                 <span className="fd-home-explore-placeholder" aria-hidden>
@@ -39,7 +76,10 @@ export function HomeExploreCarousel({ categories, ariaLabel, classNameScroll }: 
                 </span>
               )}
             </div>
-          </div>
+            {variant === "stories" && (
+              <span className="fd-home-explore-label fd-home-explore-label--stories">{c.name}</span>
+            )}
+          </Link>
         );
       })}
     </div>
