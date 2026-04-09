@@ -1876,6 +1876,26 @@ body {
   border-left-color: var(--color-orange);
 }
 
+@media (max-width: 768px) {
+  .fd-admin-mobile-tab-select-wrap {
+    display: block;
+  }
+}
+
+.fd-admin-mobile-tab-select-wrap {
+  display: none;
+  padding: 8px 16px 12px;
+}
+
+.fd-admin-mobile-tab-select {
+  width: 100%;
+  margin-top: 6px;
+  padding: 10px 12px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-surface);
+}
+
 .fd-admin-sidebar-footer {
   margin-top: auto;
   padding: 16px;
@@ -1921,6 +1941,25 @@ body {
 .fd-admin-main {
   margin-top: 8px;
   min-width: 0;
+}
+
+.fd-admin-status-bar {
+  margin: 0 0 12px;
+  padding: 10px 12px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--fd-bg-2);
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+
+.fd-admin-search-input {
+  width: 100%;
+  margin: 0 0 12px;
+  padding: 10px 12px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-surface);
 }
 
 .fd-platform-grid {
@@ -2003,6 +2042,37 @@ body {
 
 .fd-admin-panel-active {
   display: block;
+}
+
+.fd-admin-confirm-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.35);
+  z-index: 1200;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 12px;
+}
+
+.fd-admin-confirm-card {
+  width: min(460px, 96vw);
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--color-border);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-lg);
+  padding: 16px;
+}
+
+.fd-admin-confirm-card h3 {
+  margin: 0 0 8px;
+}
+
+.fd-admin-confirm-actions {
+  margin-top: 12px;
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
 }
 
 .fd-form-block {

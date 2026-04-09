@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, type ChangeEvent } from "react";
+import { useEffect, useMemo, useState, type ChangeEvent } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { adminApi } from "../../lib/adminApi";
@@ -8,6 +8,10 @@ import { imageUrl } from "../../lib/api";
 import { decodeJwtPayload } from "../../lib/jwt";
 import { clearAuthTokens, getAccessToken, logoutWithRefreshToken } from "../../lib/auth-tokens";
 import { padImageUrlsToVariantCount } from "../../lib/heroTaglines";
+import { AdminTabsNav } from "../../components/platform-admin/AdminTabsNav";
+import { AsyncStatusBar } from "../../components/platform-admin/AsyncStatusBar";
+import { ConfirmActionDialog } from "../../components/platform-admin/ConfirmActionDialog";
+import { ADMIN_TABS, type AdminUiMessage, type TabId } from "../../lib/admin.types";
 
 type HomeHeroSlideRow = { id: string; line1: string; line2: string; imageUrl: string };
 
@@ -34,18 +38,6 @@ function platformSettingsToHeroSlides(s: {
     imageUrl: imgs[i] != null && String(imgs[i]).trim() ? String(imgs[i]).trim() : "",
   }));
 }
-
-type TabId =
-  | "stats"
-  | "users"
-  | "restaurants"
-  | "supermarkets"
-  | "restaurant-stats"
-  | "visits"
-  | "applications"
-  | "settings"
-  | "push"
-  | "telegram";
 
 export default function PlatformAdminPage() {
   const [data, setData] = useState<any | null>(null);
@@ -94,13 +86,11 @@ export default function PlatformAdminPage() {
   const [productCategoryId, setProductCategoryId] = useState("");
   const [productError, setProductError] = useState<string | null>(null);
   const [productSubmitting, setProductSubmitting] = useState(false);
-  const [productCategories, setProductCategories] = useState<any[]>([]);
   const [productCategoryName, setProductCategoryName] = useState("");
   const [productCategorySort, setProductCategorySort] = useState("");
   const [productCategorySubmitting, setProductCategorySubmitting] = useState(false);
   const [productCategoryImageUrl, setProductCategoryImageUrl] = useState("");
   const [productCategoryImageUploading, setProductCategoryImageUploading] = useState(false);
-  const [homeExploreCategories, setHomeExploreCategories] = useState<any[]>([]);
   const [exploreName, setExploreName] = useState("");
   const [exploreSearchQuery, setExploreSearchQuery] = useState("");
   const [exploreSortOrder, setExploreSortOrder] = useState("");
@@ -167,6 +157,15 @@ export default function PlatformAdminPage() {
     }>
   >([]);
   const [partnershipApplicationsLoading, setPartnershipApplicationsLoading] = useState(false);
+  const [uiMessage, setUiMessage] = useState<AdminUiMessage | null>(null);
+  const [userSearch, setUserSearch] = useState("");
+  const [restaurantSearch, setRestaurantSearch] = useState("");
+  const [confirmState, setConfirmState] = useState<{
+    open: boolean;
+    title: string;
+    message: string;
+    onConfirm: (() => void | Promise<void>) | null;
+  }>({ open: false, title: "", message: "", onConfirm: null });
   const router = useRouter();
   const [platformGate, setPlatformGate] = useState<"checking" | "allowed" | "redirected">(
     "checking",
@@ -290,8 +289,6 @@ export default function PlatformAdminPage() {
         const overview = await fetchOverview();
         if (!active) return;
         setData(overview);
-        setProductCategories(overview.productCategories ?? []);
-        setHomeExploreCategories(overview.homeExploreCategories ?? []);
       } catch (err: any) {
         if (!active) return;
         setError(err.message ?? "Yuklashda xatolik");
@@ -529,8 +526,6 @@ export default function PlatformAdminPage() {
       setCreateAdminName("");
       const overview = await fetchOverview();
       setData(overview);
-      setProductCategories(overview.productCategories ?? []);
-      setHomeExploreCategories(overview.homeExploreCategories ?? []);
       setActiveTab(isSupermarket ? "supermarkets" : "restaurants");
     } catch (err: any) {
       setCreateError(err.message ?? "Restoran qo‘shishda xatolik");
@@ -641,7 +636,14 @@ export default function PlatformAdminPage() {
         sortOrder: productCategorySort ? Number(productCategorySort) : undefined,
         isActive: true,
       });
-      setProductCategories((prev) => [created, ...prev]);
+      setData((prev: any) =>
+        prev
+          ? {
+              ...prev,
+              productCategories: [created, ...(prev.productCategories ?? [])],
+            }
+          : prev,
+      );
       setProductCategoryName("");
       setProductCategorySort("");
       setProductCategoryImageUrl("");
@@ -655,7 +657,16 @@ export default function PlatformAdminPage() {
   async function handleUpdateProductCategory(id: string, patch: any) {
     try {
       const updated = await adminApi.updateProductCategory(id, patch);
-      setProductCategories((prev) => prev.map((c) => (c.id === id ? updated : c)));
+      setData((prev: any) =>
+        prev
+          ? {
+              ...prev,
+              productCategories: (prev.productCategories ?? []).map((c: any) =>
+                c.id === id ? updated : c,
+              ),
+            }
+          : prev,
+      );
     } catch (err: any) {
       setProductError(err.message ?? "Kategoriya yangilashda xatolik");
     }
@@ -694,8 +705,15 @@ export default function PlatformAdminPage() {
         sortOrder: exploreSortOrder ? Number(exploreSortOrder) : undefined,
         isActive: true,
       });
-      setHomeExploreCategories((prev) =>
-        [...prev, created].sort((a: any, b: any) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0)),
+      setData((prev: any) =>
+        prev
+          ? {
+              ...prev,
+              homeExploreCategories: [...(prev.homeExploreCategories ?? []), created].sort(
+                (a: any, b: any) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0),
+              ),
+            }
+          : prev,
       );
       setExploreName("");
       setExploreSearchQuery("");
@@ -711,7 +729,16 @@ export default function PlatformAdminPage() {
   async function handleUpdateExploreCategory(id: string, patch: Record<string, unknown>) {
     try {
       const updated = await adminApi.updateHomeExploreCategory(id, patch);
-      setHomeExploreCategories((prev) => prev.map((x) => (x.id === id ? updated : x)));
+      setData((prev: any) =>
+        prev
+          ? {
+              ...prev,
+              homeExploreCategories: (prev.homeExploreCategories ?? []).map((x: any) =>
+                x.id === id ? updated : x,
+              ),
+            }
+          : prev,
+      );
     } catch (err: any) {
       setExploreError(err.message ?? "Yangilashda xatolik");
     }
@@ -851,20 +878,31 @@ export default function PlatformAdminPage() {
     }
   }
 
-  const tabs: { id: TabId; label: string }[] = [
-    { id: "stats", label: "Statistika" },
-    { id: "users", label: "Foydalanuvchilar" },
-    { id: "restaurants", label: "Restoranlar" },
-    { id: "supermarkets", label: "Supermarketlar" },
-    { id: "restaurant-stats", label: "Statistika restoranlar" },
-    { id: "visits", label: "Tashrifchilar" },
-    { id: "applications", label: "Arizalar" },
-    { id: "push", label: "Push xabar yuborish" },
-    { id: "telegram", label: "Telegram" },
-    { id: "settings", label: "Sozlamalar" },
-  ];
-
+  const tabs = ADMIN_TABS;
   const activeTabLabel = tabs.find((t) => t.id === activeTab)?.label ?? activeTab;
+  const visibleUsers = useMemo(() => {
+    const base = (data?.users ?? []).filter((u: any) => {
+      const role = String(u?.role ?? "");
+      if (userSubTab === "couriers") return role === "COURIER";
+      if (userSubTab === "admins") return role === "RESTAURANT_ADMIN" || role === "PLATFORM_ADMIN";
+      return role === "CUSTOMER";
+    });
+    const q = userSearch.trim().toLowerCase();
+    if (!q) return base;
+    return base.filter((u: any) =>
+      [u?.email, u?.name, u?.role].some((v) => String(v ?? "").toLowerCase().includes(q)),
+    );
+  }, [data?.users, userSubTab, userSearch]);
+  const visibleRestaurants = useMemo(() => {
+    const q = restaurantSearch.trim().toLowerCase();
+    const list = (data?.restaurants ?? []).filter((r: any) => !r?.isSupermarket);
+    if (!q) return list;
+    return list.filter((r: any) =>
+      [r?.name, r?.description].some((v) => String(v ?? "").toLowerCase().includes(q)),
+    );
+  }, [data?.restaurants, restaurantSearch]);
+  const productCategories = data?.productCategories ?? [];
+  const homeExploreCategories = data?.homeExploreCategories ?? [];
 
   useEffect(() => {
     if (!tabsOpen) return;
@@ -885,64 +923,23 @@ export default function PlatformAdminPage() {
 
   return (
     <div className="fd-shell fd-section fd-platform-admin-page">
-      <header className="fd-admin-header">
-        <button
-          type="button"
-          className="fd-btn fd-btn-primary"
-          aria-label="Menyu"
-          onClick={() => setTabsOpen(true)}
-        >
-          <span className="material-symbols-rounded" style={{ fontSize: 24 }}>menu</span>
-          <span style={{ marginLeft: 6 }}>Menyu</span>
-        </button>
-      </header>
-
-      {tabsOpen && (
-        <>
-          <div
-            className="fd-admin-sidebar-backdrop"
-            role="button"
-            aria-label="Yopish"
-            onClick={() => setTabsOpen(false)}
-          />
-          <nav className="fd-admin-sidebar">
-            <div className="fd-admin-sidebar-title">Bo‘limlar</div>
-            {tabs.map((t) => (
-              <button
-                key={t.id}
-                type="button"
-                className={`fd-admin-tab ${activeTab === t.id ? "fd-admin-tab-active" : ""}`}
-                onClick={() => {
-                  setActiveTab(t.id);
-                  setTabsOpen(false);
-                }}
-              >
-                {t.label}
-              </button>
-            ))}
-            <div className="fd-admin-sidebar-footer">
-              <button
-                type="button"
-                className="fd-admin-sidebar-back-link fd-admin-sidebar-logout"
-                onClick={async () => {
-                  await logoutWithRefreshToken();
-                  setTabsOpen(false);
-                  router.push("/login?next=/platform-admin");
-                }}
-              >
-                Chiqish
-              </button>
-              <Link
-                href="/"
-                className="fd-admin-sidebar-back-link"
-                onClick={() => setTabsOpen(false)}
-              >
-                Saytga qaytish
-              </Link>
-            </div>
-          </nav>
-        </>
-      )}
+      <AdminTabsNav
+        tabs={tabs}
+        activeTab={activeTab}
+        tabsOpen={tabsOpen}
+        onOpen={() => setTabsOpen(true)}
+        onClose={() => setTabsOpen(false)}
+        onSelectTab={(id) => {
+          setActiveTab(id);
+          setTabsOpen(false);
+        }}
+        onLogout={async () => {
+          await logoutWithRefreshToken();
+          setTabsOpen(false);
+          router.push("/login?next=/platform-admin");
+        }}
+      />
+      <AsyncStatusBar message={uiMessage} />
 
       {loading && <p>Yuklanmoqda...</p>}
       {error && <p className="fd-empty">{error}</p>}
@@ -950,9 +947,8 @@ export default function PlatformAdminPage() {
         <>
         <div className="fd-admin-main">
           <p className="fd-admin-current-tab">{activeTabLabel}</p>
-            <div
-              className={`fd-admin-panel ${activeTab === "stats" ? "fd-admin-panel-active" : ""}`}
-            >
+            {activeTab === "stats" && (
+            <div className="fd-admin-panel fd-admin-panel-active">
               <section className="fd-admin-kpis">
                 {(() => {
                   const s = getStats();
@@ -996,10 +992,10 @@ export default function PlatformAdminPage() {
                 )}
               </section>
             </div>
+            )}
 
-            <div
-              className={`fd-admin-panel ${activeTab === "users" ? "fd-admin-panel-active" : ""}`}
-            >
+            {activeTab === "users" && (
+            <div className="fd-admin-panel fd-admin-panel-active">
               <section>
                 <h2>Foydalanuvchilar</h2>
                 <div className="fd-card" style={{ padding: 12, marginBottom: 12 }}>
@@ -1045,14 +1041,13 @@ export default function PlatformAdminPage() {
                     Kuryerlar
                   </button>
                 </div>
-                {(data.users ?? [])
-                  .filter((u: any) => {
-                    const role = String(u?.role ?? "");
-                    if (userSubTab === "couriers") return role === "COURIER";
-                    if (userSubTab === "admins") return role === "RESTAURANT_ADMIN" || role === "PLATFORM_ADMIN";
-                    return role === "CUSTOMER";
-                  })
-                  .map((u: any) => (
+                <input
+                  className="fd-admin-search-input"
+                  placeholder="Qidiruv: email, ism yoki rol"
+                  value={userSearch}
+                  onChange={(e) => setUserSearch(e.target.value)}
+                />
+                {visibleUsers.map((u: any) => (
                   <div key={u.id} className="fd-checkout-item">
                     <div>
                       <div>{u.email}</div>
@@ -1074,14 +1069,23 @@ export default function PlatformAdminPage() {
                         type="button"
                         className="fd-btn fd-btn--secondary"
                         style={{ padding: "6px 12px", fontSize: "0.875rem" }}
-                        onClick={async () => {
-                          if (!confirm(`"${u.email}" foydalanuvchisini o‘chirishni xohlaysizmi?`)) return;
-                          try {
-                            await adminApi.deleteUser(u.id);
-                            setData((prev: any) => prev ? { ...prev, users: prev.users.filter((x: any) => x.id !== u.id) } : null);
-                          } catch (err: any) {
-                            alert(err?.message ?? "O‘chirishda xatolik");
-                          }
+                        onClick={() => {
+                          setConfirmState({
+                            open: true,
+                            title: "Foydalanuvchini o‘chirish",
+                            message: `"${u.email}" foydalanuvchisini o‘chirishni xohlaysizmi?`,
+                            onConfirm: async () => {
+                              try {
+                                await adminApi.deleteUser(u.id);
+                                setData((prev: any) =>
+                                  prev ? { ...prev, users: prev.users.filter((x: any) => x.id !== u.id) } : null,
+                                );
+                                setUiMessage({ kind: "success", text: "Foydalanuvchi o‘chirildi." });
+                              } catch (err: any) {
+                                setUiMessage({ kind: "error", text: err?.message ?? "O‘chirishda xatolik" });
+                              }
+                            },
+                          });
                         }}
                       >
                         O‘chirish
@@ -1089,20 +1093,15 @@ export default function PlatformAdminPage() {
                     </div>
                   </div>
                   ))}
-                {((data.users ?? []).filter((u: any) => {
-                  const role = String(u?.role ?? "");
-                  if (userSubTab === "couriers") return role === "COURIER";
-                  if (userSubTab === "admins") return role === "RESTAURANT_ADMIN" || role === "PLATFORM_ADMIN";
-                  return role === "CUSTOMER";
-                }).length === 0) && (
+                {visibleUsers.length === 0 && (
                   <p className="fd-empty">Foydalanuvchilar yo‘q.</p>
                 )}
               </section>
             </div>
+            )}
 
-            <div
-              className={`fd-admin-panel ${activeTab === "restaurants" ? "fd-admin-panel-active" : ""}`}
-            >
+            {activeTab === "restaurants" && (
+            <div className="fd-admin-panel fd-admin-panel-active">
               <section>
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
                   <h2 style={{ margin: 0 }}>Barcha restoranlar</h2>
@@ -1117,6 +1116,12 @@ export default function PlatformAdminPage() {
                 <p className="fd-checkout-meta" style={{ marginTop: 8, marginBottom: 12 }}>
                   Tahrirlash uchun ✏️ tugmasini bosing.
                 </p>
+                <input
+                  className="fd-admin-search-input"
+                  placeholder="Qidiruv: restoran nomi yoki tavsif"
+                  value={restaurantSearch}
+                  onChange={(e) => setRestaurantSearch(e.target.value)}
+                />
 
                 {showCreateRestaurantForm && (
                   <div className="fd-form-block" style={{ marginBottom: 16 }}>
@@ -1182,7 +1187,7 @@ export default function PlatformAdminPage() {
                 )}
 
                 <div className="fd-grid fd-grid--2 fd-grid--mobile-2">
-                  {data.restaurants?.map((r: any) => (
+                  {visibleRestaurants.map((r: any) => (
                     <div key={r.id} className="fd-card" style={{ padding: 8, position: "relative" }}>
                       <button
                         type="button"
@@ -1231,17 +1236,31 @@ export default function PlatformAdminPage() {
                           type="button"
                           className="fd-btn"
                           style={{ padding: "8px 12px", fontSize: "0.875rem" }}
-                          onClick={async () => {
-                            try {
-                              await adminApi.deleteRestaurant(r.id);
-                              setData((prev: any) =>
-                                prev
-                                  ? { ...prev, restaurants: prev.restaurants.filter((x: any) => x.id !== r.id) }
-                                  : prev,
-                              );
-                            } catch (err: any) {
-                              setError(err?.message ?? "Restoranni o‘chirishda xatolik");
-                            }
+                          onClick={() => {
+                            setConfirmState({
+                              open: true,
+                              title: "Restoranni o‘chirish",
+                              message: `"${r.name}" restoranni o‘chirishni xohlaysizmi?`,
+                              onConfirm: async () => {
+                                try {
+                                  await adminApi.deleteRestaurant(r.id);
+                                  setData((prev: any) =>
+                                    prev
+                                      ? {
+                                          ...prev,
+                                          restaurants: prev.restaurants.filter((x: any) => x.id !== r.id),
+                                        }
+                                      : prev,
+                                  );
+                                  setUiMessage({ kind: "success", text: "Restoran o‘chirildi." });
+                                } catch (err: any) {
+                                  setUiMessage({
+                                    kind: "error",
+                                    text: err?.message ?? "Restoranni o‘chirishda xatolik",
+                                  });
+                                }
+                              },
+                            });
                           }}
                         >
                           O‘chirish
@@ -1325,15 +1344,15 @@ export default function PlatformAdminPage() {
                     </div>
                   ))}
                 </div>
-                {(!data.restaurants || data.restaurants.length === 0) && (
+                {visibleRestaurants.length === 0 && (
                   <p className="fd-empty">Restoranlar yo‘q. Yuqoridagi formadan qo‘shing.</p>
                 )}
               </section>
             </div>
+            )}
 
-            <div
-              className={`fd-admin-panel ${activeTab === "supermarkets" ? "fd-admin-panel-active" : ""}`}
-            >
+            {activeTab === "supermarkets" && (
+            <div className="fd-admin-panel fd-admin-panel-active">
               <section>
                 <h2>Supermarketlar</h2>
                 <p className="fd-card-desc" style={{ marginBottom: 12 }}>
@@ -1628,10 +1647,10 @@ export default function PlatformAdminPage() {
                 </div>
               </section>
             </div>
+            )}
 
-            <div
-              className={`fd-admin-panel ${activeTab === "visits" ? "fd-admin-panel-active" : ""}`}
-            >
+            {activeTab === "visits" && (
+            <div className="fd-admin-panel fd-admin-panel-active">
               <section>
                 <h2>Tashrifchilar (so‘nggi 7 kun)</h2>
                 {visitStatsLoading && <p>Yuklanmoqda…</p>}
@@ -1668,10 +1687,10 @@ export default function PlatformAdminPage() {
                 )}
               </section>
             </div>
+            )}
 
-            <div
-              className={`fd-admin-panel ${activeTab === "restaurant-stats" ? "fd-admin-panel-active" : ""}`}
-            >
+            {activeTab === "restaurant-stats" && (
+            <div className="fd-admin-panel fd-admin-panel-active">
               <section>
                 <h2>Statistika restoranlar</h2>
                 {restaurantStatsLoading && <p>Yuklanmoqda…</p>}
@@ -1756,10 +1775,10 @@ export default function PlatformAdminPage() {
                 )}
               </section>
             </div>
+            )}
 
-            <div
-              className={`fd-admin-panel ${activeTab === "push" ? "fd-admin-panel-active" : ""}`}
-            >
+            {activeTab === "push" && (
+            <div className="fd-admin-panel fd-admin-panel-active">
               <section>
                 <h2>Push xabar yuborish</h2>
                 <p className="fd-checkout-meta">
@@ -1839,10 +1858,10 @@ export default function PlatformAdminPage() {
                 </form>
               </section>
             </div>
+            )}
 
-            <div
-              className={`fd-admin-panel ${activeTab === "telegram" ? "fd-admin-panel-active" : ""}`}
-            >
+            {activeTab === "telegram" && (
+            <div className="fd-admin-panel fd-admin-panel-active">
               <section>
                 <h2>Telegram — platforma admini</h2>
                 <div className="fd-card" style={{ padding: 16, marginBottom: 14 }}>
@@ -1898,10 +1917,10 @@ export default function PlatformAdminPage() {
                 </div>
               </section>
             </div>
+            )}
 
-            <div
-              className={`fd-admin-panel ${activeTab === "applications" ? "fd-admin-panel-active" : ""}`}
-            >
+            {activeTab === "applications" && (
+            <div className="fd-admin-panel fd-admin-panel-active">
               <section>
                 <h2>Hamkorlik arizalari</h2>
                 {partnershipApplicationsLoading && <p>Yuklanmoqda...</p>}
@@ -1934,10 +1953,10 @@ export default function PlatformAdminPage() {
                   ))}
               </section>
             </div>
+            )}
 
-            <div
-              className={`fd-admin-panel ${activeTab === "settings" ? "fd-admin-panel-active" : ""}`}
-            >
+            {activeTab === "settings" && (
+            <div className="fd-admin-panel fd-admin-panel-active">
               <section>
                 <h2>Sayt sozlamalari</h2>
                 <div className="fd-form-block" style={{ marginTop: 16 }}>
@@ -2289,7 +2308,16 @@ export default function PlatformAdminPage() {
                                   onClick={async () => {
                                     try {
                                       await adminApi.deleteHomeExploreCategory(c.id);
-                                      setHomeExploreCategories((prev) => prev.filter((x) => x.id !== c.id));
+                                      setData((prev: any) =>
+                                        prev
+                                          ? {
+                                              ...prev,
+                                              homeExploreCategories: (
+                                                prev.homeExploreCategories ?? []
+                                              ).filter((x: any) => x.id !== c.id),
+                                            }
+                                          : prev,
+                                      );
                                     } catch (err: any) {
                                       setExploreError(err?.message ?? "O‘chirishda xatolik");
                                     }
@@ -2308,6 +2336,7 @@ export default function PlatformAdminPage() {
                 </div>
               </section>
             </div>
+            )}
           </div>
 
           {editingRestaurant && (
@@ -2494,6 +2523,18 @@ export default function PlatformAdminPage() {
           )}
         </>
       )}
+      <ConfirmActionDialog
+        open={confirmState.open}
+        title={confirmState.title}
+        message={confirmState.message}
+        confirmLabel="O‘chirish"
+        onCancel={() => setConfirmState({ open: false, title: "", message: "", onConfirm: null })}
+        onConfirm={() => {
+          const fn = confirmState.onConfirm;
+          setConfirmState({ open: false, title: "", message: "", onConfirm: null });
+          if (fn) fn();
+        }}
+      />
     </div>
   );
 }
