@@ -1401,14 +1401,14 @@ export class AdminController {
   @Delete('home-explore-categories/:id')
   async deleteHomeExploreCategory(@Param('id') id: string, @Req() req: RequestWithUser) {
     this.assertPlatformAdmin(req);
-    try {
-      await this.prisma.homeExploreCategory.delete({ where: { id } });
-    } catch (e: unknown) {
-      const code = (e as { code?: string })?.code;
-      if (code === 'P2025') {
-        throw new NotFoundException('Kategoriya topilmadi');
-      }
-      throw e;
+    /**
+     * Prisma `delete()` odatda `RETURNING *` qiladi va modeldagi barcha scalar ustunlarni qaytarishga urinadi.
+     * Migratsiyalar qo‘llanmagan DBda ustun yo‘q bo‘lsa (`(not available)`), DELETE ham yiqilishi mumkin.
+     * `deleteMany()` esa faqat count qaytaradi va shuning uchun eski DBda ham ishlaydi.
+     */
+    const res = await this.prisma.homeExploreCategory.deleteMany({ where: { id } });
+    if (!res.count) {
+      throw new NotFoundException('Kategoriya topilmadi');
     }
     this.invalidateHomeCache();
     return { ok: true };
