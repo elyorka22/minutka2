@@ -152,7 +152,6 @@ export default async function HomePage() {
               <div className="fd-card-body">
                 <div className="fd-card-title-row">
                   <h3>{r.name}</h3>
-                  {r.rating != null && <span className="fd-badge">★ {r.rating.toFixed(1)}</span>}
                 </div>
                 {r.description && <p className="fd-card-desc">{r.description}</p>}
               </div>
