@@ -445,12 +445,18 @@ async function handleCourierOrderCallback(q) {
     await answerCallbackQuery(q.id, MSG_NO_BACKEND_URL, true);
     return;
   }
-  const url = `${base}/internal/telegram/courier-order/${encodeURIComponent(orderId)}?sig=${encodeURIComponent(sig)}`;
+  const msg = q.message;
+  const chatId = msg?.chat?.id;
+  if (chatId == null) {
+    await answerCallbackQuery(q.id, "Chat topilmadi.", true);
+    return;
+  }
+  const url = `${base}/internal/telegram/courier-order/${encodeURIComponent(orderId)}/take?sig=${encodeURIComponent(sig)}&telegramChatId=${encodeURIComponent(String(chatId))}`;
   let res;
   try {
     res = await fetch(url, { method: "GET", headers: { Accept: "application/json" } });
   } catch (e) {
-    console.error("courier-order fetch", e);
+    console.error("courier take fetch", e);
     await answerCallbackQuery(q.id, "Serverga ulanib bo‘lmadi.", true);
     return;
   }
@@ -472,17 +478,19 @@ async function handleCourierOrderCallback(q) {
     await answerCallbackQuery(q.id, msg || "Xatolik", true);
     return;
   }
-  await answerCallbackQuery(q.id, "Buyurtma ma’lumotlari yuborildi.", false);
+  await answerCallbackQuery(q.id, "Buyurtma olindi.", false);
 
   const order = j.order;
   const fullText = buildCourierOrderDetailText(order);
-  const msg = q.message;
   if (!msg || !msg.chat) return;
-  const chatId = msg.chat.id;
   const messageId = msg.message_id;
+  const deliveredCb = `c|${orderId}|${sig}|d`;
   const rows = [];
   if (order.lat != null && order.lng != null) {
     rows.push([{ text: "Xaritada ochish", url: `https://maps.google.com/?q=${order.lat},${order.lng}` }]);
+  }
+  if (Buffer.byteLength(deliveredCb, "utf8") <= 64) {
+    rows.push([{ text: "Yetkazildi", callback_data: deliveredCb }]);
   }
   const mapMarkup = rows.length > 0 ? { inline_keyboard: rows } : undefined;
 

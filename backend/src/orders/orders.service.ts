@@ -884,6 +884,72 @@ export class OrdersService {
   }
 
   /**
+   * Telegram: "Buyurtmani olish" tugmasi.
+   * Chat ID orqali kuryerni topib, buyurtmani atomik ravishda biriktiradi.
+   */
+  async telegramCourierTakeOrder(orderId: string, sig: string, telegramChatIdClick: string): Promise<{ order: any }> {
+    if (!this.verifyCourierTelegramOrderId(orderId, sig)) {
+      throw new ForbiddenException('Invalid sig');
+    }
+    const clickId = String(telegramChatIdClick || '').trim();
+    if (!clickId) {
+      throw new ForbiddenException('Missing telegramChatId');
+    }
+
+    const candidates = await this.prisma.courier.findMany({
+      where: {
+        telegramChatId: { contains: clickId },
+        user: { role: 'COURIER', status: 'ACTIVE' },
+      },
+      select: {
+        userId: true,
+        telegramChatId: true,
+      },
+      take: 20,
+    });
+    const owner = candidates.find((c) => this.telegramChatIdListContains(c.telegramChatId, clickId));
+    if (!owner?.userId) {
+      throw new ForbiddenException('Bu Telegram chat uchun kuryer topilmadi.');
+    }
+
+    const taken = await this.takeOrder(orderId, owner.userId);
+    if (!taken) {
+      throw new NotFoundException('Buyurtma topilmadi.');
+    }
+
+    const phone = this.telegramCustomerPhoneFromRow(taken as any);
+    const items = Array.isArray((taken as any).items)
+      ? (taken as any).items.map((it: any) => {
+          const qty = Number(it?.quantity || 0);
+          const unit = Number(it?.price || 0);
+          return {
+            name: String(it?.dish?.name ?? '—'),
+            quantity: qty,
+            unitPrice: unit,
+            lineTotal: unit * qty,
+          };
+        })
+      : [];
+    const total = this.courierTelegramFoodTotalUzs(
+      items.map((x) => ({ quantity: x.quantity, price: x.unitPrice })),
+    );
+    const orderPayload = {
+      id: (taken as any).id,
+      shortCode: this.formatOrderCode(Number((taken as any).shortCode ?? 0)),
+      restaurantName: (taken as any).restaurant?.name ?? '—',
+      total,
+      subtotal: total,
+      customerName: (taken as any).customer?.name ?? '',
+      phone,
+      lat: (taken as any).address?.latitude,
+      lng: (taken as any).address?.longitude,
+      addressLine: this.telegramAddressLine((taken as any).address ?? null),
+      items,
+    };
+    return { order: orderPayload };
+  }
+
+  /**
    * Kuryer ON_THE_WAY qilganda — shu kuryerning Telegramiga «Yetkazildi» tugmasi bilan xabar.
    */
   private notifyCourierTelegramDeliverPrompt(orderId: string): void {

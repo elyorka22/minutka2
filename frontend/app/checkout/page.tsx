@@ -9,6 +9,7 @@ import { CHUST_DEFAULT_COORDS } from "../../lib/map-defaults";
 import { getAccessToken } from "../../lib/auth-tokens";
 import { getSavedAddressesForCurrentUser, type SavedAddress } from "../../lib/saved-addresses";
 import { isOpenNowByWorkingHours } from "../../lib/workingHours";
+import { adminApi } from "../../lib/adminApi";
 
 const CheckoutMapPicker = dynamic(
   () => import("../../components/CheckoutMapPicker").then((m) => m.CheckoutMapPicker),
@@ -38,6 +39,10 @@ export default function CheckoutPage() {
   const [selectedSavedAddressId, setSelectedSavedAddressId] = useState("");
   const [restaurantWorkingHours, setRestaurantWorkingHours] = useState("");
   const [restaurantDeliveryFee, setRestaurantDeliveryFee] = useState(0);
+  const [placedOrderTotal, setPlacedOrderTotal] = useState<number | null>(null);
+  const [placedOrderId, setPlacedOrderId] = useState<string | null>(null);
+  const [receivedBusy, setReceivedBusy] = useState(false);
+  const [receivedDone, setReceivedDone] = useState(false);
 
   const needRestaurant = items.length > 0 && !restaurantId;
 
@@ -163,7 +168,7 @@ export default function CheckoutPage() {
     }
     setLoading(true);
     try {
-      await api.createOrder({
+      const created = await api.createOrder({
         restaurantId,
         address: {
           street: streetVal,
@@ -178,6 +183,10 @@ export default function CheckoutPage() {
         comment: finalPhone.length === 9 ? `Tel: +998${finalPhone}` : undefined,
         paymentMethod,
       });
+      const orderId = typeof created?.id === "string" ? created.id : null;
+      setPlacedOrderId(orderId);
+      setPlacedOrderTotal(grandTotal);
+      setReceivedDone(false);
       clear();
       setSubmitted(true);
     } catch (err: any) {
@@ -190,6 +199,20 @@ export default function CheckoutPage() {
   const latNum = Number(lat);
   const lngNum = Number(lng);
   const coordsReady = Number.isFinite(latNum) && Number.isFinite(lngNum);
+
+  async function handleMarkReceived() {
+    if (!placedOrderId || receivedBusy || receivedDone) return;
+    setReceivedBusy(true);
+    setSubmitError(null);
+    try {
+      await adminApi.markOrderReceived(placedOrderId);
+      setReceivedDone(true);
+    } catch (err: any) {
+      setSubmitError(err?.message ?? "Buyurtmani tasdiqlashda xatolik.");
+    } finally {
+      setReceivedBusy(false);
+    }
+  }
 
   return (
     <div className="fd-shell fd-checkout">
@@ -260,9 +283,24 @@ export default function CheckoutPage() {
         <section className="fd-checkout-form">
           <h2>Manzil, geolokatsiya va to‘lov</h2>
           {submitted ? (
-            <p className="fd-success">
-              Buyurtma qabul qilindi. Restoran tez orada siz bilan bog‘lanadi.
-            </p>
+            <div>
+              <p className="fd-success">Buyurtma qabul qilindi. Restoran tez orada siz bilan bog‘lanadi.</p>
+              <p className="fd-checkout-meta" style={{ marginTop: 10 }}>
+                Umumiy summa:{" "}
+                <strong>{Number.isFinite(Number(placedOrderTotal)) ? Number(placedOrderTotal).toFixed(0) : "0"} so&apos;m</strong>
+              </p>
+              {placedOrderId ? (
+                <button
+                  type="button"
+                  className="fd-btn fd-btn-primary"
+                  onClick={handleMarkReceived}
+                  disabled={receivedBusy || receivedDone}
+                  style={{ marginTop: 10 }}
+                >
+                  {receivedDone ? "Qabul qilindi" : receivedBusy ? "Tekshirilmoqda..." : "Qabul qildim"}
+                </button>
+              ) : null}
+            </div>
           ) : (
             <form onSubmit={handleSubmit} className="fd-form">
               <div className="fd-field">
