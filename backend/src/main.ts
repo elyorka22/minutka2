@@ -22,9 +22,36 @@ function cacheControlForPublicGet(pathname: string): string | null {
   return null;
 }
 
+function stripBogusJsonContentTypeOnEmptyBody(
+  req: express.Request,
+  _res: express.Response,
+  next: express.NextFunction,
+) {
+  const m = String(req.method ?? '').toUpperCase();
+  if (m !== 'DELETE' && m !== 'GET' && m !== 'HEAD') return next();
+  const ct = String(req.headers['content-type'] ?? '');
+  if (!ct.toLowerCase().includes('application/json')) return next();
+  const rawLen = req.headers['content-length'];
+  const len = rawLen === undefined ? NaN : Number(rawLen);
+  const empty = !Number.isFinite(len) || len === 0;
+  if (empty) {
+    delete req.headers['content-type'];
+  }
+  next();
+}
+
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule);
+  const app = await NestFactory.create(AppModule, {
+    bodyParser: false,
+  });
   app.enableShutdownHooks();
+
+  const expressApp = app.getHttpAdapter().getInstance();
+  expressApp.set('trust proxy', 1);
+  expressApp.use(stripBogusJsonContentTypeOnEmptyBody);
+  expressApp.use(express.json({ limit: '2mb', strict: false }));
+  expressApp.use(express.urlencoded({ extended: true, limit: '2mb' }));
+
   const corsOpts = getCorsOptions();
   app.enableCors(corsOpts);
   const co = process.env.CORS_ORIGINS?.trim();
@@ -52,8 +79,6 @@ async function bootstrap() {
       transformOptions: { enableImplicitConversion: true },
     }),
   );
-  const expressApp = app.getHttpAdapter().getInstance();
-  expressApp.set('trust proxy', 1);
   expressApp.use((req: any, res: any, next: any) => {
     if (String(req.method ?? '') === 'OPTIONS') {
       return next();
