@@ -906,10 +906,17 @@ body {
   scrollbar-width: none;
 }
 
-/* Bosh sahifa: banner ostidagi kategoriya karuseli — kvadrat, yumaloq burchaklar */
+/* Bosh sahifa: kategoriya karuseli — kvadrat, yumaloq burchaklar */
 .fd-home-explore-section {
   padding-top: 4px;
   margin-bottom: 4px;
+}
+
+/* Qidiruv maydoni ostida (hero ichida) — ortiqcha fd-section margin yo‘q */
+.fd-home-explore-section--under-search {
+  padding-top: 10px;
+  margin-top: 4px;
+  margin-bottom: 6px;
 }
 
 .fd-home-explore-scroll {

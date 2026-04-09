@@ -78,6 +78,20 @@ export default async function HomePage() {
             />
           </form>
 
+          {(exploreCategories.length > 0 || exploreCategoriesRow2.length > 0) && (
+            <div className="fd-home-explore-section fd-home-explore-section--under-search">
+              <HomeExploreCarousel
+                categories={exploreCategories}
+                ariaLabel="Tezkor kategoriyalar — birinchi qator"
+              />
+              <HomeExploreCarousel
+                categories={exploreCategoriesRow2}
+                ariaLabel="Tezkor kategoriyalar — ikkinchi qator"
+                classNameScroll={exploreCategories.length > 0 ? "fd-home-explore-scroll--stacked" : undefined}
+              />
+            </div>
+          )}
+
           <HomeHeroTagline
             heroLine1Texts={heroLine1Texts}
             heroLine2Texts={heroLine2Texts}
@@ -117,20 +131,6 @@ export default async function HomePage() {
               </Link>
             ))}
           </div>
-        </section>
-      )}
-
-      {(exploreCategories.length > 0 || exploreCategoriesRow2.length > 0) && (
-        <section className="fd-section fd-home-explore-section">
-          <HomeExploreCarousel
-            categories={exploreCategories}
-            ariaLabel="Tezkor kategoriyalar — birinchi qator"
-          />
-          <HomeExploreCarousel
-            categories={exploreCategoriesRow2}
-            ariaLabel="Tezkor kategoriyalar — ikkinchi qator"
-            classNameScroll={exploreCategories.length > 0 ? "fd-home-explore-scroll--stacked" : undefined}
-          />
         </section>
       )}
 
