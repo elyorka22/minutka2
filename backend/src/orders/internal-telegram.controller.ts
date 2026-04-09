@@ -40,6 +40,20 @@ export class InternalTelegramController {
     return this.ordersService.telegramCourierTakeOrder(orderId, s, chat);
   }
 
+  /** Telegram "Yo‘lda" — READY → ON_THE_WAY. */
+  @Get('courier-order/:orderId/on-the-way')
+  async courierOrderOnTheWay(
+    @Param('orderId') orderId: string,
+    @Query('sig') sig?: string,
+    @Query('telegramChatId') telegramChatId?: string,
+  ) {
+    const s = typeof sig === 'string' ? sig.trim() : '';
+    if (!s) throw new ForbiddenException('Missing sig');
+    const chat = typeof telegramChatId === 'string' ? telegramChatId.trim() : '';
+    if (!chat) throw new ForbiddenException('Missing telegramChatId');
+    return this.ordersService.telegramCourierMarkOnTheWay(orderId, s, chat);
+  }
+
   /** Telegram «Yetkazildi» — ON_THE_WAY → DONE (faqat biriktirilgan kuryerning telegramChatId si). */
   @Get('courier-order/:orderId/delivered')
   async courierOrderDelivered(

@@ -95,7 +95,8 @@ function formatMoney(n) {
   return x.toLocaleString("uz-UZ");
 }
 
-function formatOrderItemsBlock(order) {
+function formatOrderItemsBlock(order, opts = {}) {
+  const includeDescription = opts.includeDescription === true;
   const items = order.items;
   if (!Array.isArray(items) || items.length === 0) return "";
   let block = "\n\nTaomlar:\n";
@@ -107,6 +108,10 @@ function formatOrderItemsBlock(order) {
         ? Number(it.lineTotal)
         : (Number(it.unitPrice) || 0) * qty;
     block += `• ${name} × ${qty} = ${formatMoney(line)} so'm\n`;
+    if (includeDescription) {
+      const desc = typeof it.description === "string" ? it.description.trim() : "";
+      if (desc) block += `  ${desc}\n`;
+    }
   }
   return block;
 }
@@ -229,7 +234,8 @@ function buildRestaurantOrderFullText(order) {
   if (serviceFee != null) {
     text += `\nPlatforma ulushi: ${formatMoney(serviceFee)} so'm`;
   }
-  text += formatOrderItemsBlock(order);
+  // Restoran adminlari uchun: taom nomi ostida tavsif ham ko'rsatiladi.
+  text += formatOrderItemsBlock(order, { includeDescription: true });
   if (text.length > 4000) {
     text = text.slice(0, 3997) + "...";
   }
@@ -374,6 +380,72 @@ async function handleCourierOrderCallback(q) {
     return;
   }
   const parts = data.split("|");
+  if (parts.length === 4 && parts[3] === "p") {
+    const [, orderId, sig] = parts;
+    const base = resolveApiBaseForCallback(orderId);
+    if (!base) {
+      await answerCallbackQuery(q.id, MSG_NO_BACKEND_URL, true);
+      return;
+    }
+    const msg = q.message;
+    const chatId = msg?.chat?.id;
+    if (chatId == null) {
+      await answerCallbackQuery(q.id, "Chat topilmadi.", true);
+      return;
+    }
+    const url = `${base}/internal/telegram/courier-order/${encodeURIComponent(orderId)}/on-the-way?sig=${encodeURIComponent(sig)}&telegramChatId=${encodeURIComponent(String(chatId))}`;
+    let res;
+    try {
+      res = await fetch(url, { method: "GET", headers: { Accept: "application/json" } });
+    } catch (e) {
+      console.error("courier on-the-way fetch", e);
+      await answerCallbackQuery(q.id, "Serverga ulanib bo‘lmadi.", true);
+      return;
+    }
+    let j = {};
+    try {
+      j = await res.json();
+    } catch {
+      j = {};
+    }
+    const errMsg = (m) => {
+      if (Array.isArray(m)) return m.join(", ");
+      if (typeof m === "string") return m;
+      return "";
+    };
+    if (!res.ok || !j.ok) {
+      const text =
+        errMsg(j.message) ||
+        (res.status === 403 ? "Ruxsat yo‘q (chat ID yoki buyurtma)." : "Holatni o‘zgartirib bo‘lmadi.");
+      await answerCallbackQuery(q.id, text || "Xatolik", true);
+      return;
+    }
+    await answerCallbackQuery(q.id, "Buyurtma yo‘lda.", false);
+    if (!msg || !msg.chat) return;
+    const messageId = msg.message_id;
+    const prev = String(msg.text || "");
+    const extra = "\n\n🚚 Yo‘lda.";
+    let newText = prev + extra;
+    if (newText.length > 4096) {
+      newText = newText.slice(0, 4093 - extra.length) + extra;
+    }
+    const deliveredCb = `c|${orderId}|${sig}|d`;
+    const rows = [];
+    if (Buffer.byteLength(deliveredCb, "utf8") <= 64) {
+      rows.push([{ text: "Yetkazildi", callback_data: deliveredCb }]);
+    }
+    await fetch(`${API}/editMessageText`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        chat_id: msg.chat.id,
+        message_id: messageId,
+        text: newText,
+        reply_markup: rows.length > 0 ? { inline_keyboard: rows } : { inline_keyboard: [] },
+      }),
+    });
+    return;
+  }
   if (parts.length === 4 && parts[3] === "d") {
     const [, orderId, sig] = parts;
     const base = resolveApiBaseForCallback(orderId);
@@ -484,13 +556,13 @@ async function handleCourierOrderCallback(q) {
   const fullText = buildCourierOrderDetailText(order);
   if (!msg || !msg.chat) return;
   const messageId = msg.message_id;
-  const deliveredCb = `c|${orderId}|${sig}|d`;
+  const onTheWayCb = `c|${orderId}|${sig}|p`;
   const rows = [];
   if (order.lat != null && order.lng != null) {
     rows.push([{ text: "Xaritada ochish", url: `https://maps.google.com/?q=${order.lat},${order.lng}` }]);
   }
-  if (Buffer.byteLength(deliveredCb, "utf8") <= 64) {
-    rows.push([{ text: "Yetkazildi", callback_data: deliveredCb }]);
+  if (Buffer.byteLength(onTheWayCb, "utf8") <= 64) {
+    rows.push([{ text: "Yo‘lda", callback_data: onTheWayCb }]);
   }
   const mapMarkup = rows.length > 0 ? { inline_keyboard: rows } : undefined;
 

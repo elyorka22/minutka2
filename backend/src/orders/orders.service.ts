@@ -64,7 +64,7 @@ const TELEGRAM_COURIER_ORDER_SELECT = {
     select: {
       quantity: true,
       price: true,
-      dish: { select: { name: true } },
+      dish: { select: { name: true, description: true } },
     },
   },
 } as const;
@@ -884,6 +884,43 @@ export class OrdersService {
   }
 
   /**
+   * Telegram: "Yo‘lda" tugmasi — READY → ON_THE_WAY (faqat biriktirilgan kuryer).
+   */
+  async telegramCourierMarkOnTheWay(orderId: string, sig: string, telegramChatIdClick: string): Promise<{ ok: true }> {
+    if (!this.verifyCourierTelegramOrderId(orderId, sig)) {
+      throw new ForbiddenException('Invalid sig');
+    }
+    const clickId = String(telegramChatIdClick || '').trim();
+    if (!clickId) {
+      throw new ForbiddenException('Missing telegramChatId');
+    }
+
+    const orderRow = await this.prisma.order.findUnique({
+      where: { id: orderId },
+      select: {
+        id: true,
+        status: true,
+        courier: {
+          select: { id: true, telegramChatId: true, userId: true },
+        },
+      },
+    });
+
+    if (!orderRow?.courier) {
+      throw new NotFoundException('Buyurtma topilmadi.');
+    }
+    if (orderRow.status !== 'READY') {
+      throw new BadRequestException('Buyurtma READY holatida emas.');
+    }
+    if (!this.telegramChatIdListContains(orderRow.courier.telegramChatId, clickId)) {
+      throw new ForbiddenException('Bu Telegram chat uchun ruxsat yo‘q.');
+    }
+
+    await this.updateStatus(orderId, 'ON_THE_WAY', 'COURIER', orderRow.courier.userId);
+    return { ok: true };
+  }
+
+  /**
    * Telegram: "Buyurtmani olish" tugmasi.
    * Chat ID orqali kuryerni topib, buyurtmani atomik ravishda biriktiradi.
    */
@@ -1149,7 +1186,7 @@ export class OrdersService {
     items: Array<{
       quantity: number;
       price: unknown;
-      dish: { name: string } | null;
+      dish: { name: string; description?: string | null } | null;
     }>;
   }) {
     const phone = this.telegramCustomerPhoneFromRow(orderRow);
@@ -1159,6 +1196,10 @@ export class OrdersService {
       const qty = item.quantity;
       return {
         name: item.dish?.name ?? '—',
+        description:
+          typeof item.dish?.description === 'string' && item.dish.description.trim().length > 0
+            ? item.dish.description.trim()
+            : undefined,
         quantity: qty,
         unitPrice: unit,
         lineTotal: unit * qty,
@@ -1204,7 +1245,7 @@ export class OrdersService {
     items: Array<{
       quantity: number;
       price: unknown;
-      dish: { name: string } | null;
+      dish: { name: string; description?: string | null } | null;
     }>;
   }) {
     const phone = this.telegramCustomerPhoneFromRow(orderRow);
@@ -1214,6 +1255,10 @@ export class OrdersService {
       const qty = item.quantity;
       return {
         name: item.dish?.name ?? '—',
+        description:
+          typeof item.dish?.description === 'string' && item.dish.description.trim().length > 0
+            ? item.dish.description.trim()
+            : undefined,
         quantity: qty,
         unitPrice: unit,
         lineTotal: unit * qty,
