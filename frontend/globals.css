@@ -118,6 +118,72 @@ body {
   box-shadow: var(--shadow-sm);
 }
 
+.fd-app-sticky-top {
+  position: sticky;
+  top: 0;
+  z-index: 50;
+  background: var(--color-surface);
+}
+
+.fd-app-sticky-top > .fd-header {
+  position: relative;
+  top: auto;
+}
+
+.fd-order-track-strip {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  padding: 12px 24px;
+  min-height: 48px;
+  box-sizing: border-box;
+  background: var(--color-surface);
+  border-bottom: 1px solid var(--color-border);
+  box-shadow: var(--shadow-sm);
+}
+
+.fd-order-track-strip__main {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex: 1;
+  min-width: 0;
+}
+
+.fd-order-track-strip__label {
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--color-text-secondary);
+}
+
+.fd-order-track-strip__code {
+  font-weight: 700;
+  font-size: 0.9rem;
+  color: var(--color-orange);
+}
+
+.fd-order-track-strip__status {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--color-text);
+  line-height: 1.35;
+}
+
+.fd-order-track-strip__link {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--color-orange);
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.fd-order-track-strip__link:hover {
+  text-decoration: underline;
+}
+
 /* PWA update banner */
 .fd-update-banner {
   position: sticky;
@@ -2189,6 +2255,10 @@ body {
 
   .fd-header {
     padding: 12px 16px;
+  }
+
+  .fd-order-track-strip {
+    padding: 10px 16px;
   }
 
   .fd-header-left {

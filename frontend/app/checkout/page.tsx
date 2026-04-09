@@ -10,6 +10,7 @@ import { getAccessToken } from "../../lib/auth-tokens";
 import { getSavedAddressesForCurrentUser, type SavedAddress } from "../../lib/saved-addresses";
 import { isOpenNowByWorkingHours } from "../../lib/workingHours";
 import { adminApi } from "../../lib/adminApi";
+import { useOrderTracking } from "../../components/OrderTrackingContext";
 
 const CheckoutMapPicker = dynamic(
   () => import("../../components/CheckoutMapPicker").then((m) => m.CheckoutMapPicker),
@@ -30,8 +31,16 @@ const USER_ORDER_STATUS_LABEL: Record<string, string> = {
   CANCELLED: "Bekor qilindi",
 };
 
+const CHECKOUT_STATUS_LINE: Record<string, string> = {
+  NEW: "Buyurtma yuborildi — restoran javobini kutmoqda",
+  ACCEPTED: "Restoran buyurtmani qabul qildi",
+  READY: "Buyurtma tayyor — kuryer tayinlanmoqda",
+  ON_THE_WAY: "Kuryer buyurtmani yetkazmoqda",
+};
+
 export default function CheckoutPage() {
   const { items, total, clear, changeQuantity, restaurantId } = useCart();
+  const { status: trackStatus, activeOrderId, setTrackingOrderId } = useOrderTracking();
   const [submitted, setSubmitted] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -49,9 +58,6 @@ export default function CheckoutPage() {
   const [restaurantDeliveryFee, setRestaurantDeliveryFee] = useState(0);
   const [placedOrderTotal, setPlacedOrderTotal] = useState<number | null>(null);
   const [placedOrderId, setPlacedOrderId] = useState<string | null>(null);
-  const [placedOrderStatus, setPlacedOrderStatus] = useState<string | null>(null);
-  const [statusLoading, setStatusLoading] = useState(false);
-  const [statusMessage, setStatusMessage] = useState<string | null>(null);
   const [receivedBusy, setReceivedBusy] = useState(false);
   const [receivedDone, setReceivedDone] = useState(false);
 
@@ -196,6 +202,9 @@ export default function CheckoutPage() {
       });
       const orderId = typeof created?.id === "string" ? created.id : null;
       setPlacedOrderId(orderId);
+      if (orderId) {
+        setTrackingOrderId(orderId);
+      }
       setPlacedOrderTotal(grandTotal);
       setReceivedDone(false);
       clear();
@@ -225,58 +234,16 @@ export default function CheckoutPage() {
     }
   }
 
-  useEffect(() => {
-    if (!submitted || !placedOrderId || receivedDone) return;
-    if (!getAccessToken()) return;
-
-    let active = true;
-    let timerId: number | undefined;
-
-    const pollOrderStatus = async (isFirstRun: boolean) => {
-      if (!active) return;
-      let shouldContinue = true;
-      if (isFirstRun) {
-        setStatusLoading(true);
-      }
-      try {
-        const orders = await adminApi.getMyOrders();
-        if (!active) return;
-        const current = Array.isArray(orders)
-          ? orders.find((o: any) => String(o?.id ?? "") === placedOrderId)
-          : null;
-        if (current?.status) {
-          const status = String(current.status).toUpperCase();
-          setPlacedOrderStatus(status);
-          setStatusMessage(null);
-          if (status === "DONE" || status === "CANCELLED") {
-            shouldContinue = false;
-          }
-        } else {
-          setStatusMessage("Buyurtma holati topilmadi.");
-        }
-      } catch {
-        if (!active) return;
-        setStatusMessage("Buyurtma holatini yangilab bo‘lmadi.");
-      } finally {
-        if (!active) return;
-        if (isFirstRun) {
-          setStatusLoading(false);
-        }
-        if (shouldContinue) {
-          timerId = window.setTimeout(() => {
-            void pollOrderStatus(false);
-          }, 5000);
-        }
-      }
-    };
-
-    void pollOrderStatus(true);
-
-    return () => {
-      active = false;
-      if (typeof timerId === "number") window.clearTimeout(timerId);
-    };
-  }, [submitted, placedOrderId, receivedDone]);
+  const trackingThisOrder =
+    Boolean(placedOrderId) && activeOrderId != null && placedOrderId === activeOrderId;
+  const statusLine =
+    trackingThisOrder && trackStatus
+      ? CHECKOUT_STATUS_LINE[String(trackStatus).toUpperCase()] ??
+        USER_ORDER_STATUS_LABEL[String(trackStatus).toUpperCase()] ??
+        trackStatus
+      : trackingThisOrder
+        ? "Holat yangilanmoqda…"
+        : null;
 
   return (
     <div className="fd-shell fd-checkout">
@@ -366,15 +333,8 @@ export default function CheckoutPage() {
                   >
                     <div className="fd-checkout-meta">Buyurtma holati</div>
                     <div style={{ fontWeight: 700, marginTop: 4 }}>
-                      {statusLoading
-                        ? "Tekshirilmoqda..."
-                        : USER_ORDER_STATUS_LABEL[String(placedOrderStatus || "").toUpperCase()] ?? "Noma’lum"}
+                      {statusLine ?? (placedOrderId ? "Holat yangilanmoqda…" : "Noma’lum")}
                     </div>
-                    {statusMessage ? (
-                      <div className="fd-checkout-meta" style={{ marginTop: 4, color: "var(--color-orange)" }}>
-                        {statusMessage}
-                      </div>
-                    ) : null}
                   </div>
                   <button
                     type="button"

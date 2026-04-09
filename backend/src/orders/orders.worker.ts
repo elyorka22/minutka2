@@ -45,7 +45,7 @@ export class OrdersWorker extends WorkerHost implements OnModuleInit {
     );
   }
 
-  async process(job: Job<CreateOrderJobData>): Promise<{ ok: boolean }> {
+  async process(job: Job<CreateOrderJobData>): Promise<{ ok: boolean; orderId?: string }> {
     if (job.name !== ORDERS_CREATE_JOB) {
       this.logger.warn(`[orders.worker] skipping unknown job name=${job.name}`);
       return { ok: true };
@@ -54,16 +54,20 @@ export class OrdersWorker extends WorkerHost implements OnModuleInit {
     const start = Date.now();
     // eslint-disable-next-line no-console
     console.log('Processing job', job.id);
-    await this.ordersService.create(customerId, dto, {
+    const created = await this.ordersService.create(customerId, dto, {
       lightweight: true,
       skipCustomerExistsCheck: true,
       skipNotifications: workerSkipNotifications,
       skipTelegram: workerSkipTelegram,
     });
+    const orderId = (created as { id?: string })?.id;
+    if (!orderId) {
+      throw new Error('Order create returned no id');
+    }
     const duration = Date.now() - start;
     // eslint-disable-next-line no-console
     console.log('Finished job', job.id, 'durationMs=', duration);
-    return { ok: true };
+    return { ok: true, orderId };
   }
 
   @OnWorkerEvent('active')

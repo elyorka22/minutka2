@@ -1,5 +1,24 @@
-import { BadRequestException, Body, Controller, ForbiddenException, Get, HttpCode, HttpException, Logger, Param, Patch, Post, Query, Req, ServiceUnavailableException, UseGuards } from '@nestjs/common';
+import {
+  BadRequestException,
+  Body,
+  Controller,
+  ForbiddenException,
+  Get,
+  HttpCode,
+  HttpException,
+  Logger,
+  NotFoundException,
+  Param,
+  Patch,
+  Post,
+  Query,
+  Req,
+  ServiceUnavailableException,
+  UseGuards,
+} from '@nestjs/common';
+import { InjectQueue } from '@nestjs/bullmq';
 import { Throttle, ThrottlerGuard } from '@nestjs/throttler';
+import { Job, Queue } from 'bullmq';
 import { OrdersService } from './orders.service';
 import { CreateOrderDto } from './dto/create-order.dto';
 import { PatchOrderStatusDto } from './dto/patch-order-status.dto';
@@ -7,6 +26,7 @@ import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { AuthService } from '../auth/auth.service';
 import { PrismaService } from '../prisma.service';
 import { OrdersQueue } from './orders.queue';
+import { CreateOrderJobData, ORDERS_QUEUE_NAME } from './orders.constants';
 
 function isTruthyEnv(v: unknown): boolean {
   if (typeof v !== 'string') return false;
@@ -21,7 +41,37 @@ export class OrdersController {
     private readonly ordersService: OrdersService,
     private readonly authService: AuthService,
     private readonly ordersQueue: OrdersQueue,
+    @InjectQueue(ORDERS_QUEUE_NAME) private readonly ordersBullQueue: Queue,
   ) {}
+
+  private assertCreateJobAccess(
+    job: Job<CreateOrderJobData, unknown, string>,
+    authHeader: string | undefined,
+    clientKeyQ: string | undefined,
+  ): void {
+    const data = job.data;
+    if (data.customerId) {
+      if (!authHeader?.startsWith('Bearer ')) {
+        throw new ForbiddenException();
+      }
+      try {
+        const payload = this.authService.verifyToken(authHeader.slice('Bearer '.length));
+        if (payload.sub !== data.customerId) {
+          throw new ForbiddenException();
+        }
+      } catch (e) {
+        if (e instanceof ForbiddenException) throw e;
+        throw new ForbiddenException();
+      }
+      return;
+    }
+    const dk = data.dto?.clientKey;
+    if (dk) {
+      if (clientKeyQ !== dk) {
+        throw new ForbiddenException();
+      }
+    }
+  }
 
   @Post()
   @HttpCode(200)
@@ -72,6 +122,60 @@ export class OrdersController {
     const userId = req.user?.id;
     if (!userId) throw new Error('Unauthorized');
     return this.ordersService.findForCustomer(userId);
+  }
+
+  @Get('create-job/:jobId')
+  @UseGuards(ThrottlerGuard)
+  @Throttle({
+    default: {
+      limit: Number(process.env.ORDERS_JOB_POLL_THROTTLE_LIMIT ?? 120),
+      ttl: Number(process.env.ORDERS_JOB_POLL_THROTTLE_TTL_MS ?? 60000),
+    },
+  })
+  async getCreateJobStatus(
+    @Param('jobId') jobId: string,
+    @Query('clientKey') clientKey: string | undefined,
+    @Req() req: { headers?: { authorization?: string } },
+  ) {
+    const job = await this.ordersBullQueue.getJob(jobId);
+    if (!job) {
+      throw new NotFoundException('Jarayon topilmadi');
+    }
+    this.assertCreateJobAccess(job as Job<CreateOrderJobData, unknown, string>, req.headers?.authorization, clientKey);
+    const state = await job.getState();
+    const rv = job.returnvalue as { orderId?: string } | null | undefined;
+    const failedReason = job.failedReason ?? undefined;
+    return {
+      state,
+      orderId: state === 'completed' && rv?.orderId ? rv.orderId : null,
+      error: state === 'failed' ? failedReason ?? 'Xatolik' : null,
+    };
+  }
+
+  @Get('track/:orderId/status')
+  @UseGuards(ThrottlerGuard)
+  @Throttle({
+    default: {
+      limit: Number(process.env.ORDERS_TRACK_THROTTLE_LIMIT ?? 120),
+      ttl: Number(process.env.ORDERS_TRACK_THROTTLE_TTL_MS ?? 60000),
+    },
+  })
+  async trackOrderStatus(
+    @Param('orderId') orderId: string,
+    @Query('clientKey') clientKey: string | undefined,
+    @Req() req: { headers?: { authorization?: string } },
+  ) {
+    let userId: string | undefined;
+    const auth = req.headers?.authorization;
+    if (auth?.startsWith('Bearer ')) {
+      try {
+        const p = this.authService.verifyToken(auth.slice('Bearer '.length));
+        userId = p.sub;
+      } catch {
+        userId = undefined;
+      }
+    }
+    return this.ordersService.getOrderTrackStatus(orderId, userId, clientKey);
   }
 
   @Get(':id')

@@ -587,6 +587,35 @@ export class OrdersService {
     });
   }
 
+  /** Sayt tepasidagi kuzatuv paneli: JWT yoki `client-${clientKey}@minutka.local` mehmon mijoz. */
+  async getOrderTrackStatus(
+    orderId: string,
+    userId?: string,
+    clientKey?: string,
+  ): Promise<{ status: string; shortCode: number }> {
+    const order = await this.prisma.order.findUnique({
+      where: { id: orderId },
+      select: {
+        status: true,
+        shortCode: true,
+        customer: { select: { id: true, email: true } },
+      },
+    });
+    if (!order) {
+      throw new NotFoundException('Buyurtma topilmadi');
+    }
+    if (userId && order.customer.id === userId) {
+      return { status: order.status, shortCode: order.shortCode };
+    }
+    if (clientKey) {
+      const expectedEmail = `client-${clientKey}@minutka.local`;
+      if (order.customer.email === expectedEmail) {
+        return { status: order.status, shortCode: order.shortCode };
+      }
+    }
+    throw new ForbiddenException('Ruxsat yo‘q');
+  }
+
   /**
    * Mijoz tasdiqlashi: "Qabul qildim" tugmasi.
    * Faqat buyurtma egasi va faqat ON_THE_WAY holatida DONE ga o'tkaziladi.
