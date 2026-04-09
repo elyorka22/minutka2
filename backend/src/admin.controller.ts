@@ -1348,9 +1348,45 @@ export class AdminController {
       return row;
     } catch (e) {
       if (isMissingCarouselRowColumnError(e)) {
-        throw new BadRequestException(
-          "Ma'lumotlar bazasida migratsiya kerak: backend papkasida `npx prisma migrate deploy` ni ishga tushiring (carouselRow ustuni).",
-        );
+        // Legacy DB fallback: insert without `carouselRow` column.
+        const id = randomUUID();
+        const now = new Date();
+        const name = body.name.trim();
+        const imageUrl = body.imageUrl?.trim() || null;
+        const sortOrder = typeof body.sortOrder === 'number' ? body.sortOrder : 0;
+        const isActive = body.isActive ?? true;
+        const searchQuery =
+          body.searchQuery === undefined || body.searchQuery === null
+            ? null
+            : String(body.searchQuery).trim() || null;
+
+        await this.prisma.$executeRaw`
+          INSERT INTO "HomeExploreCategory"
+            ("id", "createdAt", "updatedAt", "name", "imageUrl", "sortOrder", "isActive", "searchQuery")
+          VALUES
+            (${id}, ${now}, ${now}, ${name}, ${imageUrl}, ${sortOrder}, ${isActive}, ${searchQuery})
+        `;
+        this.invalidateHomeCache();
+        const rows = await this.prisma.$queryRaw<
+          Array<{
+            id: string;
+            createdAt: Date;
+            updatedAt: Date;
+            name: string;
+            imageUrl: string | null;
+            sortOrder: number;
+            isActive: boolean;
+            searchQuery: string | null;
+          }>
+        >`
+          SELECT "id","createdAt","updatedAt","name","imageUrl","sortOrder","isActive","searchQuery"
+          FROM "HomeExploreCategory"
+          WHERE "id" = ${id}
+        `;
+        if (!rows[0]) {
+          throw new BadRequestException('Create failed');
+        }
+        return rows[0];
       }
       throw e;
     }
@@ -1390,9 +1426,46 @@ export class AdminController {
       return row;
     } catch (e) {
       if (isMissingCarouselRowColumnError(e)) {
-        throw new BadRequestException(
-          "Ma'lumotlar bazasida migratsiya kerak: `npx prisma migrate deploy` (carouselRow ustuni).",
-        );
+        const patch: any = {
+          ...(body.name !== undefined && { name: body.name.trim() }),
+          ...(body.imageUrl !== undefined && { imageUrl: body.imageUrl?.trim() || null }),
+          ...(body.sortOrder !== undefined && { sortOrder: body.sortOrder }),
+          ...(body.isActive !== undefined && { isActive: body.isActive }),
+          ...(body.searchQuery !== undefined && {
+            searchQuery:
+              body.searchQuery === null || body.searchQuery === ''
+                ? null
+                : String(body.searchQuery).trim(),
+          }),
+        };
+        const res = await this.prisma.homeExploreCategory.updateMany({
+          where: { id },
+          data: patch,
+        });
+        if (!res.count) {
+          throw new NotFoundException('Kategoriya topilmadi');
+        }
+        this.invalidateHomeCache();
+        const rows = await this.prisma.$queryRaw<
+          Array<{
+            id: string;
+            createdAt: Date;
+            updatedAt: Date;
+            name: string;
+            imageUrl: string | null;
+            sortOrder: number;
+            isActive: boolean;
+            searchQuery: string | null;
+          }>
+        >`
+          SELECT "id","createdAt","updatedAt","name","imageUrl","sortOrder","isActive","searchQuery"
+          FROM "HomeExploreCategory"
+          WHERE "id" = ${id}
+        `;
+        if (!rows[0]) {
+          throw new NotFoundException('Kategoriya topilmadi');
+        }
+        return rows[0];
       }
       throw e;
     }
