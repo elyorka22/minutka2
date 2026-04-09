@@ -552,32 +552,6 @@ body {
   background: linear-gradient(145deg, #e2e8f0 0%, #cbd5e1 45%, #f1f5f9 100%);
 }
 
-.fd-home-vv-promo-body {
-  padding: 18px 18px 20px;
-}
-
-.fd-home-vv-promo-title {
-  margin: 0 0 8px;
-  font-size: clamp(1.1rem, 4vw, 1.45rem);
-  font-weight: 800;
-  letter-spacing: -0.03em;
-  line-height: 1.15;
-  text-transform: uppercase;
-  color: #0f172a;
-}
-
-.fd-home-vv-promo-text {
-  margin: 0 0 14px;
-  font-size: 0.9375rem;
-  line-height: 1.45;
-  color: #64748b;
-}
-
-.fd-home-vv-promo-cta {
-  display: inline-block;
-  pointer-events: none;
-}
-
 /* Home screen layout */
 .fd-home-top {
   padding-top: 8px;

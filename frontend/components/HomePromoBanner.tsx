@@ -11,28 +11,27 @@ type Props = {
 };
 
 export function HomePromoBanner({ banner, fallbackRestaurant }: Props) {
-  const title = banner?.title?.trim() || "Mahsulotlar va taomlar";
-  const text =
-    banner?.text?.trim() ||
-    "Shahardagi do‘kon va restoranlardan bir joyda buyurtma qiling.";
   const rawImg =
     banner?.imageUrl?.trim() ||
     fallbackRestaurant?.coverUrl ||
     fallbackRestaurant?.logoUrl ||
     null;
-  const ctaLabel = banner?.ctaLabel?.trim() || "Boshlash";
   const ctaHref =
     banner?.ctaHref?.trim() ||
     (fallbackRestaurant ? `/restaurants/${fallbackRestaurant.id}` : "/restaurants");
+  const imgAlt =
+    banner?.title?.trim() ||
+    fallbackRestaurant?.name?.trim() ||
+    "Bosh sahifa aksiyasi";
 
   return (
     <article className="fd-home-vv-promo">
-      <Link href={ctaHref} className="fd-home-vv-promo-link">
+      <Link href={ctaHref} className="fd-home-vv-promo-link" aria-label={imgAlt}>
         <div className="fd-home-vv-promo-media">
           {rawImg ? (
             <SafeImage
               src={imageUrl(rawImg)}
-              alt=""
+              alt={imgAlt}
               className="fd-home-vv-promo-img"
               width={800}
               height={500}
@@ -45,11 +44,6 @@ export function HomePromoBanner({ banner, fallbackRestaurant }: Props) {
           ) : (
             <div className="fd-home-vv-promo-placeholder" aria-hidden />
           )}
-        </div>
-        <div className="fd-home-vv-promo-body">
-          <h2 className="fd-home-vv-promo-title">{title}</h2>
-          <p className="fd-home-vv-promo-text">{text}</p>
-          <span className="fd-btn fd-btn-primary fd-home-vv-promo-cta">{ctaLabel}</span>
         </div>
       </Link>
     </article>
