@@ -2,7 +2,7 @@
 
 import type { ReactNode } from "react";
 import Link from "next/link";
-import { useEffect, useLayoutEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { usePathname } from "next/navigation";
 import { CartProvider, useCart } from "./CartContext";
 import { usePWAInstall } from "../hooks/usePWAInstall";
@@ -24,8 +24,6 @@ function Header() {
 }
 
 function HeaderMain({ showCity }: { showCity: boolean }) {
-  const pathname = usePathname() || "";
-  const isHome = pathname === "/";
   const [canInstall, setCanInstall] = useState(false);
   const [installEvent, setInstallEvent] = useState<any | null>(null);
   const [isStandalone, setIsStandalone] = useState(false);
@@ -95,7 +93,7 @@ function HeaderMain({ showCity }: { showCity: boolean }) {
   }
 
   return (
-    <header className={isHome ? "fd-header fd-header--home" : "fd-header"}>
+    <header className="fd-header">
       <div className="fd-header-left">
         <div style={{ display: "flex", flexDirection: "column", lineHeight: 1.1 }}>
           <Link href="/" className="fd-logo">
@@ -213,16 +211,6 @@ function useShowBottomBar() {
   if (pathname.startsWith("/restaurant-admin")) return false;
   if (pathname.startsWith("/courier")) return false;
   return true;
-}
-
-/** Bosh sahifada html fonini #ff6b00 qilish (holat paneli ostidagi oq chiziq) — SPA navigatsiya bilan sinxron. */
-function HomeRootChrome() {
-  const pathname = usePathname() || "";
-  useLayoutEffect(() => {
-    const onHome = pathname === "/" || pathname === "";
-    document.documentElement.classList.toggle("fd-root--home", onHome);
-  }, [pathname]);
-  return null;
 }
 
 function VisitRecorder() {
@@ -368,7 +356,6 @@ export default function ClientRootLayout({ children }: { children: ReactNode }) 
     <>
       <DeferredMaterialIcons />
       <CartProvider>
-        <HomeRootChrome />
         <VisitRecorder />
         <Header />
         {updateReady && (
