@@ -574,8 +574,8 @@ body {
 }
 
 .fd-home-vv-promo {
-  margin: 0 0 20px;
-  border-radius: 20px;
+  margin: 0 0 14px;
+  border-radius: 16px;
   overflow: hidden;
   background: var(--color-surface);
   box-shadow: 0 4px 22px rgba(15, 23, 42, 0.08);
@@ -592,7 +592,7 @@ body {
 .fd-home-vv-promo-media {
   position: relative;
   width: 100%;
-  aspect-ratio: 16 / 10;
+  aspect-ratio: 16 / 6.5;
   background: linear-gradient(145deg, #f1f5f9 0%, #e2e8f0 100%);
   overflow: hidden;
 }
