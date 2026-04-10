@@ -10,7 +10,6 @@ import { PWAInstallModal } from "./PWAInstallModal";
 import { DeferredMaterialIcons } from "./DeferredMaterialIcons";
 import { api } from "../lib/api";
 import { OrderTrackingProvider } from "./OrderTrackingContext";
-import { OrderTrackingStrip } from "./OrderTrackingStrip";
 
 function Header() {
   const pathname = usePathname() || "";
@@ -408,10 +407,7 @@ export default function ClientRootLayout({ children }: { children: ReactNode }) 
       <CartProvider>
         <VisitRecorder />
         <PwaInstallReporter />
-        <div className="fd-app-sticky-top">
-          <Header />
-          <OrderTrackingStrip />
-        </div>
+        <Header />
         {updateReady && (
           <div className="fd-update-banner" role="status" aria-live="polite">
             <div className="fd-update-banner__text">

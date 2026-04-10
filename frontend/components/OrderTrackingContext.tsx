@@ -6,6 +6,7 @@ import {
   useContext,
   useEffect,
   useMemo,
+  useRef,
   useState,
   type ReactNode,
 } from "react";
@@ -15,6 +16,8 @@ import { getAccessToken } from "../lib/auth-tokens";
 const STORAGE_KEY = "minutka_track_order_id";
 
 const TERMINAL = new Set(["DONE", "CANCELLED"]);
+
+const CANCEL_NOTICE_MS = 14_000;
 
 async function fetchTrackStatus(orderId: string): Promise<{ status: string; shortCode: number }> {
   const token = getAccessToken();
@@ -37,7 +40,9 @@ type OrderTrackingContextValue = {
   activeOrderId: string | null;
   status: string | null;
   shortCode: number | null;
+  cancelledNotice: { shortCode: number } | null;
   setTrackingOrderId: (id: string | null) => void;
+  dismissCancelledNotice: () => void;
 };
 
 const OrderTrackingContext = createContext<OrderTrackingContextValue | null>(null);
@@ -46,6 +51,24 @@ export function OrderTrackingProvider({ children }: { children: ReactNode }) {
   const [activeOrderId, setActiveOrderIdState] = useState<string | null>(null);
   const [status, setStatus] = useState<string | null>(null);
   const [shortCode, setShortCode] = useState<number | null>(null);
+  const [cancelledNotice, setCancelledNotice] = useState<{ shortCode: number } | null>(null);
+  const cancelledTimerRef = useRef<number | null>(null);
+
+  const dismissCancelledNotice = useCallback(() => {
+    if (cancelledTimerRef.current != null) {
+      window.clearTimeout(cancelledTimerRef.current);
+      cancelledTimerRef.current = null;
+    }
+    setCancelledNotice(null);
+  }, []);
+
+  useEffect(() => {
+    return () => {
+      if (cancelledTimerRef.current != null) {
+        window.clearTimeout(cancelledTimerRef.current);
+      }
+    };
+  }, []);
 
   useEffect(() => {
     try {
@@ -93,8 +116,20 @@ export function OrderTrackingProvider({ children }: { children: ReactNode }) {
         setStatus(s.status);
         setShortCode(s.shortCode);
         const up = String(s.status).toUpperCase();
-        if (TERMINAL.has(up)) {
+        if (up === "DONE") {
           setTrackingOrderId(null);
+          return;
+        }
+        if (up === "CANCELLED") {
+          if (cancelledTimerRef.current != null) {
+            window.clearTimeout(cancelledTimerRef.current);
+          }
+          setCancelledNotice({ shortCode: s.shortCode });
+          setTrackingOrderId(null);
+          cancelledTimerRef.current = window.setTimeout(() => {
+            setCancelledNotice(null);
+            cancelledTimerRef.current = null;
+          }, CANCEL_NOTICE_MS);
           return;
         }
       } catch {
@@ -118,9 +153,11 @@ export function OrderTrackingProvider({ children }: { children: ReactNode }) {
       activeOrderId,
       status,
       shortCode,
+      cancelledNotice,
       setTrackingOrderId,
+      dismissCancelledNotice,
     }),
-    [activeOrderId, status, shortCode, setTrackingOrderId],
+    [activeOrderId, status, shortCode, cancelledNotice, setTrackingOrderId, dismissCancelledNotice],
   );
 
   return <OrderTrackingContext.Provider value={value}>{children}</OrderTrackingContext.Provider>;

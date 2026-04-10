@@ -11,6 +11,7 @@ import { getSavedAddressesForCurrentUser, type SavedAddress } from "../../lib/sa
 import { isOpenNowByWorkingHours } from "../../lib/workingHours";
 import { adminApi } from "../../lib/adminApi";
 import { useOrderTracking } from "../../components/OrderTrackingContext";
+import { OrderTrackingCartPanel } from "../../components/OrderTrackingCartPanel";
 
 const CheckoutMapPicker = dynamic(
   () => import("../../components/CheckoutMapPicker").then((m) => m.CheckoutMapPicker),
@@ -22,25 +23,9 @@ const CheckoutMapPicker = dynamic(
 
 const STREET_FROM_MAP = "Xaritada belgilangan nuqta";
 const STREET_FROM_GEO = "Geolokatsiya orqali";
-const USER_ORDER_STATUS_LABEL: Record<string, string> = {
-  NEW: "Yangi",
-  ACCEPTED: "Qabul qilindi",
-  READY: "Tayyor",
-  ON_THE_WAY: "Yo‘lda",
-  DONE: "Yetkazildi",
-  CANCELLED: "Bekor qilindi",
-};
-
-const CHECKOUT_STATUS_LINE: Record<string, string> = {
-  NEW: "Buyurtma yuborildi — restoran javobini kutmoqda",
-  ACCEPTED: "Restoran buyurtmani qabul qildi",
-  READY: "Buyurtma tayyor — kuryer tayinlanmoqda",
-  ON_THE_WAY: "Kuryer buyurtmani yetkazmoqda",
-};
-
 export default function CheckoutPage() {
   const { items, total, clear, changeQuantity, restaurantId } = useCart();
-  const { status: trackStatus, activeOrderId, setTrackingOrderId } = useOrderTracking();
+  const { setTrackingOrderId } = useOrderTracking();
   const [submitted, setSubmitted] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -234,17 +219,6 @@ export default function CheckoutPage() {
     }
   }
 
-  const trackingThisOrder =
-    Boolean(placedOrderId) && activeOrderId != null && placedOrderId === activeOrderId;
-  const statusLine =
-    trackingThisOrder && trackStatus
-      ? CHECKOUT_STATUS_LINE[String(trackStatus).toUpperCase()] ??
-        USER_ORDER_STATUS_LABEL[String(trackStatus).toUpperCase()] ??
-        trackStatus
-      : trackingThisOrder
-        ? "Holat yangilanmoqda…"
-        : null;
-
   return (
     <div className="fd-shell fd-checkout">
       <BackLink href="/" />
@@ -252,6 +226,7 @@ export default function CheckoutPage() {
       <div className="fd-checkout-layout">
         <section className="fd-checkout-cart">
           <h2>Savat</h2>
+          <OrderTrackingCartPanel />
           {items.length === 0 && <p className="fd-empty">Savat bo‘sh.</p>}
           {items.map((item) => {
             const id = item.dish.id;
@@ -322,20 +297,9 @@ export default function CheckoutPage() {
               </p>
               {placedOrderId ? (
                 <>
-                  <div
-                    style={{
-                      marginTop: 12,
-                      padding: "10px 12px",
-                      borderRadius: 10,
-                      border: "1px solid var(--color-border)",
-                      background: "var(--fd-bg-2)",
-                    }}
-                  >
-                    <div className="fd-checkout-meta">Buyurtma holati</div>
-                    <div style={{ fontWeight: 700, marginTop: 4 }}>
-                      {statusLine ?? (placedOrderId ? "Holat yangilanmoqda…" : "Noma’lum")}
-                    </div>
-                  </div>
+                  <p className="fd-checkout-meta" style={{ marginTop: 12 }}>
+                    Buyurtma holati savat ustidagi blokda yangilanadi.
+                  </p>
                   <button
                     type="button"
                     className="fd-btn fd-btn-primary"
