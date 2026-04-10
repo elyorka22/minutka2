@@ -8,6 +8,7 @@ import { CartProvider, useCart } from "./CartContext";
 import { usePWAInstall } from "../hooks/usePWAInstall";
 import { PWAInstallModal } from "./PWAInstallModal";
 import { DeferredMaterialIcons } from "./DeferredMaterialIcons";
+import { HeaderSearchBar } from "./HeaderSearchBar";
 import { api } from "../lib/api";
 import { OrderTrackingProvider } from "./OrderTrackingContext";
 
@@ -437,6 +438,7 @@ export default function ClientRootLayout({ children }: { children: ReactNode }) 
         <VisitRecorder />
         <PwaInstallReporter />
         <Header />
+        <HeaderSearchBar />
         {updateReady && (
           <div className="fd-update-banner" role="status" aria-live="polite">
             <div className="fd-update-banner__text">
