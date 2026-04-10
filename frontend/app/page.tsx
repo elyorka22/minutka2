@@ -137,24 +137,37 @@ export default async function HomePage() {
         </h2>
         <div className="fd-grid fd-grid--barcha-home">
           {normalRestaurants.map((r, index) => (
-            <Link key={r.id} href={`/restaurants/${r.id}`} className="fd-card fd-card--barcha-banner">
-              <SafeImage
-                src={(r.coverUrl || r.logoUrl) ? imageUrl(r.coverUrl || r.logoUrl) : ""}
-                alt=""
-                className="fd-card-image"
-                width={400}
-                height={300}
-                quality={76}
-                priority={thumbLcp(index === 0)}
-                style={{ width: "100%", height: "auto", objectFit: "cover", aspectRatio: "16/6.5" }}
-                fallbackStyle={{ height: 170 }}
-                sizes="(max-width: 900px) 100vw, 900px"
-              />
-              <div className="fd-card-body">
-                <div className="fd-card-title-row">
-                  <h3>{r.name}</h3>
+            <Link
+              key={r.id}
+              href={`/restaurants/${r.id}`}
+              className={`fd-card fd-card--barcha-banner fd-barcha-banner--${index % 2 === 0 ? "a" : "b"}`}
+            >
+              <div className="fd-barcha-banner-shell">
+                <div className="fd-barcha-banner-text">
+                  <h3 className="fd-barcha-banner-title">{r.name}</h3>
+                  {r.rating != null && r.rating > 0 && (
+                    <span className="fd-barcha-banner-rating">
+                      {Math.round((Math.min(5, Math.max(0, r.rating)) / 5) * 100)}%
+                    </span>
+                  )}
+                  {r.description ? (
+                    <p className="fd-barcha-banner-desc">{r.description}</p>
+                  ) : null}
                 </div>
-                {r.description && <p className="fd-card-desc">{r.description}</p>}
+                <div className="fd-barcha-banner-img-wrap">
+                  <SafeImage
+                    src={(r.coverUrl || r.logoUrl) ? imageUrl(r.coverUrl || r.logoUrl) : ""}
+                    alt={r.name}
+                    className="fd-barcha-banner-img"
+                    width={320}
+                    height={320}
+                    quality={76}
+                    priority={thumbLcp(index === 0)}
+                    sizes="(max-width: 900px) 45vw, 360px"
+                    fallbackClassName="fd-barcha-banner-img fd-barcha-banner-img--ph"
+                    fallbackStyle={{ width: "100%", minHeight: 112 }}
+                  />
+                </div>
               </div>
             </Link>
           ))}
