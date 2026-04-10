@@ -1010,14 +1010,14 @@ body {
   gap: 20px;
 }
 
-/* Bosh sahifa «Barcha restoranlar»: har qatorda 2 ta karta; katta rasm, ixcham matn */
+/* Bosh sahifa «Barcha restoranlar»: katta gorizontal bannerlar */
 .fd-grid.fd-grid--barcha-home {
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 12px;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 14px;
 }
 
 .fd-grid.fd-grid--barcha-home .fd-card-body {
-  padding: 10px 10px 10px;
+  padding: 12px 12px 12px;
   margin-top: 0;
 }
 
@@ -1027,8 +1027,8 @@ body {
 }
 
 .fd-grid.fd-grid--barcha-home .fd-card-title-row h3 {
-  font-size: 0.875rem;
-  font-weight: 600;
+  font-size: 1.02rem;
+  font-weight: 700;
   line-height: 1.2;
   letter-spacing: -0.01em;
 }
@@ -1040,14 +1040,18 @@ body {
 }
 
 .fd-grid.fd-grid--barcha-home .fd-card-desc {
-  margin: 2px 0 0;
-  font-size: 0.75rem;
-  line-height: 1.3;
+  margin: 6px 0 0;
+  font-size: 0.86rem;
+  line-height: 1.35;
 }
 
 /* Image slot: same tone as skeleton; avoids flash when photo loads */
 .fd-grid.fd-grid--barcha-home .fd-card-image {
   background-color: var(--color-bg);
+}
+
+.fd-card--barcha-banner {
+  overflow: hidden;
 }
 
 .fd-grid--2 {
