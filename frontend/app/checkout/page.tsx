@@ -45,6 +45,7 @@ export default function CheckoutPage() {
   const [placedOrderId, setPlacedOrderId] = useState<string | null>(null);
   const [receivedBusy, setReceivedBusy] = useState(false);
   const [receivedDone, setReceivedDone] = useState(false);
+  const [showMapConfirmModal, setShowMapConfirmModal] = useState(false);
 
   const needRestaurant = items.length > 0 && !restaurantId;
 
@@ -142,8 +143,7 @@ export default function CheckoutPage() {
     setCoords(CHUST_DEFAULT_COORDS.lat, CHUST_DEFAULT_COORDS.lng);
   }, [addressMode, selectedSavedAddress]);
 
-  async function handleSubmit(e: FormEvent) {
-    e.preventDefault();
+  async function submitOrder(skipMapConfirm: boolean) {
     setSubmitError(null);
     if (!restaurantId || items.length === 0) {
       setSubmitError("Savat bo‘sh yoki restoran aniqlanmadi. Taomlarni qayta qo‘shing.");
@@ -157,9 +157,9 @@ export default function CheckoutPage() {
       setSubmitError("Avval «Mening joylashuvim» tugmasi orqali geolokatsiyani aniqlang.");
       return;
     }
-    if (addressMode === "map") {
-      const ok = window.confirm("Xaritada nuqtani to‘g‘ri qo‘ydingizmi?");
-      if (!ok) return;
+    if (addressMode === "map" && !skipMapConfirm) {
+      setShowMapConfirmModal(true);
+      return;
     }
     const streetVal = selectedSavedAddress
       ? selectedSavedAddress.street
@@ -210,6 +210,11 @@ export default function CheckoutPage() {
     } finally {
       setLoading(false);
     }
+  }
+
+  async function handleSubmit(e: FormEvent) {
+    e.preventDefault();
+    await submitOrder(false);
   }
 
   const latNum = Number(lat);
@@ -486,6 +491,59 @@ export default function CheckoutPage() {
           )}
         </section>
       </div>
+      {showMapConfirmModal && (
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-label="Xaritadagi nuqtani tasdiqlash"
+          style={{
+            position: "fixed",
+            inset: 0,
+            zIndex: 1000,
+            background: "rgba(0,0,0,0.45)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            padding: 16,
+          }}
+        >
+          <div
+            style={{
+              width: "100%",
+              maxWidth: 420,
+              background: "var(--color-surface, #fff)",
+              borderRadius: 16,
+              border: "1px solid var(--color-border, #e8e8e8)",
+              boxShadow: "0 16px 40px rgba(0,0,0,0.2)",
+              padding: 18,
+            }}
+          >
+            <h3 style={{ margin: 0, fontSize: "1.1rem" }}>Joylashuvni tasdiqlash</h3>
+            <p className="fd-checkout-meta" style={{ marginTop: 10, marginBottom: 0 }}>
+              Xaritada nuqtani to‘g‘ri qo‘ydingizmi?
+            </p>
+            <div style={{ display: "flex", justifyContent: "flex-end", gap: 8, marginTop: 16 }}>
+              <button
+                type="button"
+                className="fd-btn"
+                onClick={() => setShowMapConfirmModal(false)}
+              >
+                Bekor qilish
+              </button>
+              <button
+                type="button"
+                className="fd-btn fd-btn-primary"
+                onClick={async () => {
+                  setShowMapConfirmModal(false);
+                  await submitOrder(true);
+                }}
+              >
+                Tasdiqlash
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
