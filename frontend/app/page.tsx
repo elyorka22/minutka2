@@ -91,7 +91,6 @@ export default async function HomePage() {
             variant="featureCards"
             categories={exploreCategories}
             ariaLabel="Tezkor kategoriyalar"
-            titleAccent="Mashhur yo‘nalishlar"
             titleMain="Bugun nimani buyurtma qilasiz?"
           />
         </div>

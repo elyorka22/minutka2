@@ -36,15 +36,15 @@ export function HomeExploreCarousel({
   if (categories.length === 0) return null;
 
   if (variant === "featureCards") {
-    const accent = titleAccent ?? "Mashhur yo‘nalishlar";
     const main = titleMain ?? "Bugun nimani buyurtma qilasiz?";
+    const eyebrowText = titleAccent?.trim() ?? "";
     const scrollClass = ["fd-home-explore-scroll", "fd-home-explore-scroll--feature-cards", classNameScroll]
       .filter(Boolean)
       .join(" ");
     return (
       <section className="fd-home-explore-panel" aria-labelledby="fd-home-explore-heading">
         <div className="fd-home-explore-panel__head">
-          <p className="fd-home-explore-panel__eyebrow">{accent}</p>
+          {eyebrowText ? <p className="fd-home-explore-panel__eyebrow">{eyebrowText}</p> : null}
           <h2 id="fd-home-explore-heading" className="fd-home-explore-panel__title">
             {main}
           </h2>

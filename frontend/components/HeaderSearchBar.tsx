@@ -1,27 +1,15 @@
 "use client";
 
 import { usePathname, useRouter } from "next/navigation";
-import { FormEvent, useEffect, useState } from "react";
-
-function showSearchBar(pathname: string) {
-  if (pathname.startsWith("/platform-admin")) return false;
-  if (pathname.startsWith("/restaurant-admin")) return false;
-  if (pathname.startsWith("/courier")) return false;
-  return true;
-}
+import { FormEvent, useState } from "react";
 
 export function HeaderSearchBar() {
   const pathname = usePathname() || "";
   const router = useRouter();
   const [q, setQ] = useState("");
 
-  useEffect(() => {
-    if (!pathname.startsWith("/search")) return;
-    const params = new URLSearchParams(window.location.search);
-    setQ(params.get("q") || "");
-  }, [pathname]);
-
-  if (!showSearchBar(pathname)) return null;
+  /** Faqat bosh sahifada (/) */
+  if (pathname !== "/") return null;
 
   function onSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
