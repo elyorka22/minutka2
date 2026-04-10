@@ -326,28 +326,50 @@ export default function RestaurantAdminPage({
   /** Mirrors manualArchive for use inside fetch callbacks (always current). */
   const manualArchiveRef = useRef<any[]>([]);
 
-  function playNewOrderSound() {
-    if (typeof window === "undefined") return;
+  function ensureAudioContext(): AudioContext | null {
+    if (typeof window === "undefined") return null;
     const Ctx = window.AudioContext || (window as any).webkitAudioContext;
-    if (!Ctx) return;
+    if (!Ctx) return null;
     try {
       if (!audioCtxRef.current) audioCtxRef.current = new Ctx();
-      const ctx = audioCtxRef.current;
+      return audioCtxRef.current;
+    } catch {
+      return null;
+    }
+  }
+
+  function playNewOrderSound() {
+    const ctx = ensureAudioContext();
+    if (!ctx) return;
+    try {
       if (ctx.state === "suspended") {
         void ctx.resume().catch(() => {});
       }
+      if (ctx.state !== "running") return;
       const now = ctx.currentTime;
-      const osc = ctx.createOscillator();
       const gain = ctx.createGain();
-      osc.type = "sine";
-      osc.frequency.setValueAtTime(880, now);
       gain.gain.setValueAtTime(0.0001, now);
-      gain.gain.exponentialRampToValueAtTime(0.18, now + 0.02);
-      gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.22);
-      osc.connect(gain);
       gain.connect(ctx.destination);
-      osc.start(now);
-      osc.stop(now + 0.24);
+
+      const osc1 = ctx.createOscillator();
+      osc1.type = "triangle";
+      osc1.frequency.setValueAtTime(980, now);
+      osc1.connect(gain);
+      gain.gain.exponentialRampToValueAtTime(0.28, now + 0.02);
+      gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.2);
+      osc1.start(now);
+      osc1.stop(now + 0.21);
+
+      const secondStart = now + 0.24;
+      const osc2 = ctx.createOscillator();
+      osc2.type = "triangle";
+      osc2.frequency.setValueAtTime(1320, secondStart);
+      osc2.connect(gain);
+      gain.gain.setValueAtTime(0.0001, secondStart);
+      gain.gain.exponentialRampToValueAtTime(0.25, secondStart + 0.02);
+      gain.gain.exponentialRampToValueAtTime(0.0001, secondStart + 0.19);
+      osc2.start(secondStart);
+      osc2.stop(secondStart + 0.2);
     } catch {
       // ignore audio errors (browser policy/device)
     }
@@ -390,6 +412,24 @@ export default function RestaurantAdminPage({
       // ignore storage issues
     }
   }, [soundEnabled, soundEnabledKey]);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const unlock = () => {
+      const ctx = ensureAudioContext();
+      if (!ctx) return;
+      void ctx
+        .resume()
+        .then(() => {})
+        .catch(() => {});
+    };
+    window.addEventListener("pointerdown", unlock, { passive: true });
+    window.addEventListener("keydown", unlock);
+    return () => {
+      window.removeEventListener("pointerdown", unlock);
+      window.removeEventListener("keydown", unlock);
+    };
+  }, []);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
