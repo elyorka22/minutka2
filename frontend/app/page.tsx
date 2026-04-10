@@ -143,6 +143,21 @@ export default async function HomePage() {
               className={`fd-card fd-card--barcha-banner fd-barcha-banner--${index % 2 === 0 ? "a" : "b"}`}
             >
               <div className="fd-barcha-banner-shell">
+                <div className="fd-barcha-banner-img-wrap" aria-hidden>
+                  <SafeImage
+                    src={(r.coverUrl || r.logoUrl) ? imageUrl(r.coverUrl || r.logoUrl) : ""}
+                    alt=""
+                    className="fd-barcha-banner-img"
+                    width={960}
+                    height={540}
+                    quality={78}
+                    priority={thumbLcp(index === 0)}
+                    sizes="(max-width: 900px) 100vw, 900px"
+                    fallbackClassName="fd-barcha-banner-img fd-barcha-banner-img--ph"
+                    fallbackStyle={{ width: "100%", height: "100%", minHeight: 168 }}
+                  />
+                </div>
+                <div className="fd-barcha-banner-scrim" aria-hidden />
                 <div className="fd-barcha-banner-text">
                   <h3 className="fd-barcha-banner-title">{r.name}</h3>
                   {r.rating != null && r.rating > 0 && (
@@ -153,20 +168,6 @@ export default async function HomePage() {
                   {r.description ? (
                     <p className="fd-barcha-banner-desc">{r.description}</p>
                   ) : null}
-                </div>
-                <div className="fd-barcha-banner-img-wrap">
-                  <SafeImage
-                    src={(r.coverUrl || r.logoUrl) ? imageUrl(r.coverUrl || r.logoUrl) : ""}
-                    alt={r.name}
-                    className="fd-barcha-banner-img"
-                    width={320}
-                    height={320}
-                    quality={76}
-                    priority={thumbLcp(index === 0)}
-                    sizes="(max-width: 900px) 45vw, 360px"
-                    fallbackClassName="fd-barcha-banner-img fd-barcha-banner-img--ph"
-                    fallbackStyle={{ width: "100%", minHeight: 112 }}
-                  />
                 </div>
               </div>
             </Link>

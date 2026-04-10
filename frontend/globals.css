@@ -1035,13 +1035,11 @@ body {
 }
 
 .fd-barcha-banner-shell {
-  display: flex;
-  flex-direction: row;
-  align-items: stretch;
-  min-height: 132px;
-  border-radius: 22px;
-  overflow: visible;
   position: relative;
+  display: block;
+  min-height: 168px;
+  border-radius: 22px;
+  overflow: hidden;
   box-shadow: var(--shadow-sm);
   border: 1px solid var(--color-border);
   transition: box-shadow 0.2s ease, border-color 0.2s ease, transform 0.12s ease;
@@ -1058,43 +1056,95 @@ body {
   transform: scale(0.98);
 }
 
+/* Fon rangi: rasm yo‘q / yuklanayotganda */
 .fd-barcha-banner--a .fd-barcha-banner-shell {
   background: #1c1c1e;
-  color: #fff;
   border-color: rgba(255, 255, 255, 0.08);
-}
-
-.fd-barcha-banner--a .fd-barcha-banner-desc {
-  color: rgba(255, 255, 255, 0.72);
-}
-
-.fd-barcha-banner--a .fd-barcha-banner-rating {
-  color: rgba(255, 255, 255, 0.88);
 }
 
 .fd-barcha-banner--b .fd-barcha-banner-shell {
   background: #d4ec5c;
-  color: #1a1a1a;
   border-color: rgba(0, 0, 0, 0.06);
 }
 
-.fd-barcha-banner--b .fd-barcha-banner-desc {
-  color: rgba(26, 26, 26, 0.68);
+/* Rasm butun bannerni qoplaydi */
+.fd-barcha-banner-img-wrap {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  overflow: hidden;
 }
 
-.fd-barcha-banner--b .fd-barcha-banner-rating {
-  color: rgba(26, 26, 26, 0.82);
+.fd-barcha-banner-img {
+  position: absolute;
+  inset: 0;
+  display: block;
+  width: 100% !important;
+  height: 100% !important;
+  max-width: none !important;
+  max-height: none !important;
+  object-fit: cover;
+  object-position: center;
+}
+
+.fd-barcha-banner-img--ph {
+  position: absolute;
+  inset: 0;
+  width: 100% !important;
+  height: 100% !important;
+  max-width: none !important;
+  max-height: none !important;
+  border-radius: 0;
+  background: rgba(0, 0, 0, 0.22);
+}
+
+.fd-barcha-banner--b .fd-barcha-banner-img--ph {
+  background: rgba(0, 0, 0, 0.12);
+}
+
+/* Matn o‘qilishi uchun chapdan gradient */
+.fd-barcha-banner-scrim {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+}
+
+.fd-barcha-banner--a .fd-barcha-banner-scrim {
+  background: linear-gradient(
+    90deg,
+    rgba(18, 18, 20, 0.94) 0%,
+    rgba(18, 18, 20, 0.72) 32%,
+    rgba(18, 18, 20, 0.35) 55%,
+    rgba(18, 18, 20, 0.08) 78%,
+    transparent 100%
+  );
+}
+
+.fd-barcha-banner--b .fd-barcha-banner-scrim {
+  background: linear-gradient(
+    90deg,
+    rgba(28, 32, 12, 0.92) 0%,
+    rgba(28, 32, 12, 0.65) 30%,
+    rgba(212, 236, 92, 0.25) 52%,
+    rgba(212, 236, 92, 0.06) 75%,
+    transparent 100%
+  );
 }
 
 .fd-barcha-banner-text {
-  flex: 1;
+  position: relative;
+  z-index: 2;
   min-width: 0;
-  padding: 16px 8px 16px 18px;
+  max-width: 78%;
+  min-height: 168px;
+  padding: 18px 16px 18px 20px;
   display: flex;
   flex-direction: column;
   justify-content: center;
   gap: 4px;
-  z-index: 1;
+  color: #fff;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.35);
 }
 
 .fd-barcha-banner-title {
@@ -1109,6 +1159,7 @@ body {
   font-size: 0.875rem;
   font-weight: 700;
   line-height: 1.2;
+  color: rgba(255, 255, 255, 0.92);
 }
 
 .fd-barcha-banner-desc {
@@ -1119,38 +1170,8 @@ body {
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
-}
-
-.fd-barcha-banner-img-wrap {
-  flex: 0 0 40%;
-  max-width: 220px;
-  position: relative;
-  display: flex;
-  align-items: flex-end;
-  justify-content: flex-end;
-  padding-right: 6px;
-  margin-top: -14px;
-  margin-bottom: -6px;
-  align-self: stretch;
-}
-
-.fd-barcha-banner-img {
-  width: auto !important;
-  height: 118% !important;
-  max-height: 168px;
-  object-fit: contain;
-  object-position: bottom right;
-  filter: drop-shadow(0 10px 20px rgba(0, 0, 0, 0.18));
-}
-
-.fd-barcha-banner-img--ph {
-  align-self: flex-end;
-  border-radius: var(--radius-md);
-  background: rgba(255, 255, 255, 0.12);
-}
-
-.fd-barcha-banner--b .fd-barcha-banner-img--ph {
-  background: rgba(0, 0, 0, 0.08);
+  color: rgba(255, 255, 255, 0.88);
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.4);
 }
 
 @media (max-width: 400px) {
@@ -1158,14 +1179,14 @@ body {
     font-size: 1.1rem;
   }
 
-  .fd-barcha-banner-img-wrap {
-    flex-basis: 38%;
-    max-width: 160px;
-    margin-top: -10px;
+  .fd-barcha-banner-shell {
+    min-height: 152px;
   }
 
-  .fd-barcha-banner-img {
-    max-height: 140px;
+  .fd-barcha-banner-text {
+    min-height: 152px;
+    max-width: 88%;
+    padding: 14px 12px 14px 16px;
   }
 }
 
