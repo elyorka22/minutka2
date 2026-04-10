@@ -23,6 +23,8 @@ export class BannersController {
           ctaLabel: true,
           ctaHref: true,
           sortOrder: true,
+          imageFocusX: true,
+          imageFocusY: true,
         },
       }),
     );

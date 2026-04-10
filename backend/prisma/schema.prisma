@@ -270,6 +270,10 @@ model Banner {
   text     String?
   imageUrl String?
 
+  /** Rasm fokusi: `object-position` uchun 0–100 (%). */
+  imageFocusX Int @default(50)
+  imageFocusY Int @default(50)
+
   ctaLabel String?
   ctaHref  String?
 

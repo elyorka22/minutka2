@@ -45,6 +45,11 @@ interface RequestWithUser {
   user?: { id: string; role: string };
 }
 
+function normalizeBannerFocus(n: unknown): number | undefined {
+  if (typeof n !== 'number' || !Number.isFinite(n)) return undefined;
+  return Math.min(100, Math.max(0, Math.round(n)));
+}
+
 @Controller('admin')
 @UseGuards(JwtAuthGuard)
 export class AdminController {
@@ -313,6 +318,8 @@ export class AdminController {
             ctaHref: true,
             sortOrder: true,
             isActive: true,
+            imageFocusX: true,
+            imageFocusY: true,
           },
         }),
         this.prisma.productCategory.findMany({
@@ -1612,6 +1619,8 @@ export class AdminController {
       ctaHref?: string;
       sortOrder?: number;
       isActive?: boolean;
+      imageFocusX?: number;
+      imageFocusY?: number;
     },
     @Req() req: RequestWithUser,
   ) {
@@ -1630,6 +1639,8 @@ export class AdminController {
         ctaHref: body.ctaHref?.trim() ?? null,
         sortOrder: typeof body.sortOrder === 'number' ? body.sortOrder : 0,
         isActive: body.isActive ?? true,
+        imageFocusX: normalizeBannerFocus(body.imageFocusX) ?? 50,
+        imageFocusY: normalizeBannerFocus(body.imageFocusY) ?? 50,
       },
     });
     this.invalidateHomeCache();
@@ -1648,6 +1659,8 @@ export class AdminController {
       ctaHref?: string;
       sortOrder?: number;
       isActive?: boolean;
+      imageFocusX?: number;
+      imageFocusY?: number;
     },
     @Req() req: RequestWithUser,
   ) {
@@ -1666,6 +1679,12 @@ export class AdminController {
         ...(body.ctaHref !== undefined && { ctaHref: body.ctaHref?.trim() ?? null }),
         ...(body.sortOrder !== undefined && { sortOrder: body.sortOrder }),
         ...(body.isActive !== undefined && { isActive: body.isActive }),
+        ...(body.imageFocusX !== undefined && {
+          imageFocusX: normalizeBannerFocus(body.imageFocusX) ?? 50,
+        }),
+        ...(body.imageFocusY !== undefined && {
+          imageFocusY: normalizeBannerFocus(body.imageFocusY) ?? 50,
+        }),
       },
     });
     this.invalidateHomeCache();

@@ -10,12 +10,23 @@ type Props = {
   fallbackRestaurant: HomepageRestaurant | null;
 };
 
+function clampFocus(n: number): number {
+  return Math.min(100, Math.max(0, Math.round(n)));
+}
+
 export function HomePromoBanner({ banner, fallbackRestaurant }: Props) {
   const rawImg =
     banner?.imageUrl?.trim() ||
     fallbackRestaurant?.coverUrl ||
     fallbackRestaurant?.logoUrl ||
     null;
+  const usesBannerImage = Boolean(banner?.imageUrl?.trim());
+  const objectPosition =
+    usesBannerImage &&
+    typeof banner?.imageFocusX === "number" &&
+    typeof banner?.imageFocusY === "number"
+      ? `${clampFocus(banner.imageFocusX)}% ${clampFocus(banner.imageFocusY)}%`
+      : "center";
   const ctaHref =
     banner?.ctaHref?.trim() ||
     (fallbackRestaurant ? `/restaurants/${fallbackRestaurant.id}` : "/restaurants");
@@ -37,7 +48,7 @@ export function HomePromoBanner({ banner, fallbackRestaurant }: Props) {
               quality={80}
               priority
               sizes="(max-width: 640px) 100vw, min(1100px, 100vw)"
-              style={{ objectFit: "cover", objectPosition: "center" }}
+              style={{ objectFit: "cover", objectPosition }}
               fallbackClassName="fd-home-vv-promo-placeholder fd-home-vv-promo-placeholder--fallback"
               fallbackStyle={{ position: "absolute", inset: 0 }}
             />

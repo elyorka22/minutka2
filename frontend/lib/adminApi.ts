@@ -487,6 +487,8 @@ export const adminApi = {
         ctaHref: string | null;
         sortOrder: number;
         isActive: boolean;
+        imageFocusX?: number;
+        imageFocusY?: number;
       }>
     >("/admin/banners", { method: "GET" }),
   createBanner: (body: {
@@ -497,6 +499,8 @@ export const adminApi = {
     ctaHref?: string;
     sortOrder?: number;
     isActive?: boolean;
+    imageFocusX?: number;
+    imageFocusY?: number;
   }) =>
     adminRequest<any>("/admin/banners", {
       method: "POST",
@@ -512,6 +516,8 @@ export const adminApi = {
       ctaHref?: string | null;
       sortOrder?: number;
       isActive?: boolean;
+      imageFocusX?: number;
+      imageFocusY?: number;
     },
   ) =>
     adminRequest<any>(`/admin/banners/${id}`, {

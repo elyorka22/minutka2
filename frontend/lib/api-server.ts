@@ -30,6 +30,10 @@ export type HomepageBanner = {
   ctaLabel?: string | null;
   ctaHref?: string | null;
   sortOrder?: number | null;
+  /** 0–100, `object-position` gorizontal. */
+  imageFocusX?: number | null;
+  /** 0–100, `object-position` vertikal. */
+  imageFocusY?: number | null;
 };
 
 export type HomepageTopCategory = {

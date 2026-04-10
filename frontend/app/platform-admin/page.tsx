@@ -10,6 +10,7 @@ import { clearAuthTokens, getAccessToken, logoutWithRefreshToken } from "../../l
 import { AdminTabsNav } from "../../components/platform-admin/AdminTabsNav";
 import { AsyncStatusBar } from "../../components/platform-admin/AsyncStatusBar";
 import { ConfirmActionDialog } from "../../components/platform-admin/ConfirmActionDialog";
+import { BannerImageFocusControls } from "../../components/platform-admin/BannerImageFocusControls";
 import { ADMIN_TABS, type AdminUiMessage, type TabId } from "../../lib/admin.types";
 
 export default function PlatformAdminPage() {
@@ -1931,7 +1932,8 @@ export default function PlatformAdminPage() {
                   <p className="fd-checkout-meta">
                     Bosh sahifadagi yirik banner: faqat rasm ko‘rinadi, bosilganda havolaga o‘tadi. Rasmni
                     yuklang yoki URL kiriting. Bir nechta banner bo‘lsa, tartib raqamiga qarab birinchisi
-                    asosiy sifatida tanlanadi.
+                    asosiy sifatida tanlanadi. Har bir banner uchun gorizontal va vertikal fokus
+                    slayderlari rasm qirqilganda muhim qismni ko‘rsatishga yordam beradi.
                   </p>
                   <form onSubmit={handleCreateBanner} className="fd-form" style={{ marginTop: 12 }}>
                     <label className="fd-field">
@@ -2034,44 +2036,10 @@ export default function PlatformAdminPage() {
                               className="fd-card"
                               style={{ padding: 12, display: "flex", flexWrap: "wrap", gap: 12, alignItems: "flex-start" }}
                             >
-                              <div
-                                style={{
-                                  width: "min(240px, 100%)",
-                                  aspectRatio: "16 / 10",
-                                  borderRadius: 12,
-                                  overflow: "hidden",
-                                  flexShrink: 0,
-                                  background: "var(--color-bg)",
-                                  border: "1px solid var(--color-border)",
-                                }}
-                              >
-                                {b.imageUrl ? (
-                                  <img
-                                    src={imageUrl(String(b.imageUrl))}
-                                    alt=""
-                                    style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }}
-                                    onError={(e) => {
-                                      (e.target as HTMLImageElement).style.display = "none";
-                                    }}
-                                  />
-                                ) : (
-                                  <div
-                                    style={{
-                                      width: "100%",
-                                      height: "100%",
-                                      display: "flex",
-                                      alignItems: "center",
-                                      justifyContent: "center",
-                                      fontSize: "0.85rem",
-                                      color: "var(--color-text-secondary)",
-                                      padding: 8,
-                                      textAlign: "center",
-                                    }}
-                                  >
-                                    Rasm yo‘q
-                                  </div>
-                                )}
-                              </div>
+                              <BannerImageFocusControls
+                                banner={b}
+                                onSave={(patch) => void handleUpdateBanner(b.id, patch)}
+                              />
                               <div style={{ flex: "1 1 220px", minWidth: 0 }}>
                                 <div style={{ marginTop: 0, display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
                                   <input
