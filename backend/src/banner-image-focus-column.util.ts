@@ -25,26 +25,28 @@ export const BANNER_SELECT_LEGACY = {
 
 const DEFAULT_FOCUS = { imageFocusX: 50, imageFocusY: 50 } as const;
 
+/** PostgreSQL: ustun yo‘q — Prisma `P2022`. Ba’zi versiyalarda `message`da `prisma.banner.findMany` bo‘lmasligi mumkin. */
+export function isPrismaColumnNotFoundError(err: unknown): boolean {
+  return String((err as { code?: string })?.code ?? '') === 'P2022';
+}
+
 /** Prisma ba’zan «The column `(not available)` does not exist» beradi. */
 export function isBannerQueryMissingColumnError(err: unknown): boolean {
+  if (isPrismaColumnNotFoundError(err)) return true;
   const m = String((err as { message?: string })?.message ?? '');
   if (!/prisma\.banner\.findMany/i.test(m)) return false;
   return (
     /does not exist in the current database/i.test(m) ||
-    /\(not available\)/i.test(m) ||
-    String((err as { code?: string })?.code ?? '') === 'P2022'
+    /\(not available\)/i.test(m)
   );
 }
 
 /** create/update — imageFocus ustunlari migratsiyasiz */
 export function isBannerMutationMissingFocusColumns(err: unknown): boolean {
+  if (isPrismaColumnNotFoundError(err)) return true;
   const m = String((err as { message?: string })?.message ?? '');
   if (!/prisma\.banner\.(create|update)/i.test(m)) return false;
-  return (
-    /does not exist in the current database/i.test(m) ||
-    /\(not available\)/i.test(m) ||
-    String((err as { code?: string })?.code ?? '') === 'P2022'
-  );
+  return /does not exist in the current database/i.test(m) || /\(not available\)/i.test(m);
 }
 
 type BannerFindManyArgs = {
