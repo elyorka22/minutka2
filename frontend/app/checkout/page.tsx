@@ -36,7 +36,8 @@ export default function CheckoutPage() {
   const [paymentMethod] = useState<"CARD" | "CASH">("CASH");
   /** map — xaritada belgi; geo — brauzer geolokatsiyasi */
   const [addressMode, setAddressMode] = useState<"map" | "geo">("geo");
-  const [geoStatus, setGeoStatus] = useState<"idle" | "success" | "error">("idle");
+  const [geoStatus, setGeoStatus] = useState<"idle" | "loading" | "success" | "error">("idle");
+  const [geoLoadingDots, setGeoLoadingDots] = useState(0);
   const [savedAddresses, setSavedAddresses] = useState<SavedAddress[]>([]);
   const [selectedSavedAddressId, setSelectedSavedAddressId] = useState("");
   const [restaurantWorkingHours, setRestaurantWorkingHours] = useState("");
@@ -65,7 +66,7 @@ export default function CheckoutPage() {
       setGeoStatus("error");
       return;
     }
-    setGeoStatus("idle");
+    setGeoStatus("loading");
     navigator.geolocation.getCurrentPosition(
       (pos) => {
         setCoords(pos.coords.latitude, pos.coords.longitude);
@@ -76,6 +77,17 @@ export default function CheckoutPage() {
       },
     );
   }
+
+  useEffect(() => {
+    if (geoStatus !== "loading") {
+      setGeoLoadingDots(0);
+      return;
+    }
+    const t = setInterval(() => {
+      setGeoLoadingDots((prev) => (prev + 1) % 4);
+    }, 350);
+    return () => clearInterval(t);
+  }, [geoStatus]);
 
   useEffect(() => {
     if (addressMode === "geo") {
@@ -404,6 +416,7 @@ export default function CheckoutPage() {
                   <button
                     type="button"
                     className="fd-btn fd-btn-primary fd-geo-btn"
+                    disabled={geoStatus === "loading"}
                     style={
                       geoStatus === "success"
                         ? { backgroundColor: "#16a34a", borderColor: "#16a34a" }
@@ -415,6 +428,8 @@ export default function CheckoutPage() {
                   >
                     {geoStatus === "success"
                       ? "Geolokatsiya aniqlangan"
+                      : geoStatus === "loading"
+                        ? `Aniqlanmoqda${".".repeat(geoLoadingDots)}`
                       : geoStatus === "error"
                         ? "Qayta urinib ko‘ring"
                         : "Mening joylashuvimni aniqlash"}

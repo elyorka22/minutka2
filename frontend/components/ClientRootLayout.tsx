@@ -28,6 +28,7 @@ function HeaderMain({ showCity }: { showCity: boolean }) {
   const [canInstall, setCanInstall] = useState(false);
   const [installEvent, setInstallEvent] = useState<any | null>(null);
   const [isStandalone, setIsStandalone] = useState(false);
+  const [installHintText, setInstallHintText] = useState<string | null>(null);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -82,12 +83,12 @@ function HeaderMain({ showCity }: { showCity: boolean }) {
     if (typeof window !== "undefined") {
       const ua = window.navigator.userAgent.toLowerCase();
       if (/iphone|ipad|ipod/.test(ua)) {
-        alert(
-          "iOS qurilmasida ilovani o‘rnatish uchun brauzer menyusidan “Add to Home Screen” ni tanlang."
+        setInstallHintText(
+          "iOS qurilmasida ilovani o‘rnatish uchun brauzer menyusidan “Add to Home Screen” ni tanlang.",
         );
       } else {
-        alert(
-          "Brauzer menyusidan saytni asosiy ekranga qo‘shish funksiyasi orqali ilovani o‘rnatishingiz mumkin."
+        setInstallHintText(
+          "Brauzer menyusidan saytni asosiy ekranga qo‘shish funksiyasi orqali ilovani o‘rnatishingiz mumkin.",
         );
       }
     }
@@ -123,6 +124,34 @@ function HeaderMain({ showCity }: { showCity: boolean }) {
           </span>
           <span className="fd-install-label">Ilovani yuklang</span>
         </button>
+      )}
+      {installHintText && (
+        <div
+          className="fd-pwa-overlay"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="fd-install-hint-title"
+          onClick={(e) => e.target === e.currentTarget && setInstallHintText(null)}
+        >
+          <div className="fd-pwa-modal">
+            <div className="fd-pwa-icon" aria-hidden>
+              <span className="material-symbols-rounded">download</span>
+            </div>
+            <h2 id="fd-install-hint-title" className="fd-pwa-title">
+              Ilovani o‘rnatish
+            </h2>
+            <p className="fd-pwa-text">{installHintText}</p>
+            <div className="fd-pwa-actions">
+              <button
+                type="button"
+                className="fd-pwa-btn fd-pwa-btn--primary"
+                onClick={() => setInstallHintText(null)}
+              >
+                Tushunarli
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </header>
   );
