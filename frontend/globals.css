@@ -120,6 +120,7 @@ body {
 
 /* Header ostidagi qidiruv qatori */
 .fd-header-search-wrap {
+  margin-top: 10px;
   padding: 0 20px 12px;
   background: var(--color-surface);
   border-bottom: 1px solid var(--color-border);
@@ -2479,6 +2480,7 @@ body {
   }
 
   .fd-header-search-wrap {
+    margin-top: 8px;
     padding: 0 16px 10px;
   }
 

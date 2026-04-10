@@ -16,6 +16,8 @@ if (importMetaRegex.test(code)) {
   code = code.replace(importMetaRegex, good);
   fs.writeFileSync(clientPath, code);
   console.log('fix-prisma-client: patched import.meta.url -> __dirname in client.js');
-} else if (!alreadyPatched) {
-  console.warn('fix-prisma-client: no import.meta line to patch found');
+} else if (!alreadyPatched && code.includes('import.meta')) {
+  console.warn(
+    'fix-prisma-client: import.meta found but pattern did not match; check Prisma version / client.js',
+  );
 }
