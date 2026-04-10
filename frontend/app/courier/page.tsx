@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { BackLink } from "../../components/BackLink";
@@ -362,8 +362,79 @@ export default function CourierPage() {
   const [telegramChatIds, setTelegramChatIds] = useState<string[]>([]);
   const [settingsSaving, setSettingsSaving] = useState(false);
   const [settingsMessage, setSettingsMessage] = useState<string | null>(null);
+  const [soundEnabled, setSoundEnabled] = useState(true);
   const listLimit = 300;
   const listOffset = 0;
+  const soundEnabledKey = "courier-sound-enabled";
+  const ordersInitializedRef = useRef(false);
+  const seenPoolReadyIdsRef = useRef<Set<string>>(new Set());
+  const audioCtxRef = useRef<AudioContext | null>(null);
+
+  function ensureAudioContext(): AudioContext | null {
+    if (typeof window === "undefined") return null;
+    const Ctx = window.AudioContext || (window as any).webkitAudioContext;
+    if (!Ctx) return null;
+    try {
+      if (!audioCtxRef.current) audioCtxRef.current = new Ctx();
+      return audioCtxRef.current;
+    } catch {
+      return null;
+    }
+  }
+
+  function playNewOrderSound() {
+    const ctx = ensureAudioContext();
+    if (!ctx) return;
+    try {
+      if (ctx.state === "suspended") {
+        void ctx.resume().catch(() => {});
+      }
+      if (ctx.state !== "running") return;
+      const now = ctx.currentTime;
+      const gain = ctx.createGain();
+      gain.gain.setValueAtTime(0.0001, now);
+      gain.connect(ctx.destination);
+
+      const osc1 = ctx.createOscillator();
+      osc1.type = "triangle";
+      osc1.frequency.setValueAtTime(980, now);
+      osc1.connect(gain);
+      gain.gain.exponentialRampToValueAtTime(0.28, now + 0.02);
+      gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.2);
+      osc1.start(now);
+      osc1.stop(now + 0.21);
+
+      const secondStart = now + 0.24;
+      const osc2 = ctx.createOscillator();
+      osc2.type = "triangle";
+      osc2.frequency.setValueAtTime(1320, secondStart);
+      osc2.connect(gain);
+      gain.gain.setValueAtTime(0.0001, secondStart);
+      gain.gain.exponentialRampToValueAtTime(0.25, secondStart + 0.02);
+      gain.gain.exponentialRampToValueAtTime(0.0001, secondStart + 0.19);
+      osc2.start(secondStart);
+      osc2.stop(secondStart + 0.2);
+    } catch {
+      // ignore audio errors
+    }
+  }
+
+  function speakNewOrderVoice() {
+    if (typeof window === "undefined") return;
+    const synth = window.speechSynthesis;
+    if (!synth) return;
+    try {
+      synth.cancel();
+      const utterance = new SpeechSynthesisUtterance("Yangi buyurtma");
+      utterance.lang = "uz-UZ";
+      utterance.rate = 1;
+      utterance.pitch = 1;
+      utterance.volume = 1;
+      synth.speak(utterance);
+    } catch {
+      // ignore speech synthesis errors
+    }
+  }
 
   const load = useCallback(async () => {
     if (tab === "telegram") return;
@@ -374,13 +445,40 @@ export default function CourierPage() {
         offset: listOffset,
         scope: tab === "mine" ? "mine" : "pool",
       });
-      setOrders(Array.isArray(list) ? list : []);
-      const latest = (Array.isArray(list) ? list : [])
+      const safeList = Array.isArray(list) ? list : [];
+      setOrders(safeList);
+      const latest = safeList
         .map((o: any) => String(o?.updatedAt ?? o?.createdAt ?? ""))
         .filter(Boolean)
         .sort()
         .pop();
       if (latest) setOrdersLastSyncAt(latest);
+
+      if (tab === "yangi") {
+        const currentReadyIds = new Set(
+          safeList
+            .filter((o: any) => String(o?.status ?? "").toUpperCase() === "READY" && !o?.courierId)
+            .map((o: any) => String(o?.id ?? ""))
+            .filter((id: string) => id.length > 0),
+        );
+        if (!ordersInitializedRef.current) {
+          seenPoolReadyIdsRef.current = currentReadyIds;
+          ordersInitializedRef.current = true;
+        } else {
+          let hasNew = false;
+          for (const id of currentReadyIds) {
+            if (!seenPoolReadyIdsRef.current.has(id)) {
+              hasNew = true;
+              break;
+            }
+          }
+          if (hasNew && soundEnabled) {
+            playNewOrderSound();
+            speakNewOrderVoice();
+          }
+          seenPoolReadyIdsRef.current = currentReadyIds;
+        }
+      }
     } catch (e: any) {
       const msg = String(e?.message ?? "Xatolik");
       setError(msg);
@@ -394,7 +492,45 @@ export default function CourierPage() {
     } finally {
       setLoading(false);
     }
-  }, [router, tab]);
+  }, [router, tab, soundEnabled]);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    try {
+      const raw = window.localStorage.getItem(soundEnabledKey);
+      if (raw == null) {
+        setSoundEnabled(true);
+        return;
+      }
+      setSoundEnabled(raw !== "0");
+    } catch {
+      setSoundEnabled(true);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    try {
+      window.localStorage.setItem(soundEnabledKey, soundEnabled ? "1" : "0");
+    } catch {
+      // ignore storage issues
+    }
+  }, [soundEnabled]);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const unlock = () => {
+      const ctx = ensureAudioContext();
+      if (!ctx) return;
+      void ctx.resume().catch(() => {});
+    };
+    window.addEventListener("pointerdown", unlock, { passive: true });
+    window.addEventListener("keydown", unlock);
+    return () => {
+      window.removeEventListener("pointerdown", unlock);
+      window.removeEventListener("keydown", unlock);
+    };
+  }, []);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -577,6 +713,16 @@ export default function CourierPage() {
             ? "Siz olgan buyurtmalar — restoran va taomlar narxi shu yerda."
             : "Tayyor buyurtma chiqganda avvalo Telegramda faqat restoran nomi va jami summa ko‘rinadi; «Buyurtmani olish» tugmasidan keyin manzil, telefon va xarita."}
       </p>
+      <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 12 }}>
+        <button
+          type="button"
+          className={soundEnabled ? "fd-btn fd-btn-primary" : "fd-btn"}
+          onClick={() => setSoundEnabled((v) => !v)}
+          title="Yangi buyurtma ovozli bildirishnomasi"
+        >
+          {soundEnabled ? "🔔 Ovoz: yoqilgan" : "🔕 Ovoz: o‘chirilgan"}
+        </button>
+      </div>
       <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 16, alignItems: "center" }}>
         <button
           type="button"
