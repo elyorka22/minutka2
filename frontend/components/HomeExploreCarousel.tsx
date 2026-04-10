@@ -64,23 +64,23 @@ export function HomeExploreCarousel({
                     {c.imageUrl ? (
                       <SafeImage
                         src={imageUrl(c.imageUrl)}
-                        alt=""
+                        alt={c.name}
                         className="fd-home-explore-fcard__img"
-                        width={200}
-                        height={200}
+                        width={400}
+                        height={400}
                         quality={78}
                         priority={index === 0}
-                        fallbackStyle={{ width: "80%", height: 80 }}
-                        sizes="(max-width: 480px) 38vw, 168px"
+                        fallbackClassName="fd-home-explore-fcard__fallback"
+                        fallbackStyle={{ width: "100%", height: "100%", minHeight: "100%" }}
+                        sizes="(max-width: 480px) 40vw, 160px"
                       />
                     ) : (
                       <span className="fd-home-explore-fcard__ph" aria-hidden>
                         {c.name.trim().charAt(0).toUpperCase() || "?"}
                       </span>
                     )}
+                    <div className="fd-home-explore-fcard__name">{c.name}</div>
                   </div>
-                  <div className="fd-home-explore-fcard__name">{c.name}</div>
-                  <span className="fd-home-explore-fcard__pill">Tanlash</span>
                 </Link>
               );
             })}
