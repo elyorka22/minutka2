@@ -1,6 +1,7 @@
 import { Controller, Get } from '@nestjs/common';
 import { PrismaService } from './prisma.service';
 import { CacheService } from './cache.service';
+import { bannerFindManyPublicSafe } from './banner-image-focus-column.util';
 
 @Controller('banners')
 export class BannersController {
@@ -12,20 +13,9 @@ export class BannersController {
   @Get()
   async findActive() {
     return this.cache.getOrSet('home:banners:active', 60_000, () =>
-      this.prisma.banner.findMany({
+      bannerFindManyPublicSafe(this.prisma, {
         where: { isActive: true },
         orderBy: [{ sortOrder: 'asc' }, { createdAt: 'desc' }],
-        select: {
-          id: true,
-          title: true,
-          text: true,
-          imageUrl: true,
-          ctaLabel: true,
-          ctaHref: true,
-          sortOrder: true,
-          imageFocusX: true,
-          imageFocusY: true,
-        },
       }),
     );
   }

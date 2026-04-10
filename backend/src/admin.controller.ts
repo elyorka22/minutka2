@@ -35,6 +35,11 @@ import {
   sanitizeHeroLinesInput,
 } from './hero-taglines.util';
 import { isMissingCarouselRowColumnError } from './home-explore-carousel-row.util';
+import {
+  bannerFindManyAdminSafe,
+  bannerFindManyOverviewSafe,
+  isBannerMutationMissingFocusColumns,
+} from './banner-image-focus-column.util';
 import * as fs from 'fs';
 import * as path from 'path';
 import { randomUUID } from 'crypto';
@@ -307,20 +312,8 @@ export class AdminController {
         this.getOverviewStats(req),
         this.getOverviewRestaurants(req, '20', '0'),
         this.getOverviewUsers(req, '20', '0'),
-        this.prisma.banner.findMany({
+        bannerFindManyOverviewSafe(this.prisma, {
           orderBy: [{ sortOrder: 'asc' }, { createdAt: 'desc' }],
-          select: {
-            id: true,
-            title: true,
-            text: true,
-            imageUrl: true,
-            ctaLabel: true,
-            ctaHref: true,
-            sortOrder: true,
-            isActive: true,
-            imageFocusX: true,
-            imageFocusY: true,
-          },
         }),
         this.prisma.productCategory.findMany({
           orderBy: [{ sortOrder: 'asc' }, { createdAt: 'desc' }],
@@ -1603,9 +1596,7 @@ export class AdminController {
     if (req.user?.role !== 'PLATFORM_ADMIN') {
       throw new ForbiddenException('Only platform admin allowed');
     }
-    return this.prisma.banner.findMany({
-      orderBy: [{ sortOrder: 'asc' }, { createdAt: 'desc' }],
-    });
+    return bannerFindManyAdminSafe(this.prisma);
   }
 
   @Post('banners')
@@ -1627,22 +1618,33 @@ export class AdminController {
     if (req.user?.role !== 'PLATFORM_ADMIN') {
       throw new ForbiddenException('Only platform admin allowed');
     }
-    const banner = await this.prisma.banner.create({
-      data: {
-        title:
-          typeof body.title === 'string' && body.title.trim()
-            ? body.title.trim()
-            : null,
-        text: body.text?.trim() ?? null,
-        imageUrl: body.imageUrl?.trim() ?? null,
-        ctaLabel: body.ctaLabel?.trim() ?? null,
-        ctaHref: body.ctaHref?.trim() ?? null,
-        sortOrder: typeof body.sortOrder === 'number' ? body.sortOrder : 0,
-        isActive: body.isActive ?? true,
-        imageFocusX: normalizeBannerFocus(body.imageFocusX) ?? 50,
-        imageFocusY: normalizeBannerFocus(body.imageFocusY) ?? 50,
-      },
-    });
+    const baseData = {
+      title:
+        typeof body.title === 'string' && body.title.trim()
+          ? body.title.trim()
+          : null,
+      text: body.text?.trim() ?? null,
+      imageUrl: body.imageUrl?.trim() ?? null,
+      ctaLabel: body.ctaLabel?.trim() ?? null,
+      ctaHref: body.ctaHref?.trim() ?? null,
+      sortOrder: typeof body.sortOrder === 'number' ? body.sortOrder : 0,
+      isActive: body.isActive ?? true,
+    };
+    const focusData = {
+      imageFocusX: normalizeBannerFocus(body.imageFocusX) ?? 50,
+      imageFocusY: normalizeBannerFocus(body.imageFocusY) ?? 50,
+    };
+    let banner;
+    try {
+      banner = await this.prisma.banner.create({
+        data: { ...baseData, ...focusData },
+      });
+    } catch (e) {
+      if (!isBannerMutationMissingFocusColumns(e)) throw e;
+      banner = await this.prisma.banner.create({
+        data: baseData,
+      });
+    }
     this.invalidateHomeCache();
     return banner;
   }
@@ -1667,26 +1669,43 @@ export class AdminController {
     if (req.user?.role !== 'PLATFORM_ADMIN') {
       throw new ForbiddenException('Only platform admin allowed');
     }
-    const banner = await this.prisma.banner.update({
-      where: { id },
-      data: {
-        ...(body.title !== undefined && {
-          title: body.title?.trim() ? body.title.trim() : null,
-        }),
-        ...(body.text !== undefined && { text: body.text?.trim() ?? null }),
-        ...(body.imageUrl !== undefined && { imageUrl: body.imageUrl?.trim() ?? null }),
-        ...(body.ctaLabel !== undefined && { ctaLabel: body.ctaLabel?.trim() ?? null }),
-        ...(body.ctaHref !== undefined && { ctaHref: body.ctaHref?.trim() ?? null }),
-        ...(body.sortOrder !== undefined && { sortOrder: body.sortOrder }),
-        ...(body.isActive !== undefined && { isActive: body.isActive }),
-        ...(body.imageFocusX !== undefined && {
-          imageFocusX: normalizeBannerFocus(body.imageFocusX) ?? 50,
-        }),
-        ...(body.imageFocusY !== undefined && {
-          imageFocusY: normalizeBannerFocus(body.imageFocusY) ?? 50,
-        }),
-      },
-    });
+    const data: Record<string, unknown> = {
+      ...(body.title !== undefined && {
+        title: body.title?.trim() ? body.title.trim() : null,
+      }),
+      ...(body.text !== undefined && { text: body.text?.trim() ?? null }),
+      ...(body.imageUrl !== undefined && { imageUrl: body.imageUrl?.trim() ?? null }),
+      ...(body.ctaLabel !== undefined && { ctaLabel: body.ctaLabel?.trim() ?? null }),
+      ...(body.ctaHref !== undefined && { ctaHref: body.ctaHref?.trim() ?? null }),
+      ...(body.sortOrder !== undefined && { sortOrder: body.sortOrder }),
+      ...(body.isActive !== undefined && { isActive: body.isActive }),
+      ...(body.imageFocusX !== undefined && {
+        imageFocusX: normalizeBannerFocus(body.imageFocusX) ?? 50,
+      }),
+      ...(body.imageFocusY !== undefined && {
+        imageFocusY: normalizeBannerFocus(body.imageFocusY) ?? 50,
+      }),
+    };
+    let banner;
+    try {
+      banner = await this.prisma.banner.update({
+        where: { id },
+        data: data as any,
+      });
+    } catch (e) {
+      if (!isBannerMutationMissingFocusColumns(e)) throw e;
+      const rest = { ...data };
+      delete rest.imageFocusX;
+      delete rest.imageFocusY;
+      if (Object.keys(rest).length === 0) {
+        banner = await this.prisma.banner.findUniqueOrThrow({ where: { id } });
+      } else {
+        banner = await this.prisma.banner.update({
+          where: { id },
+          data: rest as any,
+        });
+      }
+    }
     this.invalidateHomeCache();
     return banner;
   }

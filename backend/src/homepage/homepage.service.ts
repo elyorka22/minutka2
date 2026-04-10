@@ -9,6 +9,7 @@ import {
 } from '../hero-taglines.util';
 import { buildNationalAndFastCarousels, cardSelect } from './homepage-carousel.util';
 import { isMissingCarouselRowColumnError } from '../home-explore-carousel-row.util';
+import { bannerFindManyPublicSafe } from '../banner-image-focus-column.util';
 
 @Injectable()
 export class HomepageService {
@@ -47,20 +48,9 @@ export class HomepageService {
           orderBy: { rating: 'desc' },
           select: cardSelect,
         }),
-        this.prisma.banner.findMany({
+        bannerFindManyPublicSafe(this.prisma, {
           where: { isActive: true },
           orderBy: [{ sortOrder: 'asc' }, { createdAt: 'desc' }],
-          select: {
-            id: true,
-            title: true,
-            text: true,
-            imageUrl: true,
-            ctaLabel: true,
-            ctaHref: true,
-            sortOrder: true,
-            imageFocusX: true,
-            imageFocusY: true,
-          },
         }),
         this.prisma.productCategory.findMany({
           where: { isActive: true },
