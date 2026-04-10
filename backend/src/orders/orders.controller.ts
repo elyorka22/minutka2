@@ -490,6 +490,7 @@ export class RestaurantMenuAdminController {
       select: {
         id: true,
         name: true,
+        description: true,
         price: true,
         isAvailable: true,
         imageUrl: true,
@@ -539,6 +540,7 @@ export class RestaurantMenuAdminController {
       select: {
         id: true,
         name: true,
+        description: true,
         price: true,
         isAvailable: true,
         imageUrl: true,

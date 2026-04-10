@@ -173,6 +173,7 @@ export const adminApi = {
       Array<{
         id: string;
         name: string;
+        description?: string | null;
         price: number;
         isAvailable: boolean;
         imageUrl?: string | null;
@@ -187,6 +188,7 @@ export const adminApi = {
     adminRequest<{
       id: string;
       name: string;
+      description?: string | null;
       price: number;
       isAvailable: boolean;
       imageUrl?: string | null;

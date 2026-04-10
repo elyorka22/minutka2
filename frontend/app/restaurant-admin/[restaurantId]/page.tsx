@@ -276,6 +276,7 @@ export default function RestaurantAdminPage({
   type MenuDishRow = {
     id: string;
     name: string;
+    description?: string | null;
     price: number;
     priceDraft: string;
     isAvailable: boolean;
@@ -574,6 +575,7 @@ export default function RestaurantAdminPage({
           (Array.isArray(rows) ? rows : []).map((d: any) => ({
             id: String(d.id),
             name: String(d.name ?? "Taom"),
+            description: typeof d.description === "string" ? d.description : null,
             price: Number(d.price ?? 0),
             priceDraft: String(Number(d.price ?? 0)),
             isAvailable: !!d.isAvailable,
@@ -946,6 +948,11 @@ export default function RestaurantAdminPage({
               <div style={{ display: "flex", justifyContent: "space-between", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
                 <div>
                   <div style={{ fontWeight: 700 }}>{d.name}</div>
+                  {d.description && (
+                    <div className="fd-checkout-meta" style={{ marginTop: 2 }}>
+                      {d.description}
+                    </div>
+                  )}
                   <div className="fd-checkout-meta">{d.category?.name ?? "Kategoriyasiz"}</div>
                 </div>
                 <label style={{ display: "flex", alignItems: "center", gap: 8 }}>
