@@ -586,6 +586,171 @@ body {
   margin: 0 0 4px;
 }
 
+.fd-home-vv-stories--explore-panel {
+  margin: 14px 0 22px;
+}
+
+/* Bosh sahifa: banner ostidagi kategoriya kartalari (oq panel + sarlavha) */
+.fd-home-explore-panel {
+  width: 100%;
+}
+
+.fd-home-explore-panel__head {
+  text-align: center;
+  margin-bottom: 14px;
+  padding: 0 6px;
+}
+
+.fd-home-explore-panel__eyebrow {
+  margin: 0 0 6px;
+  font-size: 0.8125rem;
+  font-weight: 700;
+  color: var(--color-orange);
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+}
+
+.fd-home-explore-panel__title {
+  margin: 0;
+  font-size: 1.35rem;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  color: var(--color-text);
+  line-height: 1.2;
+}
+
+.fd-home-explore-panel__shell {
+  background: var(--color-surface);
+  border-radius: 24px;
+  padding: 16px 12px 18px;
+  border: 1px solid var(--color-border);
+  box-shadow: var(--shadow-md);
+}
+
+.fd-home-explore-scroll--feature-cards {
+  display: flex;
+  gap: 12px;
+  overflow-x: auto;
+  margin: 0;
+  padding: 2px 4px 4px;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+  scroll-snap-type: x mandatory;
+}
+
+.fd-home-explore-scroll--feature-cards::-webkit-scrollbar {
+  display: none;
+  height: 0;
+}
+
+.fd-home-explore-fcard {
+  flex: 0 0 auto;
+  width: min(42vw, 172px);
+  min-width: 138px;
+  max-width: 176px;
+  border-radius: 20px;
+  overflow: hidden;
+  text-decoration: none;
+  color: inherit;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  scroll-snap-align: start;
+  box-shadow: 0 6px 18px rgba(15, 23, 42, 0.12);
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.fd-home-explore-fcard:active {
+  transform: scale(0.98);
+}
+
+.fd-home-explore-fcard--t0 {
+  background: #c41e1e;
+  color: #fff;
+}
+
+.fd-home-explore-fcard--t1 {
+  background: #fde047;
+  color: #1a1a1a;
+}
+
+.fd-home-explore-fcard--t2 {
+  background: #ffedd5;
+  color: #1a1a1a;
+}
+
+.fd-home-explore-fcard__media {
+  position: relative;
+  aspect-ratio: 1 / 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 10px 8px 6px;
+}
+
+.fd-home-explore-fcard__img {
+  width: auto !important;
+  height: auto !important;
+  max-width: 100% !important;
+  max-height: 100% !important;
+  object-fit: contain;
+  object-position: center;
+  filter: drop-shadow(0 6px 12px rgba(0, 0, 0, 0.15));
+}
+
+.fd-home-explore-fcard--t0 .fd-home-explore-fcard__img {
+  filter: drop-shadow(0 6px 14px rgba(0, 0, 0, 0.25));
+}
+
+.fd-home-explore-fcard__ph {
+  font-size: 2.5rem;
+  font-weight: 800;
+  opacity: 0.45;
+}
+
+.fd-home-explore-fcard__name {
+  padding: 4px 10px 8px;
+  font-size: 0.8125rem;
+  font-weight: 800;
+  line-height: 1.25;
+  text-align: center;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  flex: 1;
+  min-height: 2.5em;
+}
+
+.fd-home-explore-fcard--t0 .fd-home-explore-fcard__name {
+  color: #fff;
+}
+
+.fd-home-explore-fcard__pill {
+  align-self: center;
+  margin: 0 10px 12px;
+  padding: 7px 16px;
+  border-radius: 999px;
+  background: var(--color-orange);
+  color: #fff;
+  font-size: 0.65rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  box-shadow: 0 2px 8px rgba(234, 88, 12, 0.35);
+}
+
+@media (max-width: 400px) {
+  .fd-home-explore-panel__title {
+    font-size: 1.2rem;
+  }
+
+  .fd-home-explore-fcard {
+    min-width: 128px;
+    width: min(44vw, 160px);
+  }
+}
+
 .fd-home-explore-scroll--stories {
   gap: 16px;
   padding-top: 6px;

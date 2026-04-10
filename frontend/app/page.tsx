@@ -86,11 +86,13 @@ export default async function HomePage() {
       <HomePromoBanner banner={promoBanner} fallbackRestaurant={promoFallbackRestaurant} />
 
       {exploreCategories.length > 0 && (
-        <div className="fd-home-vv-stories">
+        <div className="fd-home-vv-stories fd-home-vv-stories--explore-panel">
           <HomeExploreCarousel
-            variant="stories"
+            variant="featureCards"
             categories={exploreCategories}
             ariaLabel="Tezkor kategoriyalar"
+            titleAccent="Mashhur yo‘nalishlar"
+            titleMain="Bugun nimani buyurtma qilasiz?"
           />
         </div>
       )}
