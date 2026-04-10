@@ -49,22 +49,22 @@ export function HomeExploreCarousel({
             {main}
           </h2>
         </div>
-        <div className="fd-home-explore-panel__shell">
-          <div className={scrollClass}>
-            {categories.map((c, index) => {
-              const href = categoryHref(c);
-              const tone = index % 3;
-              return (
-                <Link
-                  key={c.id}
-                  href={href}
-                  className={`fd-home-explore-fcard fd-home-explore-fcard--t${tone}`}
-                >
+        <div className={scrollClass}>
+          {categories.map((c, index) => {
+            const href = categoryHref(c);
+            const tone = index % 3;
+            return (
+              <Link
+                key={c.id}
+                href={href}
+                className="fd-home-explore-fcard-wrap"
+              >
+                <div className={`fd-home-explore-fcard fd-home-explore-fcard--t${tone}`}>
                   <div className="fd-home-explore-fcard__media">
                     {c.imageUrl ? (
                       <SafeImage
                         src={imageUrl(c.imageUrl)}
-                        alt={c.name}
+                        alt=""
                         className="fd-home-explore-fcard__img"
                         width={400}
                         height={400}
@@ -79,12 +79,12 @@ export function HomeExploreCarousel({
                         {c.name.trim().charAt(0).toUpperCase() || "?"}
                       </span>
                     )}
-                    <div className="fd-home-explore-fcard__name">{c.name}</div>
                   </div>
-                </Link>
-              );
-            })}
-          </div>
+                </div>
+                <span className="fd-home-explore-fcard__name">{c.name}</span>
+              </Link>
+            );
+          })}
         </div>
       </section>
     );
