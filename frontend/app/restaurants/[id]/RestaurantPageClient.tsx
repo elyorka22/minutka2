@@ -78,6 +78,8 @@ export function RestaurantPageClient({
   function renderDishCard(dish: any, dishIndex: number) {
     const id = String(dish.id);
     const quantity = items.find((i) => i.dish.id === id)?.quantity ?? 0;
+    const isDishAvailable = !!dish?.isAvailable;
+    const canOrderDish = isOpenNow && isDishAvailable;
 
     return (
       <article key={id} className="fd-card fd-card--dish">
@@ -96,7 +98,7 @@ export function RestaurantPageClient({
             <button
               type="button"
               className="fd-card-plus-btn"
-              disabled={!isOpenNow}
+              disabled={!canOrderDish}
               onClick={() =>
                 addToCart(
                   {
@@ -114,11 +116,11 @@ export function RestaurantPageClient({
             </button>
           ) : (
             <div className="fd-qty fd-qty--overlay">
-              <button type="button" className="fd-qty-btn" disabled={!isOpenNow} onClick={() => changeQuantity(id, quantity - 1)}>
+              <button type="button" className="fd-qty-btn" disabled={!canOrderDish} onClick={() => changeQuantity(id, quantity - 1)}>
                 −
               </button>
               <span className="fd-qty-value">{quantity}</span>
-              <button type="button" className="fd-qty-btn" disabled={!isOpenNow} onClick={() => changeQuantity(id, quantity + 1)}>
+              <button type="button" className="fd-qty-btn" disabled={!canOrderDish} onClick={() => changeQuantity(id, quantity + 1)}>
                 +
               </button>
             </div>
@@ -129,6 +131,11 @@ export function RestaurantPageClient({
           {dish.description && <p className="fd-card-desc">{dish.description}</p>}
           <div className="fd-dish-footer">
             <span className="fd-price">{Number(dish.price).toFixed(0)} so&apos;m</span>
+            {!isDishAvailable && (
+              <span className="fd-checkout-meta" style={{ color: "var(--color-orange)", fontWeight: 600 }}>
+                Hozir mavjud emas
+              </span>
+            )}
           </div>
         </div>
       </article>

@@ -64,7 +64,6 @@ export class RestaurantsService {
               select: { id: true, name: true, sortOrder: true },
             },
             dishes: {
-              where: { isAvailable: true },
               select: {
                 id: true,
                 name: true,
@@ -99,7 +98,6 @@ export class RestaurantsService {
               select: { id: true, name: true, sortOrder: true },
             },
             dishes: {
-              where: { isAvailable: true },
               select: {
                 id: true,
                 name: true,
