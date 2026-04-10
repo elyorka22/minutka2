@@ -40,7 +40,7 @@ export const metadata: Metadata = {
     description: "Restoranlar va do‘konlardan tez buyurtma qiling. Eng yaxshi aksiyalar Minutka’da.",
     url: siteUrl,
     type: "website",
-    images: [{ url: "/web-app-manifest-512x512.png", width: 512, height: 512 }],
+    images: [{ url: "/icons/web-app-manifest-512x512.png", width: 512, height: 512 }],
   },
   appleWebApp: {
     capable: true,
@@ -48,6 +48,8 @@ export const metadata: Metadata = {
   },
   manifest: "/manifest.json",
   icons: {
+    icon: [{ url: "/icons/favicon-96x96.png", sizes: "96x96", type: "image/png" }],
+    shortcut: [{ url: "/icons/favicon-96x96.png", type: "image/png" }],
     apple: [{ url: "/icons/web-app-manifest-192x192.png", sizes: "192x192" }],
   },
 };

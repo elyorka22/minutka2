@@ -394,7 +394,7 @@ export default function CheckoutPage() {
                   <span>Yetkazib berish nuqtasi</span>
                   <p className="fd-checkout-meta" style={{ marginBottom: 8 }}>
                     Xaritada yetkazib berish joyingizni bosing yoki belgini sudrang. Joylashuv serverda
-                    saqlanadi (koordinatalar alohida kiritilmaydi).
+                    saqlanadi (koordinatalar alohida kiritilmaydi). Kuryer sizni shu joylashuv bo‘yicha topadi.
                   </p>
                   {coordsReady && (
                     <CheckoutMapPicker
@@ -411,7 +411,7 @@ export default function CheckoutPage() {
                 <div className="fd-field">
                   <span>Geolokatsiya</span>
                   <p className="fd-checkout-meta" style={{ marginBottom: 8 }}>
-                    Qurilma joylashuvini aniqlash uchun tugmani bosing. Joylashuv serverda saqlanadi.
+                    Qurilma joylashuvini aniqlash uchun tugmani bosing. Kuryer sizni shu joylashuv bo‘yicha topadi.
                   </p>
                   <button
                     type="button"
