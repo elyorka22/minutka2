@@ -4,7 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { adminApi } from "../../../lib/adminApi";
 
-type TabId = "orders" | "archive" | "stats" | "telegram";
+type TabId = "orders" | "menu" | "archive" | "stats" | "telegram";
 
 /** Manzil matnida «Tel: …» takrorlanmasin — alohida «Telefon» qatori ko‘rsatiladi. */
 function stripTelSegmentsFromDetails(details: string | null | undefined): string {
@@ -273,6 +273,16 @@ function OrderCard({
 export default function RestaurantAdminPage({
   params,
 }: { params: { restaurantId: string } }) {
+  type MenuDishRow = {
+    id: string;
+    name: string;
+    price: number;
+    priceDraft: string;
+    isAvailable: boolean;
+    imageUrl?: string | null;
+    category?: { id: string; name: string; sortOrder?: number } | null;
+  };
+
   const restaurantId = params.restaurantId;
   const [activeTab, setActiveTab] = useState<TabId>("orders");
   const [orders, setOrders] = useState<any[]>([]);
@@ -288,6 +298,7 @@ export default function RestaurantAdminPage({
   /** Per-tab loading avoids races (e.g. stats finishing and clearing loading while orders are still fetching). */
   const [ordersLoading, setOrdersLoading] = useState(true);
   const [archiveLoading, setArchiveLoading] = useState(false);
+  const [menuLoading, setMenuLoading] = useState(false);
   const [statsLoading, setStatsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [manualArchive, setManualArchive] = useState<any[]>([]);
@@ -296,6 +307,8 @@ export default function RestaurantAdminPage({
   const [settingsSaving, setSettingsSaving] = useState(false);
   const [settingsMessage, setSettingsMessage] = useState<string | null>(null);
   const [soundEnabled, setSoundEnabled] = useState(true);
+  const [menuDishes, setMenuDishes] = useState<MenuDishRow[]>([]);
+  const [menuSavingDishId, setMenuSavingDishId] = useState<string | null>(null);
 
   const manualArchiveKey = `restaurant-admin-manual-archive:${restaurantId}`;
   const soundEnabledKey = `restaurant-admin-sound-enabled:${restaurantId}`;
@@ -551,6 +564,28 @@ export default function RestaurantAdminPage({
       .finally(() => setStatsLoading(false));
   }
 
+  function loadMenu() {
+    setMenuLoading(true);
+    setError(null);
+    adminApi
+      .getRestaurantMenuDishes(restaurantId)
+      .then((rows) =>
+        setMenuDishes(
+          (Array.isArray(rows) ? rows : []).map((d: any) => ({
+            id: String(d.id),
+            name: String(d.name ?? "Taom"),
+            price: Number(d.price ?? 0),
+            priceDraft: String(Number(d.price ?? 0)),
+            isAvailable: !!d.isAvailable,
+            imageUrl: d.imageUrl ?? null,
+            category: d.category ?? null,
+          })),
+        ),
+      )
+      .catch((err: any) => setError(err?.message ?? "Xatolik"))
+      .finally(() => setMenuLoading(false));
+  }
+
   useEffect(() => {
     adminApi
       .getRestaurantStats(restaurantId)
@@ -580,6 +615,7 @@ export default function RestaurantAdminPage({
 
   useEffect(() => {
     if (activeTab === "orders") loadOrders();
+    else if (activeTab === "menu") loadMenu();
     else if (activeTab === "archive") loadArchive();
     else if (activeTab === "stats") loadStats();
   }, [restaurantId, activeTab, manualArchive, loadOrders]);
@@ -689,8 +725,41 @@ export default function RestaurantAdminPage({
     }
   }
 
+  async function saveMenuDish(row: MenuDishRow) {
+    const p = Number(row.priceDraft);
+    if (!Number.isFinite(p) || p < 0) {
+      setError("Narx noto‘g‘ri");
+      return;
+    }
+    setMenuSavingDishId(row.id);
+    setError(null);
+    try {
+      const updated = await adminApi.updateRestaurantMenuDish(restaurantId, row.id, {
+        price: p,
+        isAvailable: row.isAvailable,
+      });
+      setMenuDishes((prev) =>
+        prev.map((x) =>
+          x.id === row.id
+            ? {
+                ...x,
+                price: Number(updated?.price ?? p),
+                priceDraft: String(Number(updated?.price ?? p)),
+                isAvailable: !!updated?.isAvailable,
+              }
+            : x,
+        ),
+      );
+    } catch (err: any) {
+      setError(err?.message ?? "Saqlashda xatolik");
+    } finally {
+      setMenuSavingDishId(null);
+    }
+  }
+
   const tabs: { id: TabId; label: string }[] = [
     { id: "orders", label: "Buyurtmalar" },
+    { id: "menu", label: "Menyu" },
     { id: "archive", label: "Arxiv" },
     { id: "stats", label: "Statistika" },
     { id: "telegram", label: "Telegram" },
@@ -736,6 +805,7 @@ export default function RestaurantAdminPage({
       </div>
 
       {((activeTab === "orders" && ordersLoading && orders.length === 0) ||
+        (activeTab === "menu" && menuLoading) ||
         (activeTab === "archive" && archiveLoading) ||
         (activeTab === "stats" && statsLoading && stats == null)) && <p>Yuklanmoqda...</p>}
       {error && (
@@ -866,6 +936,57 @@ export default function RestaurantAdminPage({
           {orders.length === 0 && !ordersLoading && !error && (
             <p className="fd-empty">Aktiv buyurtmalar yo‘q.</p>
           )}
+        </div>
+      )}
+
+      {activeTab === "menu" && !menuLoading && (
+        <div className="fd-admin-orders">
+          {menuDishes.map((d) => (
+            <div key={d.id} className="fd-card" style={{ padding: 14, marginBottom: 12 }}>
+              <div style={{ display: "flex", justifyContent: "space-between", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
+                <div>
+                  <div style={{ fontWeight: 700 }}>{d.name}</div>
+                  <div className="fd-checkout-meta">{d.category?.name ?? "Kategoriyasiz"}</div>
+                </div>
+                <label style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                  <input
+                    type="checkbox"
+                    checked={d.isAvailable}
+                    onChange={(e) =>
+                      setMenuDishes((prev) =>
+                        prev.map((x) => (x.id === d.id ? { ...x, isAvailable: e.target.checked } : x)),
+                      )
+                    }
+                  />
+                  <span className="fd-checkout-meta">Kartochka ochiq</span>
+                </label>
+              </div>
+              <div style={{ marginTop: 10, display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
+                <input
+                  type="number"
+                  min={0}
+                  step={100}
+                  className="fd-input"
+                  style={{ maxWidth: 180 }}
+                  value={d.priceDraft}
+                  onChange={(e) =>
+                    setMenuDishes((prev) =>
+                      prev.map((x) => (x.id === d.id ? { ...x, priceDraft: e.target.value } : x)),
+                    )
+                  }
+                />
+                <button
+                  type="button"
+                  className="fd-btn fd-btn-primary"
+                  disabled={menuSavingDishId === d.id}
+                  onClick={() => saveMenuDish(d)}
+                >
+                  {menuSavingDishId === d.id ? "Saqlanmoqda..." : "Saqlash"}
+                </button>
+              </div>
+            </div>
+          ))}
+          {menuDishes.length === 0 && !error && <p className="fd-empty">Menyu bo‘sh.</p>}
         </div>
       )}
 

@@ -4,6 +4,7 @@ import { OrdersService } from './orders.service';
 import {
   CourierOrdersController,
   OrdersController,
+  RestaurantMenuAdminController,
   RestaurantOrdersController,
   RestaurantSettingsController,
 } from './orders.controller';
@@ -49,6 +50,7 @@ function ordersWorkerInThisProcess(): boolean {
     CourierOrdersController,
     RestaurantOrdersController,
     RestaurantSettingsController,
+    RestaurantMenuAdminController,
     InternalTelegramController,
   ],
   exports: [OrdersService],

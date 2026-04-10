@@ -27,6 +27,7 @@ import { AuthService } from '../auth/auth.service';
 import { PrismaService } from '../prisma.service';
 import { OrdersQueue } from './orders.queue';
 import { CreateOrderJobData, ORDERS_QUEUE_NAME } from './orders.constants';
+import { CacheService } from '../cache.service';
 
 function isTruthyEnv(v: unknown): boolean {
   if (typeof v !== 'string') return false;
@@ -449,5 +450,106 @@ export class RestaurantSettingsController {
       data: { telegramChatId: value },
     });
     return { telegramChatId: value ?? '' };
+  }
+}
+
+@Controller('restaurants/:restaurantId/menu')
+export class RestaurantMenuAdminController {
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly cache: CacheService,
+  ) {}
+
+  private async ensureRestaurantAdminAccess(
+    restaurantId: string,
+    userId: string,
+    userRole: string,
+  ): Promise<void> {
+    if (userRole === 'PLATFORM_ADMIN') return;
+    const restaurant = await this.prisma.restaurant.findFirst({
+      where: { id: restaurantId, isActive: true, admins: { some: { id: userId } } },
+      select: { id: true },
+    });
+    if (!restaurant) {
+      throw new ForbiddenException('Sizga tayinlangan restoran yoki do\'kon yo\'q.');
+    }
+  }
+
+  @Get('dishes')
+  @UseGuards(JwtAuthGuard)
+  async getDishes(
+    @Param('restaurantId') restaurantId: string,
+    @Req() req: RequestWithUser,
+  ) {
+    const userId = req.user?.id;
+    const role = req.user?.role;
+    if (userId && role) await this.ensureRestaurantAdminAccess(restaurantId, userId, role);
+    return this.prisma.dish.findMany({
+      where: { restaurantId },
+      orderBy: [{ category: { sortOrder: 'asc' } }, { name: 'asc' }],
+      select: {
+        id: true,
+        name: true,
+        price: true,
+        isAvailable: true,
+        imageUrl: true,
+        category: {
+          select: { id: true, name: true, sortOrder: true },
+        },
+      },
+    });
+  }
+
+  @Patch('dishes/:dishId')
+  @UseGuards(JwtAuthGuard)
+  async updateDish(
+    @Param('restaurantId') restaurantId: string,
+    @Param('dishId') dishId: string,
+    @Body() body: { price?: number; isAvailable?: boolean },
+    @Req() req: RequestWithUser,
+  ) {
+    const userId = req.user?.id;
+    const role = req.user?.role;
+    if (userId && role) await this.ensureRestaurantAdminAccess(restaurantId, userId, role);
+
+    const exists = await this.prisma.dish.findFirst({
+      where: { id: dishId, restaurantId },
+      select: { id: true },
+    });
+    if (!exists) throw new NotFoundException('Taom topilmadi');
+
+    const data: { price?: number; isAvailable?: boolean } = {};
+    if (body.price !== undefined) {
+      const p = Number(body.price);
+      if (!Number.isFinite(p) || p < 0) {
+        throw new BadRequestException('Narx noto‘g‘ri');
+      }
+      data.price = p;
+    }
+    if (body.isAvailable !== undefined) {
+      data.isAvailable = !!body.isAvailable;
+    }
+    if (Object.keys(data).length === 0) {
+      throw new BadRequestException('Hech qanday yangilanish maydoni berilmadi');
+    }
+
+    const updated = await this.prisma.dish.update({
+      where: { id: dishId },
+      data,
+      select: {
+        id: true,
+        name: true,
+        price: true,
+        isAvailable: true,
+        imageUrl: true,
+        category: {
+          select: { id: true, name: true, sortOrder: true },
+        },
+      },
+    });
+
+    this.cache.invalidatePrefix('menu:');
+    this.cache.invalidatePrefix('restaurants:one:');
+    return updated;
   }
 }

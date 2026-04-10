@@ -168,6 +168,33 @@ export const adminApi = {
       method: "PATCH",
       body: JSON.stringify(body),
     }),
+  getRestaurantMenuDishes: (id: string) =>
+    adminRequest<
+      Array<{
+        id: string;
+        name: string;
+        price: number;
+        isAvailable: boolean;
+        imageUrl?: string | null;
+        category?: { id: string; name: string; sortOrder?: number } | null;
+      }>
+    >(`/restaurants/${id}/menu/dishes`, { method: "GET" }),
+  updateRestaurantMenuDish: (
+    restaurantId: string,
+    dishId: string,
+    body: { price?: number; isAvailable?: boolean },
+  ) =>
+    adminRequest<{
+      id: string;
+      name: string;
+      price: number;
+      isAvailable: boolean;
+      imageUrl?: string | null;
+      category?: { id: string; name: string; sortOrder?: number } | null;
+    }>(`/restaurants/${restaurantId}/menu/dishes/${dishId}`, {
+      method: "PATCH",
+      body: JSON.stringify(body),
+    }),
   getPlatformSettings: () =>
     adminRequest<{
       telegramChatId: string;
