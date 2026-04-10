@@ -95,16 +95,6 @@ export default async function HomePage() {
 
       <HomePromoBanner banner={promoBanner} fallbackRestaurant={promoFallbackRestaurant} />
 
-      {exploreCategories.length > 0 && (
-        <div className="fd-home-vv-stories">
-          <HomeExploreCarousel
-            variant="stories"
-            categories={exploreCategories}
-            ariaLabel="Tezkor kategoriyalar"
-          />
-        </div>
-      )}
-
       {topCategories.length > 0 && (
         <section className="fd-section">
           <h2 className="fd-section-title">
