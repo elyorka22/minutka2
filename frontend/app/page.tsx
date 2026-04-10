@@ -71,16 +71,6 @@ export default async function HomePage() {
 
   return (
     <div className="fd-shell">
-      {exploreCategories.length > 0 && (
-        <div className="fd-home-vv-stories">
-          <HomeExploreCarousel
-            variant="stories"
-            categories={exploreCategories}
-            ariaLabel="Tezkor kategoriyalar"
-          />
-        </div>
-      )}
-
       <nav className="fd-home-vv-subnav" aria-label="Tezkor bo‘limlar">
         <Link href="/supermarkets" className="fd-home-vv-subnav-link">
           Do‘konlar
@@ -94,6 +84,16 @@ export default async function HomePage() {
       </nav>
 
       <HomePromoBanner banner={promoBanner} fallbackRestaurant={promoFallbackRestaurant} />
+
+      {exploreCategories.length > 0 && (
+        <div className="fd-home-vv-stories">
+          <HomeExploreCarousel
+            variant="stories"
+            categories={exploreCategories}
+            ariaLabel="Tezkor kategoriyalar"
+          />
+        </div>
+      )}
 
       {topCategories.length > 0 && (
         <section className="fd-section">
