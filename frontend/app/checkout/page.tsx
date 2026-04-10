@@ -35,7 +35,7 @@ export default function CheckoutPage() {
   const [lng, setLng] = useState<string>(CHUST_DEFAULT_COORDS.lng.toFixed(6));
   const [paymentMethod] = useState<"CARD" | "CASH">("CASH");
   /** map — xaritada belgi; geo — brauzer geolokatsiyasi */
-  const [addressMode, setAddressMode] = useState<"map" | "geo">("map");
+  const [addressMode, setAddressMode] = useState<"map" | "geo">("geo");
   const [geoStatus, setGeoStatus] = useState<"idle" | "success" | "error">("idle");
   const [savedAddresses, setSavedAddresses] = useState<SavedAddress[]>([]);
   const [selectedSavedAddressId, setSelectedSavedAddressId] = useState("");
@@ -81,6 +81,13 @@ export default function CheckoutPage() {
       setGeoStatus("idle");
     }
   }, [addressMode]);
+
+  useEffect(() => {
+    // By default, start in auto geolocation mode and request coordinates immediately.
+    if (addressMode === "geo" && geoStatus === "idle") {
+      handleGeoClick();
+    }
+  }, [addressMode, geoStatus]);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -149,6 +156,10 @@ export default function CheckoutPage() {
     if (addressMode === "geo" && geoStatus !== "success") {
       setSubmitError("Avval «Mening joylashuvim» tugmasi orqali geolokatsiyani aniqlang.");
       return;
+    }
+    if (addressMode === "map") {
+      const ok = window.confirm("Xaritada nuqtani to‘g‘ri qo‘ydingizmi?");
+      if (!ok) return;
     }
     const streetVal = selectedSavedAddress
       ? selectedSavedAddress.street
