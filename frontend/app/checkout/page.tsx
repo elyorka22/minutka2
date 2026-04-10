@@ -45,7 +45,7 @@ export default function CheckoutPage() {
   const [placedOrderId, setPlacedOrderId] = useState<string | null>(null);
   const [receivedBusy, setReceivedBusy] = useState(false);
   const [receivedDone, setReceivedDone] = useState(false);
-  const [showMapConfirmModal, setShowMapConfirmModal] = useState(false);
+  const [confirmModalText, setConfirmModalText] = useState<string | null>(null);
 
   const needRestaurant = items.length > 0 && !restaurantId;
 
@@ -157,9 +157,15 @@ export default function CheckoutPage() {
       setSubmitError("Avval «Mening joylashuvim» tugmasi orqali geolokatsiyani aniqlang.");
       return;
     }
-    if (addressMode === "map" && !skipMapConfirm) {
-      setShowMapConfirmModal(true);
-      return;
+    if (!skipMapConfirm) {
+      if (addressMode === "map") {
+        setConfirmModalText("Xaritada nuqtani to‘g‘ri qo‘ydingizmi?");
+        return;
+      }
+      if (addressMode === "geo") {
+        setConfirmModalText("Buyurtmani tasdiqlaysizmi?");
+        return;
+      }
     }
     const streetVal = selectedSavedAddress
       ? selectedSavedAddress.street
@@ -491,11 +497,11 @@ export default function CheckoutPage() {
           )}
         </section>
       </div>
-      {showMapConfirmModal && (
+      {confirmModalText && (
         <div
           role="dialog"
           aria-modal="true"
-          aria-label="Xaritadagi nuqtani tasdiqlash"
+          aria-label="Buyurtmani tasdiqlash"
           style={{
             position: "fixed",
             inset: 0,
@@ -520,13 +526,13 @@ export default function CheckoutPage() {
           >
             <h3 style={{ margin: 0, fontSize: "1.1rem" }}>Joylashuvni tasdiqlash</h3>
             <p className="fd-checkout-meta" style={{ marginTop: 10, marginBottom: 0 }}>
-              Xaritada nuqtani to‘g‘ri qo‘ydingizmi?
+              {confirmModalText}
             </p>
             <div style={{ display: "flex", justifyContent: "flex-end", gap: 8, marginTop: 16 }}>
               <button
                 type="button"
                 className="fd-btn"
-                onClick={() => setShowMapConfirmModal(false)}
+                onClick={() => setConfirmModalText(null)}
               >
                 Bekor qilish
               </button>
@@ -534,7 +540,7 @@ export default function CheckoutPage() {
                 type="button"
                 className="fd-btn fd-btn-primary"
                 onClick={async () => {
-                  setShowMapConfirmModal(false);
+                  setConfirmModalText(null);
                   await submitOrder(true);
                 }}
               >
