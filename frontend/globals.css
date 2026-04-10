@@ -2192,6 +2192,23 @@ body {
   font-weight: 500;
 }
 
+.fd-coming-soon {
+  text-align: center;
+  padding-bottom: 48px;
+}
+
+.fd-coming-soon__title {
+  margin-top: 16px;
+}
+
+.fd-coming-soon__message {
+  margin: 24px auto 0;
+  max-width: 28rem;
+  font-size: 1.05rem;
+  color: var(--color-text-secondary);
+  line-height: 1.5;
+}
+
 /* Radio group */
 .fd-radio-group {
   display: flex;
