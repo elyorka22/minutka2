@@ -375,6 +375,24 @@ export default function RestaurantAdminPage({
     }
   }
 
+  function speakNewOrderVoice() {
+    if (typeof window === "undefined") return;
+    const synth = window.speechSynthesis;
+    if (!synth) return;
+    try {
+      // Cancel previous phrase so a new order is announced immediately.
+      synth.cancel();
+      const utterance = new SpeechSynthesisUtterance("Yangi buyurtma");
+      utterance.lang = "uz-UZ";
+      utterance.rate = 1;
+      utterance.pitch = 1;
+      utterance.volume = 1;
+      synth.speak(utterance);
+    } catch {
+      // ignore speech synthesis errors (unsupported browser/device)
+    }
+  }
+
   useEffect(() => {
     manualArchiveRef.current = manualArchive;
   }, [manualArchive]);
@@ -486,7 +504,10 @@ export default function RestaurantAdminPage({
               break;
             }
           }
-          if (hasBrandNewOrder && soundEnabled) playNewOrderSound();
+          if (hasBrandNewOrder && soundEnabled) {
+            playNewOrderSound();
+            speakNewOrderVoice();
+          }
           seenNewOrderIdsRef.current = currentNewIds;
         }
 
@@ -678,11 +699,11 @@ export default function RestaurantAdminPage({
 
   return (
     <div className="fd-shell fd-section" style={{ marginTop: 10 }}>
-      <div style={{ marginBottom: 10, display: "flex", justifyContent: "space-between", gap: 8, flexWrap: "wrap" }}>
+      <div style={{ marginBottom: 10, display: "flex", flexDirection: "column", alignItems: "flex-start", gap: 8 }}>
         <Link href="/profile" className="fd-btn" style={{ textDecoration: "none" }}>
           Profilga qaytish
         </Link>
-        <div style={{ display: "flex", gap: 8, flexWrap: "wrap", justifyContent: "flex-end" }}>
+        <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
           <button
             type="button"
             className={soundEnabled ? "fd-btn fd-btn-primary" : "fd-btn"}
