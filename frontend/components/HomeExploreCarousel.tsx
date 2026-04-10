@@ -40,42 +40,48 @@ export function HomeExploreCarousel({
   return (
     <div className={scrollClass} aria-label={ariaLabel}>
       {categories.map((c) => {
+        const itemClassName =
+          variant === "stories"
+            ? "fd-home-explore-item fd-home-explore-item--stories"
+            : "fd-home-explore-item";
+        const tileClassName =
+          variant === "stories"
+            ? "fd-home-explore-tile fd-home-explore-tile--stories"
+            : "fd-home-explore-tile";
+        const content = (
+          <div className={tileClassName}>
+            {c.imageUrl ? (
+              <SafeImage
+                src={imageUrl(c.imageUrl)}
+                alt={c.name}
+                className="fd-home-explore-tile-img"
+                width={160}
+                height={160}
+                quality={76}
+                priority={false}
+                fallbackStyle={{ height: 80 }}
+                sizes="72px"
+              />
+            ) : (
+              <span className="fd-home-explore-placeholder" aria-hidden>
+                {c.name.trim().charAt(0).toUpperCase() || "?"}
+              </span>
+            )}
+          </div>
+        );
+
+        if (variant === "stories") {
+          return (
+            <div key={c.id} className={itemClassName} aria-hidden>
+              {content}
+            </div>
+          );
+        }
+
         const href = categoryHref(c);
         return (
-          <Link
-            key={c.id}
-            href={href}
-            className={
-              variant === "stories"
-                ? "fd-home-explore-item fd-home-explore-item--stories"
-                : "fd-home-explore-item"
-            }
-          >
-            <div
-              className={
-                variant === "stories"
-                  ? "fd-home-explore-tile fd-home-explore-tile--stories"
-                  : "fd-home-explore-tile"
-              }
-            >
-              {c.imageUrl ? (
-                <SafeImage
-                  src={imageUrl(c.imageUrl)}
-                  alt={c.name}
-                  className="fd-home-explore-tile-img"
-                  width={160}
-                  height={160}
-                  quality={76}
-                  priority={false}
-                  fallbackStyle={{ height: 80 }}
-                  sizes="72px"
-                />
-              ) : (
-                <span className="fd-home-explore-placeholder" aria-hidden>
-                  {c.name.trim().charAt(0).toUpperCase() || "?"}
-                </span>
-              )}
-            </div>
+          <Link key={c.id} href={href} className={itemClassName}>
+            {content}
           </Link>
         );
       })}

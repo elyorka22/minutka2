@@ -295,8 +295,10 @@ export default function RestaurantAdminPage({
   const [telegramChatIds, setTelegramChatIds] = useState<string[]>([]);
   const [settingsSaving, setSettingsSaving] = useState(false);
   const [settingsMessage, setSettingsMessage] = useState<string | null>(null);
+  const [soundEnabled, setSoundEnabled] = useState(true);
 
   const manualArchiveKey = `restaurant-admin-manual-archive:${restaurantId}`;
+  const soundEnabledKey = `restaurant-admin-sound-enabled:${restaurantId}`;
 
   function parseChatIds(raw: string): string[] {
     return raw
@@ -315,8 +317,41 @@ export default function RestaurantAdminPage({
    * the list response is still empty (queue lag), advancing the cursor makes the next poll return changed=false.
    */
   const ordersLastSyncAtRef = useRef<string | null>(null);
+  /** First successful load should not ring — only truly new orders after that. */
+  const ordersInitializedRef = useRef(false);
+  /** Keeps IDs of NEW orders already seen by this page session. */
+  const seenNewOrderIdsRef = useRef<Set<string>>(new Set());
+  /** Lazily created browser audio context for short notification beep. */
+  const audioCtxRef = useRef<AudioContext | null>(null);
   /** Mirrors manualArchive for use inside fetch callbacks (always current). */
   const manualArchiveRef = useRef<any[]>([]);
+
+  function playNewOrderSound() {
+    if (typeof window === "undefined") return;
+    const Ctx = window.AudioContext || (window as any).webkitAudioContext;
+    if (!Ctx) return;
+    try {
+      if (!audioCtxRef.current) audioCtxRef.current = new Ctx();
+      const ctx = audioCtxRef.current;
+      if (ctx.state === "suspended") {
+        void ctx.resume().catch(() => {});
+      }
+      const now = ctx.currentTime;
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = "sine";
+      osc.frequency.setValueAtTime(880, now);
+      gain.gain.setValueAtTime(0.0001, now);
+      gain.gain.exponentialRampToValueAtTime(0.18, now + 0.02);
+      gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.22);
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.start(now);
+      osc.stop(now + 0.24);
+    } catch {
+      // ignore audio errors (browser policy/device)
+    }
+  }
 
   useEffect(() => {
     manualArchiveRef.current = manualArchive;
@@ -332,6 +367,29 @@ export default function RestaurantAdminPage({
       setManualArchive([]);
     }
   }, [manualArchiveKey]);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    try {
+      const raw = window.localStorage.getItem(soundEnabledKey);
+      if (raw == null) {
+        setSoundEnabled(true);
+        return;
+      }
+      setSoundEnabled(raw !== "0");
+    } catch {
+      setSoundEnabled(true);
+    }
+  }, [soundEnabledKey]);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    try {
+      window.localStorage.setItem(soundEnabledKey, soundEnabled ? "1" : "0");
+    } catch {
+      // ignore storage issues
+    }
+  }, [soundEnabled, soundEnabledKey]);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -368,7 +426,30 @@ export default function RestaurantAdminPage({
         const hiddenIds = new Set(
           pruned.map((x: any) => x?.id).filter((id: unknown): id is string => typeof id === "string" && id.length > 0),
         );
-        setOrders(list.filter((o: any) => !hiddenIds.has(o.id)));
+        const visibleOrders = list.filter((o: any) => !hiddenIds.has(o.id));
+        setOrders(visibleOrders);
+
+        const currentNewIds = new Set(
+          visibleOrders
+            .filter((o: any) => String(o?.status ?? "") === "NEW")
+            .map((o: any) => String(o?.id ?? ""))
+            .filter((id: string) => id.length > 0),
+        );
+        if (!ordersInitializedRef.current) {
+          seenNewOrderIdsRef.current = currentNewIds;
+          ordersInitializedRef.current = true;
+        } else {
+          let hasBrandNewOrder = false;
+          for (const id of currentNewIds) {
+            if (!seenNewOrderIdsRef.current.has(id)) {
+              hasBrandNewOrder = true;
+              break;
+            }
+          }
+          if (hasBrandNewOrder && soundEnabled) playNewOrderSound();
+          seenNewOrderIdsRef.current = currentNewIds;
+        }
+
         const latest = list
           .map((o: any) => String(o?.updatedAt ?? o?.createdAt ?? ""))
           .filter(Boolean)
@@ -381,7 +462,7 @@ export default function RestaurantAdminPage({
       .finally(() => {
         if (!background) setOrdersLoading(false);
       });
-  }, [restaurantId]);
+  }, [restaurantId, soundEnabled]);
 
   function loadArchive() {
     setArchiveLoading(true);
@@ -561,11 +642,21 @@ export default function RestaurantAdminPage({
         <Link href="/profile" className="fd-btn" style={{ textDecoration: "none" }}>
           Profilga qaytish
         </Link>
-        <button type="button" className="fd-btn" disabled style={{ cursor: "default" }}>
-          {debtInfo
-            ? `Platforma qarzi: ${debtInfo.amount.toLocaleString()} so'm (${debtInfo.percent}%)`
-            : "Platforma qarzi: —"}
-        </button>
+        <div style={{ display: "flex", gap: 8, flexWrap: "wrap", justifyContent: "flex-end" }}>
+          <button
+            type="button"
+            className={soundEnabled ? "fd-btn fd-btn-primary" : "fd-btn"}
+            onClick={() => setSoundEnabled((v) => !v)}
+            title="Yangi buyurtma ovozli bildirishnomasi"
+          >
+            {soundEnabled ? "🔔 Ovoz: yoqilgan" : "🔕 Ovoz: o‘chirilgan"}
+          </button>
+          <button type="button" className="fd-btn" disabled style={{ cursor: "default" }}>
+            {debtInfo
+              ? `Platforma qarzi: ${debtInfo.amount.toLocaleString()} so'm (${debtInfo.percent}%)`
+              : "Platforma qarzi: —"}
+          </button>
+        </div>
       </div>
       <h1 className="fd-section-title">Restoran boshqaruvi</h1>
 
