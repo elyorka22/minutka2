@@ -88,6 +88,51 @@ export default function PlatformAdminRestaurantMenuPage() {
     }
   }
 
+  async function handleExistingDishImageUpload(dishId: string, e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    e.target.value = "";
+    setDishImageBusyId(dishId);
+    setDishError(null);
+    try {
+      const { url } = await adminApi.uploadImage(file);
+      await adminApi.updateDish(id, dishId, { imageUrl: url });
+      const data = await adminApi.getRestaurantFull(id);
+      setRestaurant(data);
+      setDishUrlDraft((prev) => {
+        const next = { ...prev };
+        delete next[dishId];
+        return next;
+      });
+    } catch (err: any) {
+      setDishError(err?.message ?? "Rasmni saqlashda xatolik");
+    } finally {
+      setDishImageBusyId(null);
+    }
+  }
+
+  async function handleSaveDishImageUrl(dishId: string, rawUrl: string) {
+    setDishImageBusyId(dishId);
+    setDishError(null);
+    try {
+      const trimmed = rawUrl.trim();
+      await adminApi.updateDish(id, dishId, {
+        imageUrl: trimmed === "" ? null : trimmed,
+      });
+      const data = await adminApi.getRestaurantFull(id);
+      setRestaurant(data);
+      setDishUrlDraft((prev) => {
+        const next = { ...prev };
+        delete next[dishId];
+        return next;
+      });
+    } catch (err: any) {
+      setDishError(err?.message ?? "URL saqlashda xatolik");
+    } finally {
+      setDishImageBusyId(null);
+    }
+  }
+
   useEffect(() => {
     if (!id) return;
     if (typeof window === "undefined") return;
