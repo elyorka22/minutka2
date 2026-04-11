@@ -421,6 +421,21 @@ export const adminApi = {
       method: "POST",
       body: JSON.stringify(body),
     }),
+  updateDish: (
+    restaurantId: string,
+    dishId: string,
+    body: {
+      imageUrl?: string | null;
+      name?: string;
+      description?: string | null;
+      price?: number;
+      categoryId?: string | null;
+    }
+  ) =>
+    adminRequest<any>(`/admin/restaurants/${restaurantId}/dishes/${dishId}`, {
+      method: "PATCH",
+      body: JSON.stringify(body),
+    }),
   deleteDish: (restaurantId: string, dishId: string) =>
     adminRequest<any>(`/admin/restaurants/${restaurantId}/dishes/${dishId}`, {
       method: "DELETE",

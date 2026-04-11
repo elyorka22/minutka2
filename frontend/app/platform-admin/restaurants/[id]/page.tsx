@@ -29,6 +29,8 @@ export default function PlatformAdminRestaurantMenuPage() {
   const [dishError, setDishError] = useState<string | null>(null);
   const [dishImageUrl, setDishImageUrl] = useState("");
   const [dishImageUploading, setDishImageUploading] = useState(false);
+  const [dishImageBusyId, setDishImageBusyId] = useState<string | null>(null);
+  const [dishUrlDraft, setDishUrlDraft] = useState<Record<string, string>>({});
 
   const [editLogoUrl, setEditLogoUrl] = useState("");
   const [editCoverUrl, setEditCoverUrl] = useState("");
@@ -494,32 +496,127 @@ export default function PlatformAdminRestaurantMenuPage() {
       <section style={{ marginTop: 24 }}>
         <h2>Taomlar</h2>
         {restaurant.dishes?.length ? (
-          <ul style={{ listStyle: "none", padding: 0, margin: 0 }}>
-            {restaurant.dishes.map((d: any) => (
-              <li key={d.id} className="fd-checkout-item">
-                <div>
-                  <div>{d.name}</div>
-                  <div className="fd-checkout-meta">
-                    {d.description || "—"} · {Number(d.price).toLocaleString()} so‘m
-                  </div>
-                </div>
-                <button
-                  type="button"
-                  className="fd-btn"
-                  onClick={async () => {
-                    try {
-                      await adminApi.deleteDish(id, d.id);
-                      const data = await adminApi.getRestaurantFull(id);
-                      setRestaurant(data);
-                    } catch (err: any) {
-                      setDishError(err?.message ?? "Taom o‘chirishda xatolik");
-                    }
-                  }}
+          <ul style={{ listStyle: "none", padding: 0, margin: 0, display: "flex", flexDirection: "column", gap: 14 }}>
+            {restaurant.dishes.map((d: any) => {
+              const urlValue = dishUrlDraft[d.id] !== undefined ? dishUrlDraft[d.id] : (d.imageUrl || "");
+              const busy = dishImageBusyId === d.id;
+              return (
+                <li
+                  key={d.id}
+                  className="fd-checkout-item"
+                  style={{ alignItems: "flex-start", flexWrap: "wrap", gap: 12 }}
                 >
-                  O‘chirish
-                </button>
-              </li>
-            ))}
+                  <div
+                    style={{
+                      width: 72,
+                      height: 72,
+                      borderRadius: 12,
+                      overflow: "hidden",
+                      background: "var(--color-bg)",
+                      flexShrink: 0,
+                      border: "1px solid var(--color-border)",
+                    }}
+                  >
+                    {d.imageUrl ? (
+                      <img
+                        src={imageUrl(String(d.imageUrl))}
+                        alt=""
+                        style={{ width: "100%", height: "100%", objectFit: "cover" }}
+                        onError={(e) => {
+                          (e.target as HTMLImageElement).style.display = "none";
+                        }}
+                      />
+                    ) : (
+                      <div
+                        style={{
+                          width: "100%",
+                          height: "100%",
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          fontSize: "0.7rem",
+                          color: "var(--color-text-muted)",
+                          textAlign: "center",
+                          padding: 4,
+                        }}
+                      >
+                        Rasm yo‘q
+                      </div>
+                    )}
+                  </div>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontWeight: 600 }}>{d.name}</div>
+                    <div className="fd-checkout-meta">
+                      {d.description || "—"} · {Number(d.price).toLocaleString()} so‘m
+                    </div>
+                    <label className="fd-field" style={{ marginTop: 10, marginBottom: 0 }}>
+                      <span style={{ fontSize: "0.8rem" }}>Taom rasmi (URL)</span>
+                      <input
+                        type="url"
+                        className="fd-input"
+                        value={urlValue}
+                        onChange={(e) =>
+                          setDishUrlDraft((prev) => ({ ...prev, [d.id]: e.target.value }))
+                        }
+                        placeholder="https://..."
+                        disabled={busy}
+                      />
+                    </label>
+                    <div style={{ marginTop: 8, display: "flex", flexWrap: "wrap", gap: 8, alignItems: "center" }}>
+                      <button
+                        type="button"
+                        className="fd-btn fd-btn--secondary"
+                        disabled={busy}
+                        onClick={() => handleSaveDishImageUrl(d.id, urlValue)}
+                      >
+                        {busy ? "Saqlanmoqda..." : "URL ni saqlash"}
+                      </button>
+                      <input
+                        type="file"
+                        accept="image/*"
+                        id={`dish-edit-img-${d.id}`}
+                        style={{ display: "none" }}
+                        disabled={busy}
+                        onChange={(e) => handleExistingDishImageUpload(d.id, e)}
+                      />
+                      <label htmlFor={`dish-edit-img-${d.id}`} style={{ margin: 0 }}>
+                        <span
+                          className="fd-btn fd-btn-primary"
+                          style={{
+                            cursor: busy ? "not-allowed" : "pointer",
+                            display: "inline-block",
+                            opacity: busy ? 0.6 : 1,
+                          }}
+                        >
+                          {busy ? "Yuklanmoqda..." : "Rasm yuklash"}
+                        </span>
+                      </label>
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    className="fd-btn"
+                    disabled={busy}
+                    onClick={async () => {
+                      try {
+                        await adminApi.deleteDish(id, d.id);
+                        const data = await adminApi.getRestaurantFull(id);
+                        setRestaurant(data);
+                        setDishUrlDraft((prev) => {
+                          const next = { ...prev };
+                          delete next[d.id];
+                          return next;
+                        });
+                      } catch (err: any) {
+                        setDishError(err?.message ?? "Taom o‘chirishda xatolik");
+                      }
+                    }}
+                  >
+                    O‘chirish
+                  </button>
+                </li>
+              );
+            })}
           </ul>
         ) : (
           <p className="fd-empty">Taomlar yo‘q. Yuqoridagi formadan qo‘shing.</p>

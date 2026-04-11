@@ -1255,6 +1255,81 @@ export class AdminController {
     return dish;
   }
 
+  @Patch('restaurants/:id/dishes/:dishId')
+  async updateDish(
+    @Param('id') restaurantId: string,
+    @Param('dishId') dishId: string,
+    @Body()
+    body: {
+      imageUrl?: string | null;
+      name?: string;
+      description?: string | null;
+      price?: number;
+      categoryId?: string | null;
+    },
+    @Req() req: RequestWithUser,
+  ) {
+    if (req.user?.role !== 'PLATFORM_ADMIN') {
+      throw new ForbiddenException('Only platform admin allowed');
+    }
+    const existing = await this.prisma.dish.findFirst({
+      where: { id: dishId, restaurantId },
+    });
+    if (!existing) {
+      throw new NotFoundException('Dish not found');
+    }
+    const data: {
+      imageUrl?: string | null;
+      name?: string;
+      description?: string | null;
+      price?: number;
+      categoryId?: string | null;
+    } = {};
+    if (body.imageUrl !== undefined) {
+      if (body.imageUrl === null || body.imageUrl === '') {
+        data.imageUrl = null;
+      } else if (typeof body.imageUrl === 'string') {
+        data.imageUrl = body.imageUrl.trim() || null;
+      }
+    }
+    if (body.name !== undefined) {
+      if (typeof body.name !== 'string' || !body.name.trim()) {
+        throw new BadRequestException('name must be a non-empty string');
+      }
+      data.name = body.name.trim();
+    }
+    if (body.description !== undefined) {
+      if (body.description === null || body.description === '') {
+        data.description = null;
+      } else if (typeof body.description === 'string') {
+        data.description = body.description.trim() || null;
+      }
+    }
+    if (body.price !== undefined) {
+      if (typeof body.price !== 'number' || body.price < 0) {
+        throw new BadRequestException('price must be a non-negative number');
+      }
+      data.price = body.price;
+    }
+    if (body.categoryId !== undefined) {
+      if (body.categoryId === null || body.categoryId === '') {
+        data.categoryId = null;
+      } else if (typeof body.categoryId === 'string') {
+        data.categoryId = body.categoryId.trim() || null;
+      }
+    }
+    if (Object.keys(data).length === 0) {
+      return existing;
+    }
+    const dish = await this.prisma.dish.update({
+      where: { id: dishId },
+      data,
+    });
+    this.invalidateCatalogCache();
+    this.invalidateAdminStatsCache();
+    return dish;
+  }
+
   @Delete('restaurants/:id/dishes/:dishId')
   async deleteDish(
     @Param('id') restaurantId: string,

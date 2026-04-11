@@ -110,7 +110,7 @@ function HeaderMain({ showCity }: { showCity: boolean }) {
         </div>
         <nav className="fd-nav">
           <Link href="/" className="fd-nav-link">Bosh sahifa</Link>
-          <Link href="/restaurants" className="fd-nav-link">Restoranlar</Link>
+          <Link href="/#barcha-restoranlar" className="fd-nav-link">Restoranlar</Link>
         </nav>
       </div>
       {!isStandalone && (

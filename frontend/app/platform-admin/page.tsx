@@ -143,7 +143,7 @@ export default function PlatformAdminPage() {
   );
   const basePushPages: Array<{ url: string; label: string }> = [
     { url: "/", label: "Bosh sahifa (/)" },
-    { url: "/restaurants", label: "Restoranlar (/restaurants)" },
+    { url: "/#barcha-restoranlar", label: "Bosh sahifa — restoranlar (#barcha-restoranlar)" },
     { url: "/supermarkets", label: "Do‘konlar (/supermarkets)" },
     { url: "/checkout", label: "Savat (/checkout)" },
     { url: "/profile", label: "Profil (/profile)" },

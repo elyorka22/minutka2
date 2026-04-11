@@ -78,7 +78,7 @@ export default async function HomePage() {
         <Link href="/promocodes" className="fd-home-vv-subnav-link fd-home-vv-subnav-link--accent">
           Aksiyalar
         </Link>
-        <Link href="/restaurants" className="fd-home-vv-subnav-link">
+        <Link href="/#barcha-restoranlar" className="fd-home-vv-subnav-link">
           Restoranlar
         </Link>
       </nav>
@@ -130,12 +130,8 @@ export default async function HomePage() {
         </section>
       )}
 
-      <section className="fd-section">
-        <h2 className="fd-section-title">
-          <Link href="/restaurants" style={{ color: "inherit", textDecoration: "none" }}>
-            Barcha restoranlar
-          </Link>
-        </h2>
+      <section id="barcha-restoranlar" className="fd-section">
+        <h2 className="fd-section-title">Barcha restoranlar</h2>
         <div className="fd-grid fd-grid--barcha-home">
           {normalRestaurants.map((r, index) => (
             <Link

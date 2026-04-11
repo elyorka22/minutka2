@@ -29,7 +29,7 @@ export function HomePromoBanner({ banner, fallbackRestaurant }: Props) {
       : "center";
   const ctaHref =
     banner?.ctaHref?.trim() ||
-    (fallbackRestaurant ? `/restaurants/${fallbackRestaurant.id}` : "/restaurants");
+    (fallbackRestaurant ? `/restaurants/${fallbackRestaurant.id}` : "/");
   const imgAlt =
     banner?.title?.trim() ||
     fallbackRestaurant?.name?.trim() ||

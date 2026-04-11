@@ -18,8 +18,8 @@ export function RestaurantPageClient({
 }) {
   const { items, addToCart, changeQuantity } = useCart();
   const isSupermarket = !!restaurant?.isSupermarket;
-  const backHref = isSupermarket ? "/supermarkets" : "/restaurants";
-  const backLabel = isSupermarket ? "← Do‘konlar" : "← Restoranlar";
+  const backHref = isSupermarket ? "/supermarkets" : "/";
+  const backLabel = isSupermarket ? "← Do‘konlar" : "← Bosh sahifaga";
   const headerTitle = restaurant?.name ?? (isSupermarket ? "Do‘kon" : "Restoran");
   const sectionTitle = isSupermarket ? "Mahsulotlar" : "Menyu";
   const emptyText = isSupermarket ? "Mahsulotlar hozircha bo‘sh." : "Menyu hozircha bo‘sh.";
