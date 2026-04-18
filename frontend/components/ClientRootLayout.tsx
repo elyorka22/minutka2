@@ -212,7 +212,7 @@ function BottomBar() {
       >
         <span className="fd-bottom-icon-wrap">
           <span className="fd-bottom-icon material-symbols-rounded" aria-hidden={true}>
-            shopping_bag
+            shopping_cart
           </span>
           {cartCount > 0 && (
             <span className="fd-bottom-badge">{cartCount > 99 ? "99+" : cartCount}</span>

@@ -66,13 +66,13 @@ export function HomeExploreCarousel({
                         src={imageUrl(c.imageUrl)}
                         alt=""
                         className="fd-home-explore-fcard__img"
-                        width={400}
-                        height={400}
-                        quality={78}
+                        width={240}
+                        height={240}
+                        quality={76}
                         priority={index === 0}
                         fallbackClassName="fd-home-explore-fcard__fallback"
                         fallbackStyle={{ width: "100%", height: "100%", minHeight: "100%" }}
-                        sizes="(max-width: 480px) 40vw, 160px"
+                        sizes="(max-width: 480px) 30vw, 112px"
                       />
                     ) : (
                       <span className="fd-home-explore-fcard__ph" aria-hidden>

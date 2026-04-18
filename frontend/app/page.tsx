@@ -145,13 +145,13 @@ export default async function HomePage() {
                     src={(r.coverUrl || r.logoUrl) ? imageUrl(r.coverUrl || r.logoUrl) : ""}
                     alt=""
                     className="fd-barcha-banner-img"
-                    width={960}
-                    height={540}
-                    quality={78}
+                    width={800}
+                    height={450}
+                    quality={76}
                     priority={thumbLcp(index === 0)}
                     sizes="(max-width: 900px) 100vw, 900px"
                     fallbackClassName="fd-barcha-banner-img fd-barcha-banner-img--ph"
-                    fallbackStyle={{ width: "100%", height: "100%", minHeight: 168 }}
+                    fallbackStyle={{ width: "100%", height: "100%", minHeight: 132 }}
                   />
                 </div>
                 <div className="fd-barcha-banner-scrim" aria-hidden />
