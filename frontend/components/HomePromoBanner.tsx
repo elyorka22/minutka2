@@ -1,19 +1,20 @@
-"use client";
-
+import Image from "next/image";
 import Link from "next/link";
 import { imageUrl } from "../lib/api";
 import type { HomepageBanner, HomepageRestaurant } from "../lib/api-server";
-import { SafeImage } from "./SafeImage";
+
+type PromoRestaurantRef = Pick<HomepageRestaurant, "id" | "name" | "coverUrl" | "logoUrl">;
 
 type Props = {
   banner: HomepageBanner | null;
-  fallbackRestaurant: HomepageRestaurant | null;
+  fallbackRestaurant: PromoRestaurantRef | null;
 };
 
 function clampFocus(n: number): number {
   return Math.min(100, Math.max(0, Math.round(n)));
 }
 
+/** Server component: hero LCP without extra client hydration. */
 export function HomePromoBanner({ banner, fallbackRestaurant }: Props) {
   const rawImg =
     banner?.imageUrl?.trim() ||
@@ -35,22 +36,24 @@ export function HomePromoBanner({ banner, fallbackRestaurant }: Props) {
     fallbackRestaurant?.name?.trim() ||
     "Bosh sahifa aksiyasi";
 
+  const src = rawImg ? imageUrl(rawImg) : "";
+
   return (
     <article className="fd-home-vv-promo">
       <Link href={ctaHref} className="fd-home-vv-promo-link" aria-label={imgAlt}>
         <div className="fd-home-vv-promo-media">
-          {rawImg ? (
-            <SafeImage
-              src={imageUrl(rawImg)}
+          {src ? (
+            <Image
+              src={src}
               alt={imgAlt}
               fill
               className="fd-home-vv-promo-img"
-              quality={80}
+              quality={74}
               priority
+              fetchPriority="high"
               sizes="(max-width: 640px) 100vw, min(1100px, 100vw)"
               style={{ objectFit: "cover", objectPosition }}
-              fallbackClassName="fd-home-vv-promo-placeholder fd-home-vv-promo-placeholder--fallback"
-              fallbackStyle={{ position: "absolute", inset: 0 }}
+              decoding="async"
             />
           ) : (
             <div className="fd-home-vv-promo-placeholder" aria-hidden />

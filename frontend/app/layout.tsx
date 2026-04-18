@@ -1,9 +1,8 @@
 import type { Metadata, Viewport } from "next";
 import { Plus_Jakarta_Sans } from "next/font/google";
-import { Analytics } from "@vercel/analytics/react";
-import { SpeedInsights } from "@vercel/speed-insights/next";
 import ClientRootLayout from "../components/ClientRootLayout";
 import { CriticalCss } from "../components/CriticalCss";
+import { DeferredVercelMetrics } from "../components/DeferredVercelMetrics";
 import { ResourceHints } from "../components/ResourceHints";
 import "../globals.css";
 
@@ -68,8 +67,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <CriticalCss />
         <ResourceHints />
         <ClientRootLayout>{children}</ClientRootLayout>
-        <Analytics />
-        <SpeedInsights />
+        <DeferredVercelMetrics />
       </body>
     </html>
   );

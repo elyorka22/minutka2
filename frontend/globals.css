@@ -2877,3 +2877,54 @@ body {
     transition: none;
   }
 }
+
+/* Home: streaming skeleton + lazy carousel placeholder (CLS / perceived load). */
+.fd-home-explore-lazy {
+  min-height: 168px;
+  margin: 0 0 12px;
+  border-radius: 16px;
+  background: linear-gradient(90deg, #f1f5f9 0%, #e8eef5 40%, #f1f5f9 80%);
+  background-size: 200% 100%;
+  animation: fd-home-skel-shimmer 1.1s ease-in-out infinite;
+}
+
+.fd-home-skel-block {
+  border-radius: 14px;
+  background: linear-gradient(90deg, #eef2f6 0%, #e2e8f0 45%, #eef2f6 90%);
+  background-size: 200% 100%;
+  animation: fd-home-skel-shimmer 1.1s ease-in-out infinite;
+}
+
+.fd-home-skel-block--carousel {
+  min-height: 168px;
+  margin-bottom: 18px;
+}
+
+.fd-home-skel-block--section {
+  height: 22px;
+  width: 55%;
+  max-width: 280px;
+  margin-bottom: 14px;
+}
+
+.fd-home-skel-block--grid {
+  min-height: 220px;
+  margin-bottom: 24px;
+}
+
+@keyframes fd-home-skel-shimmer {
+  0% {
+    background-position: 100% 0;
+  }
+  100% {
+    background-position: -100% 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .fd-home-explore-lazy,
+  .fd-home-skel-block {
+    animation: none;
+    background: #eef2f6;
+  }
+}
